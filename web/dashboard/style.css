@@ -401,3 +401,26 @@ details .form { margin-top: 10px; }
 .th .acts { padding: 8px 12px 12px; display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
 .lang-card { grid-column: 1 / -1; }
 .lang-card .form { max-width: 420px; }
+
+/* Mode caster */
+.caster-pv { position: relative; overflow: hidden; border-radius: 12px; border: 1px solid var(--line); background: #05070d; margin: 12px 0; }
+.caster-pv iframe { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; pointer-events: none; }
+#tab-caster .url { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+#tab-caster .url input { flex: 1; min-width: 240px; }
+.caster-rate { margin-top: 12px; }
+.caster-rate .actions { margin-top: 8px; }
+.series { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin: 14px 0; }
+.series .sr { padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.series .sr.c0 { border-left: 4px solid #3a8fff; }
+.series .sr.c1 { border-right: 4px solid #ff7f22; }
+.series .sr b { font: 800 17px var(--display); letter-spacing: 0.05em; text-transform: uppercase; text-align: center; }
+.series .sw { display: flex; align-items: center; gap: 12px; }
+.series .sw span { font: 900 34px var(--display); min-width: 28px; text-align: center; }
+.series .vs { color: var(--muted); font-size: 13px; font-weight: 700; text-align: center; }
+.caster-players .table td, .caster-players .table th { padding: 6px 8px; text-align: center; }
+.caster-players .table td:first-child { text-align: left; font-weight: 700; }
+.caster-players tr.c0 td:first-child { border-left: 3px solid #3a8fff; }
+.caster-players tr.c1 td:first-child { border-left: 3px solid #ff7f22; }
+.caster-players tr.tgt td { background: rgba(255, 255, 255, 0.05); }
+.caster-players .mini { display: inline-block; width: 60px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); margin-right: 8px; vertical-align: middle; overflow: hidden; }
+.caster-players .mini i { display: block; height: 100%; background: linear-gradient(90deg, #ffd35a, #ff9d2a); }

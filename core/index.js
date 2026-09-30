@@ -18,6 +18,7 @@ const { StreamBridge } = require('./streamBridge');
 const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
 const { ThemeManager } = require('./themes');
+const { CasterFeed } = require('./caster');
 const { categoryLabels, describePlaylist, playlistLabel } = require('./playlists');
 const i18n = require('./i18n');
 
@@ -37,6 +38,9 @@ class Core extends EventEmitter {
     this.soundsDir = path.join(dataDir, 'sounds');
     this.logWatcher = new RlLogWatcher({ documentsDir, logPath });
     this.tracker = new Tracker({ store: this.store, logWatcher: this.logWatcher });
+    this.caster = new CasterFeed();
+    this._casterTimer = null;
+    this._casterSentAt = 0;
     this.mmr = new MmrTracker(this.store);
     this.themes = new ThemeManager({ builtinDir: path.join(webDir, 'themes'), userDir: path.join(dataDir, 'themes') });
     this.stats = new StatsApiClient(this._statsOpts({ effective: rlConfig.DEFAULTS }));
@@ -131,11 +135,15 @@ class Core extends EventEmitter {
 
   // ---------------------------------------------------------------- événements
   _wire() {
-    this.stats.on('message', (env) => this.tracker.handle(env.event, env.data));
+    this.stats.on('message', (env) => {
+      this.tracker.handle(env.event, env.data);
+      this.caster.handle(env.event, env.data);
+    });
     this.stats.on('connected', (kind) => this.log(tr('s.apiConnected', { k: kind === 'tcp' ? 'TCP' : 'WebSocket' })));
     this.stats.on('disconnected', () => {
       this.log(tr('s.apiDisconnected'));
       this.tracker.onDisconnected();
+      this.caster.onDisconnected();
     });
     this.stats.on('status', () => this._changed());
 
@@ -179,6 +187,11 @@ class Core extends EventEmitter {
     this.tracker.on('record-updated', () => this._statsChanged());
 
     this.obs.on('status', () => this._changed());
+
+    // Mode caster : état envoyé seulement aux pages abonnées (overlay caster, tableau de bord)
+    this.caster.on('update', () => this._casterChanged());
+    this.caster.on('event', (e) => this.server.broadcast({ type: 'casterEvent', event: e }, { topic: 'caster' }));
+    this.caster.on('ended', (r) => this._casterEnded(r));
     this.obs.on('log', (m) => this.log(m, 'warn'));
   }
 
@@ -252,6 +265,76 @@ class Core extends EventEmitter {
     this.server.broadcast({ type: 'alert', alert });
     this.emit('alert', alert);
     return alert;
+  }
+
+  // ---------------------------------------------------------------- mode caster
+  casterState() {
+    const c = this.store.settings.caster;
+    const m = this.caster.state();
+    const bestOf = [1, 3, 5, 7].includes(Number(c.bestOf)) ? Number(c.bestOf) : 5;
+    const need = Math.ceil(bestOf / 2);
+    const wins = [0, 1].map((i) => Math.max(0, Math.min(need, Math.round(Number(c.wins && c.wins[i]) || 0))));
+    const teams = m.teams.map((t) => ({
+      ...t,
+      name: (c.names && String(c.names[t.num] || '').trim()) || t.name || tr(t.num === 0 ? 'team.blue' : 'team.orange'),
+      seriesWins: wins[t.num],
+    }));
+    return {
+      match: { ...m, teams },
+      series: { title: c.title || '', bestOf, need, wins, game: Math.min(bestOf, wins[0] + wins[1] + (m.ended ? 0 : 1)), done: wins.some((w) => w >= need) },
+      options: {
+        showSeries: c.showSeries !== false,
+        showBoosts: c.showBoosts !== false,
+        showTarget: c.showTarget !== false,
+        showGoals: c.showGoals !== false,
+        showFeed: c.showFeed !== false,
+        showPostgame: c.showPostgame !== false,
+        speedUnit: c.speedUnit === 'mph' ? 'mph' : 'kmh',
+      },
+    };
+  }
+
+  // au plus ~20 envois par seconde
+  _casterChanged() {
+    if (this._casterTimer) return;
+    const wait = Math.max(0, 50 - (Date.now() - this._casterSentAt));
+    this._casterTimer = setTimeout(() => {
+      this._casterTimer = null;
+      this._casterSentAt = Date.now();
+      if (this.server.server) this.server.broadcast({ type: 'caster', state: this.casterState() }, { topic: 'caster' });
+    }, wait);
+  }
+
+  _casterEnded({ winner }) {
+    const c = this.store.settings.caster;
+    if (!c.autoSeries) return;
+    const st = this.casterState();
+    if (st.series.done) return;
+    const wins = [...st.series.wins];
+    wins[winner]++;
+    this.store.patchSettings({ caster: { wins } });
+    this.log(tr('s.casterWin', { n: st.match.teams[winner].name, a: wins[0], b: wins[1] }));
+    this._casterChanged();
+    this._changed();
+  }
+
+  casterAction(name) {
+    const c = this.store.settings.caster;
+    if (name === 'swap') {
+      this.store.patchSettings({ caster: { names: [c.names[1] || '', c.names[0] || ''], wins: [c.wins[1] || 0, c.wins[0] || 0] } });
+    } else if (name === 'reset') {
+      this.store.patchSettings({ caster: { wins: [0, 0] } });
+    } else if (/^(win|unwin)-[01]$/.test(name)) {
+      const i = Number(name.slice(-1));
+      const wins = [Number(c.wins[0]) || 0, Number(c.wins[1]) || 0];
+      wins[i] = Math.max(0, wins[i] + (name.startsWith('win') ? 1 : -1));
+      this.store.patchSettings({ caster: { wins } });
+    } else {
+      return { ok: false, error: tr('s.unknownAction', { n: name }) };
+    }
+    this._casterChanged();
+    this._changed();
+    return { ok: true, series: this.casterState().series };
   }
 
   labelWin() {
@@ -575,6 +658,7 @@ class Core extends EventEmitter {
       this.mmr._learn = null;
       this._statsChanged();
     }
+    if (langChanged || JSON.stringify(prev.caster) !== JSON.stringify(s.caster)) this._casterChanged();
     if (langChanged || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay) || JSON.stringify(prev.alerts) !== JSON.stringify(s.alerts)) {
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
     }
@@ -600,15 +684,17 @@ class Core extends EventEmitter {
     return s;
   }
 
-  async enableStatsApi(elevated = false) {
+  // rate : fréquence imposée (mode caster), sinon on garde celle du jeu
+  async enableStatsApi(elevated = false, rate = null) {
+    const opts = rate ? { rate: Math.max(1, Math.min(120, Math.round(rate))), force: true } : {};
     try {
       if (elevated) {
-        await rlConfig.enableStatsApiElevated(this.documentsDir);
+        await rlConfig.enableStatsApiElevated(this.documentsDir, opts);
         await this.refreshRlConfig();
         this.log(tr('s.apiAdmin'));
         return { ok: true, config: this.rlConfig };
       }
-      const r = await rlConfig.enableStatsApi(this.documentsDir);
+      const r = await rlConfig.enableStatsApi(this.documentsDir, opts);
       await this.refreshRlConfig();
       const failed = r.results.filter((x) => !x.ok);
       if (failed.length) this.log(tr('s.writeFail', { f: failed.map((f) => f.file).join(', ') }), 'warn');

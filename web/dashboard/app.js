@@ -130,6 +130,7 @@
     } catch {}
     if (name === 'history') loadHistory();
     if (name === 'stream') layoutPreviews();
+    if (name === 'caster') layoutCasterPv();
   }
   $$('.side button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
@@ -332,6 +333,23 @@
       if (e.target.matches('[data-set$=".scene"]')) fillSourceList(e.target.closest('.o-row').dataset.type);
     });
     $('#obsRefresh').addEventListener('click', loadObsScenes);
+
+    // Mode caster
+    $('#casterCopy').addEventListener('click', () => copy($('#casterUrl').value));
+    $('#casterOpen').addEventListener('click', () => post('/api/open', { target: 'url', url: $('#casterUrl').value }));
+    document.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-cs]');
+      if (!b) return;
+      const r = await post(`/api/caster/${b.dataset.cs}`);
+      if (r.ok === false) toast(r.error || t('d.failed'), 'err');
+    });
+    $$('[data-csname]').forEach((el) =>
+      el.addEventListener('change', () => {
+        const names = [$('#csName0').value.trim(), $('#csName1').value.trim()];
+        saveSetting('caster.names', names);
+      })
+    );
+    new ResizeObserver(layoutCasterPv).observe($('.caster-pv'));
 
     // Historique
     $('#histScope').addEventListener('click', (e) => {
@@ -792,6 +810,91 @@
     $(`#dl-src-${type}`).innerHTML = srcs.map((s) => `<option value="${esc(s)}"></option>`).join('');
   }
 
+  // ------------------------------------------------------------------ mode caster
+  let C = null; // état du mode caster
+  function layoutCasterPv() {
+    const box = $('.caster-pv');
+    const f = $('#casterPv');
+    if (!box || !f) return;
+    const k = box.clientWidth / 1920 || 0.3;
+    f.style.transform = `scale(${k})`;
+    box.style.height = `${Math.round(1080 * k)}px`;
+  }
+
+  function renderCasterStatic() {
+    const url = `${baseUrl()}/overlay/caster`;
+    if ($('#casterUrl').value !== url) {
+      $('#casterUrl').value = url;
+      $('#casterPv').src = `${url}?preview=1&demo=1`;
+      layoutCasterPv();
+    }
+    const ovs = D.status.overlays || {};
+    $('#casterLive').textContent = ovs.caster ? tn('o.sources', ovs.caster) : '';
+    const c = D.settings.caster;
+    for (const i of [0, 1]) {
+      const el = $(`#csName${i}`);
+      if (document.activeElement !== el) el.value = (c.names && c.names[i]) || '';
+    }
+    // fréquence de la Stats API : 30/s conseillé pour des barres de boost fluides
+    const cfg = D.status.rlConfig;
+    const rate = cfg && cfg.effective ? Number(cfg.effective.PacketSendRate) || 0 : 0;
+    $('#casterRate').innerHTML =
+      rate >= 20
+        ? `<div class="ok">${esc(t('d.cs.rateOk', { n: rate }))}</div>`
+        : `<div class="wr">${esc(t('d.cs.rateLow', { n: rate }))}</div><div class="actions"><button class="btn small primary" id="casterFluid">${esc(t('d.cs.rateBtn'))}</button></div>`;
+    const fb = $('#casterFluid');
+    if (fb) fb.onclick = setFluid;
+    const b = baseUrl();
+    const k = encodeURIComponent(D.settings.apiKey);
+    const urls = [
+      [t('d.cs.u.win0'), `${b}/api/caster/win-0?key=${k}`],
+      [t('d.cs.u.win1'), `${b}/api/caster/win-1?key=${k}`],
+      [t('d.cs.u.unwin0'), `${b}/api/caster/unwin-0?key=${k}`],
+      [t('d.cs.u.unwin1'), `${b}/api/caster/unwin-1?key=${k}`],
+      [t('d.cs.u.swap'), `${b}/api/caster/swap?key=${k}`],
+      [t('d.cs.u.reset'), `${b}/api/caster/reset?key=${k}`],
+    ];
+    $('#casterUrls').innerHTML = urls
+      .map(([n, u]) => `<div class="url-row"><span>${esc(n)}</span><input readonly value="${esc(u)}" /><button class="btn small" data-copyurl="${esc(u)}">${esc(t('d.copy'))}</button></div>`)
+      .join('');
+  }
+
+  async function setFluid() {
+    const r = await post('/api/statsapi/enable', { rate: 30 });
+    if (r.ok) return toast(t('d.cs.rateDone'), 'ok');
+    if (r.needsAdmin && (await confirmBox(t('d.adminQ'), t('d.retry')))) {
+      const r2 = await post('/api/statsapi/enable', { rate: 30, elevated: true });
+      return toast(r2.ok ? t('d.cs.rateDone') : t('d.failed'), r2.ok ? 'ok' : 'err');
+    }
+    toast(r.error || t('d.cfgFail'), 'err');
+  }
+
+  function renderCaster() {
+    if (!C || !D) return;
+    const m = C.match;
+    const ser = C.series;
+    // série
+    const team = (i) => {
+      const tm = m.teams[i];
+      return `<div class="sr c${i}"><b>${esc(tm.name)}</b><div class="sw"><button class="btn icon small" data-cs="unwin-${i}">−</button><span>${ser.wins[i]}</span><button class="btn icon small" data-cs="win-${i}">+</button></div></div>`;
+    };
+    $('#casterSeries').innerHTML = `${team(0)}<div class="vs">${ser.bestOf > 1 ? esc(t('d.cs.game', { n: ser.game, b: ser.bestOf })) : esc(t('d.cs.single'))}</div>${team(1)}`;
+    for (const i of [0, 1]) $(`#csName${i}`).placeholder = m.teams[i].name;
+    // partie en direct
+    $('#casterClock').textContent = m.active ? `${m.teams[0].score} - ${m.teams[1].score} · ${OT.fmtClock(m.time, m.overtime) || ''}${m.replay ? ` · ${t('c.replay')}` : ''}` : '';
+    if (!m.active || !m.players.length) {
+      $('#casterPlayers').innerHTML = `<div class="empty">${esc(t('d.cs.noMatch'))}</div>`;
+      return;
+    }
+    const rows = m.players
+      .map(
+        (p) => `<tr class="c${p.team}${p.key === m.target ? ' tgt' : ''}"><td>${esc(p.name)}</td><td><div class="mini"><i style="width:${p.boost}%"></i></div>${p.demolished ? 'DEMO' : p.boost}</td><td>${p.score}</td><td>${p.goals}</td><td>${p.assists}</td><td>${p.saves}</td><td>${p.shots}</td><td>${p.demos}</td></tr>`
+      )
+      .join('');
+    const head = ['', 'Boost', t('c.score'), t('c.goals'), t('c.assists'), t('c.saves'), t('c.shots'), t('c.demos')].map((h) => `<th>${esc(h)}</th>`).join('');
+    $('#casterPlayers').innerHTML = `<table class="table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
   // ------------------------------------------------------------------ historique
   async function loadHistory(force) {
     if (!$('#tab-history').classList.contains('active')) return;
@@ -909,6 +1012,7 @@
     if (changed('layout', D.settings.overlay.layout)) renderLayout();
     if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
     renderObs();
+    if (changed('caster', [D.port, D.status.overlays, D.settings.caster, D.status.rlConfig, D.settings.apiKey])) renderCasterStatic();
     if (changed('settingsView', [D.status.account, D.status.rlConfig, D.status.api.state, D.hotkeyErrors, D.settings, D.textDir, D.lanAddresses, D.port, D.mmr && D.mmr.known])) renderSettings();
     if (historyDirty) loadHistory();
   }
@@ -922,6 +1026,10 @@
     D = d;
     renderAll();
   });
+  OT.on('caster', (c) => {
+    C = c;
+    renderCaster();
+  });
   OT.on('state', (s) => {
     S = s;
     renderScore();
@@ -929,6 +1037,6 @@
   OT.on('close', () => {
     $('#statusChips').innerHTML = `<span class="chip err"><b>${esc(t('d.lost'))}</b></span>`;
   });
-  OT.connect({ role: 'dashboard', key: KEY });
+  OT.connect({ role: 'dashboard', key: KEY, topics: ['caster'] });
   setInterval(() => D && renderLive(), 30000);
 })();

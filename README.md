@@ -104,6 +104,7 @@ L'app vit dans la zone de notification (icône **RL**) ; fermer la fenêtre ne l
 | Alertes | `http://127.0.0.1:5757/overlay/alerts` | plein écran |
 | Dernières parties | `http://127.0.0.1:5757/overlay/history` | 700 × 90 |
 | Récap de session | `http://127.0.0.1:5757/overlay/summary` | plein écran |
+| Caster (spectateur) | `http://127.0.0.1:5757/overlay/caster` | plein écran |
 
 > [!TIP]
 > Pour entendre les alertes sur le stream, coche **« Contrôler l'audio via OBS »** dans les propriétés de la source.
@@ -140,6 +141,29 @@ Change la DA de tous les overlays en un clic, ou crée la tienne avec tes images
 
 Guide complet (tous les éléments modifiables, exemples) : **[docs/THEMES.md](docs/THEMES.md)**.
 
+## Mode caster
+
+Pour caster un match en **spectateur** (tournoi, scrim, match privé) : un overlay de diffusion complet, alimenté en direct par la Stats API.
+
+<table>
+  <tr>
+    <td><img src="docs/images/caster.png" alt="Overlay caster en direct" /></td>
+    <td><img src="docs/images/caster-post.png" alt="Tableau de fin de match" /></td>
+  </tr>
+</table>
+
+| | |
+| --- | --- |
+| **Tableau des scores** | Noms d'équipe (ceux du jeu ou les tiens), score, chrono, overtime, replay, titre de l'événement |
+| **Série** | BO1, BO3, BO5, BO7 : victoire comptée automatiquement à la fin de chaque match, boutons + / − et « Inverser les côtés » (aussi depuis un Stream Deck) |
+| **Joueurs** | Boost de chacun, démolitions, carte du joueur suivi (boost, score, buts, passes, arrêts, tirs, démos) |
+| **Actions** | Bannière de but (buteur, passe, vitesse en km/h ou mph), statfeed (démolitions, arrêts épiques…) |
+| **Fin de match** | Tableau des stats de tous les joueurs, MVP, vainqueur du match ou de la série |
+
+Source OBS : `http://127.0.0.1:5757/overlay/caster` en **plein écran**. Pour séparer les éléments dans plusieurs scènes :
+`?hide=bug,boosts,target,goals,feed,post`. Pour des barres de boost fluides, passe la Stats API à 30 mises à jour/s
+(bouton dans l'onglet **Caster**, puis redémarre Rocket League).
+
 ## Fonctionnalités
 
 | | |
@@ -147,6 +171,7 @@ Guide complet (tous les éléments modifiables, exemples) : **[docs/THEMES.md](d
 | **Détection automatique** | Victoire, défaite, overtime, forfait, abandon (défaite en classé), MVP, mode de jeu (2v2 classé, 3v3…) |
 | **MMR réel** | Lu dans le journal du jeu, affiché en **+x** (vert) ou **−x** (rouge) ; estimation immédiate corrigée à la recherche suivante |
 | **Alertes animées** | Victoire, défaite, overtime, victoire / défaite en OT, séries (3, 5, 10…), sons intégrés ou personnalisés |
+| **Mode caster** | Overlay de diffusion pour caster en spectateur : scores, série BO, boost de tous les joueurs, joueur suivi, buts, tableau final |
 | **Thèmes** | DA toute faite ou perso (images, police, couleurs, sons), installables et partageables en .zip |
 | **Compteur** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical ou collé à la jauge de boost, badge OVERTIME en direct |
 | **Sessions et historique** | Nouvelle session automatique après 6 h sans jouer, historique complet par mode, corrections manuelles |

@@ -36,7 +36,7 @@ const MIME = {
 // Pages d'overlay : un thème ne peut charger que des fichiers locaux (pas de pistage, pas de script externe)
 const OVERLAY_CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:";
 const { t: tr, getLang } = require('./i18n');
-const OVERLAYS = new Set(['counter', 'alerts', 'history', 'summary']);
+const OVERLAYS = new Set(['counter', 'alerts', 'history', 'summary', 'caster']);
 
 function isLoopback(addr) {
   return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1';
@@ -151,6 +151,12 @@ class AppServer extends EventEmitter {
         try {
           const m = JSON.parse(raw.toString());
           if (m.type === 'hello' && typeof m.overlay === 'string') ws.overlay = m.overlay.slice(0, 20);
+          // abonnement aux données du mode caster (nombreuses : envoyées seulement à qui les demande)
+          if (m.type === 'sub' && m.topic === 'caster') {
+            ws.subs = ws.subs || new Set();
+            ws.subs.add('caster');
+            this._send(ws, { type: 'caster', state: this.core.casterState() });
+          }
         } catch {}
       });
       this._send(ws, { type: 'state', state: this.core.publicState() });
@@ -177,9 +183,13 @@ class AppServer extends EventEmitter {
     if (ws.readyState === 1) ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
   }
 
-  broadcast(msg, { dashboardOnly = false } = {}) {
+  broadcast(msg, { dashboardOnly = false, topic = null } = {}) {
     const data = JSON.stringify(msg);
-    for (const c of this.clients) if (!dashboardOnly || c.isDashboard) this._send(c, data);
+    for (const c of this.clients) {
+      if (dashboardOnly && !c.isDashboard) continue;
+      if (topic && !(c.subs && c.subs.has(topic))) continue;
+      this._send(c, data);
+    }
   }
 
   overlayClients() {
@@ -233,7 +243,7 @@ class AppServer extends EventEmitter {
     m = /^\/api\/text\/([a-z]+)$/.exec(p);
     if (m) {
       const t = this.core.textValue(m[1]);
-      return t == null ? this._text(res, 404, 'Champ inconnu') : this._text(res, 200, t);
+      return t == null ? this._text(res, 404, tr('s.unknownField')) : this._text(res, 200, t);
     }
 
     // ---- API protégée par la clé
@@ -246,6 +256,13 @@ class AppServer extends EventEmitter {
         const r = await this.core.action(m[1], params);
         return this._json(res, r && r.ok === false ? 400 : 200, { ok: true, ...r, stats: this.core.publicState().session });
       }
+      // mode caster : série (aussi utilisable depuis un Stream Deck)
+      m = /^\/api\/caster\/(swap|reset|win-[01]|unwin-[01])$/.exec(p);
+      if (m && (method === 'GET' || method === 'POST')) {
+        const r = this.core.casterAction(m[1]);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/caster') return this._json(res, 200, this.core.casterState());
       if (p === '/api/dashboard') return this._json(res, 200, this.core.dashboardState());
       if (p === '/api/settings' && method === 'POST') {
         const patch = await this._body(req, true);
@@ -266,7 +283,7 @@ class AppServer extends EventEmitter {
       }
       if (p === '/api/statsapi/enable' && method === 'POST') {
         const b = await this._body(req, true).catch(() => ({}));
-        return this._json(res, 200, await this.core.enableStatsApi(!!b.elevated));
+        return this._json(res, 200, await this.core.enableStatsApi(!!b.elevated, Number(b.rate) || null));
       }
       if (p === '/api/statsapi/refresh' && method === 'POST') return this._json(res, 200, await this.core.refreshRlConfig());
       if (p === '/api/obs/scenes') return this._json(res, 200, await this.core.obsScenes());

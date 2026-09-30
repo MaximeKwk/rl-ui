@@ -155,24 +155,25 @@ function writeFileKeepingEncoding(file, text) {
 
 // Active la Stats API (PacketSendRate > 0) dans tous les fichiers trouvés.
 // Le TAStatsAPI.ini de Documents n'est créé que si aucun fichier du jeu n'a pu être modifié.
-async function enableStatsApi(documentsDir, { rate = 10 } = {}) {
+// force = remplace aussi une fréquence déjà réglée (mode caster : barres de boost fluides)
+async function enableStatsApi(documentsDir, { rate = 10, force = false } = {}) {
   const cfg = await getStatsConfig(documentsDir);
   const results = [];
   const targets = [...cfg.defaults.filter((d) => d.exists).map((d) => d.file)];
   if (cfg.user.exists) targets.push(cfg.user.file);
   for (const file of targets) {
-    results.push(writeStatsValues(file, rate));
+    results.push(writeStatsValues(file, rate, force));
   }
-  if (!results.some((r) => r.ok)) results.push(writeStatsValues(cfg.user.file, rate));
+  if (!results.some((r) => r.ok)) results.push(writeStatsValues(cfg.user.file, rate, force));
   return { results, config: await getStatsConfig(documentsDir) };
 }
 
-function writeStatsValues(file, rate) {
+function writeStatsValues(file, rate, force = false) {
   const cur = readStatsIni(file);
   const values = {
     Port: Number.isFinite(cur.Port) && cur.Port > 0 ? cur.Port : DEFAULTS.Port,
     WebPort: Number.isFinite(cur.WebPort) && cur.WebPort > 0 ? cur.WebPort : DEFAULTS.WebPort,
-    PacketSendRate: Number.isFinite(cur.PacketSendRate) && cur.PacketSendRate > 0 ? cur.PacketSendRate : rate,
+    PacketSendRate: !force && Number.isFinite(cur.PacketSendRate) && cur.PacketSendRate > 0 ? cur.PacketSendRate : rate,
   };
   try {
     let text = '';
@@ -204,7 +205,7 @@ function writeElevated(file, text) {
   });
 }
 
-async function enableStatsApiElevated(documentsDir, { rate = 10 } = {}) {
+async function enableStatsApiElevated(documentsDir, { rate = 10, force = false } = {}) {
   const cfg = await getStatsConfig(documentsDir);
   for (const d of cfg.defaults) {
     if (!d.exists) continue;
@@ -212,7 +213,7 @@ async function enableStatsApiElevated(documentsDir, { rate = 10 } = {}) {
     const values = {
       Port: d.Port > 0 ? d.Port : DEFAULTS.Port,
       WebPort: d.WebPort > 0 ? d.WebPort : DEFAULTS.WebPort,
-      PacketSendRate: d.PacketSendRate > 0 ? d.PacketSendRate : rate,
+      PacketSendRate: !force && d.PacketSendRate > 0 ? d.PacketSendRate : rate,
     };
     await writeElevated(d.file, setIniValues(text, SECTION, values));
   }

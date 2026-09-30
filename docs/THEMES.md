@@ -57,7 +57,7 @@ Les thèmes perso sont rangés dans le dossier de données de RL-UI (`%APPDATA%\
 
 ### Cibler un overlay
 
-Chaque page porte une classe sur `<body>` : `.ov-counter`, `.ov-alerts`, `.ov-history`, `.ov-summary`. Le thème actif ajoute aussi `.pack-<id>`.
+Chaque page porte une classe sur `<body>` : `.ov-counter`, `.ov-alerts`, `.ov-history`, `.ov-summary`, `.ov-caster`. Le thème actif ajoute aussi `.pack-<id>`.
 
 ### Éléments modifiables
 
@@ -82,6 +82,19 @@ Chaque page porte une classe sur `<body>` : `.ov-counter`, `.ov-alerts`, `.ov-hi
 | `.title .tx` | Le grand titre |
 | `.chip`, `.chip.hl`, `.chip.mmr` | Pastilles sous le titre (score, MMR, série…) |
 | `.art` | **Emplacement libre pour une image** (logo, mascotte), centré sur l'alerte |
+
+**Caster** (`.ov-caster`)
+
+| Sélecteur | Élément |
+| --- | --- |
+| `.bug`, `.bug .team.c0` / `.c1`, `.bug .score`, `.bug .clock` | Tableau des scores (`.clock.ot` en overtime, `.clock.replay` pendant un replay) |
+| `.pips i.on` | Matchs gagnés dans la série |
+| `.boosts .pl`, `.pl.tgt`, `.pl.dead`, `.pl .bar i` | Boost des joueurs (joueur suivi, démoli) |
+| `.target` | Carte du joueur suivi |
+| `.goal .tag` | Bannière de but |
+| `.feed .it` | Statfeed |
+| `.post .card` | Tableau de fin de match |
+| `--blue`, `--orange` | Couleurs des équipes (reçues du jeu) ; `--tc` = couleur de l'équipe de l'élément |
 
 **Dernières parties** (`.ov-history`) : `.bar`, `.pill`, `.ttl`, `.deco`.
 **Récap de session** (`.ov-summary`) : `.card`, `.big b`, `.tile`, `.pill`, `.deco`.

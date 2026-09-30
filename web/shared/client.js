@@ -45,6 +45,7 @@
       OT.connected = true;
       // les aperçus du tableau de bord ne comptent pas comme des sources OBS
       if (opts.overlay && !params.get('preview')) ws.send(JSON.stringify({ type: 'hello', overlay: opts.overlay }));
+      for (const topic of opts.topics || []) ws.send(JSON.stringify({ type: 'sub', topic }));
       OT.emit('open');
     };
     ws.onmessage = (e) => {
@@ -63,6 +64,11 @@
       } else if (m.type === 'dashboard') {
         OT.dashboard = m.data;
         OT.emit('dashboard', m.data);
+      } else if (m.type === 'caster') {
+        OT.caster = m.state;
+        OT.emit('caster', m.state);
+      } else if (m.type === 'casterEvent') {
+        OT.emit('casterEvent', m.event);
       } else if (m.type === 'alert') {
         OT.emit('alert', m.alert);
       }

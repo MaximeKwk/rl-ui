@@ -26,6 +26,7 @@
         <button data-tab="stream"><svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 00-2 2v12a2 2 0 002 2h5v2h8v-2h5a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H3V5h18v12zM16 11l-7 4V7z" /></svg><span data-i18n="h.nav.stream">OBS overlays</span></button>
         <button data-tab="history"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.9 3.9L9 12H6a7 7 0 117 7 6.9 6.9 0 01-4.9-2.1l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z" /></svg><span data-i18n="h.nav.history">History</span></button>
         <button data-tab="obs"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 3.2a3.3 3.3 0 11-.01 6.61A3.3 3.3 0 0112 5.2zM6.6 16.6a3.3 3.3 0 116.6 0 3.3 3.3 0 01-6.6 0zm7.6-2.1a3.3 3.3 0 116.3-1.3 3.3 3.3 0 01-6.3 1.3z" /></svg><span data-i18n="h.nav.obs">Stream actions</span></button>
+        <button data-tab="caster"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11h-2z" /></svg><span data-i18n="h.nav.caster">Caster</span></button>
         <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 000-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 00-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 00-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 000 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 001.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 001.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" transform="translate(-1 0)" /></svg><span data-i18n="h.nav.settings">Settings</span></button>
         <button data-tab="help"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2v2zm2.1-7.7l-.9.9A3.4 3.4 0 0013 15h-2v-.5a4 4 0 011.2-2.8l1.2-1.3A2 2 0 0014 9a2 2 0 00-4 0H8a4 4 0 118 0 3.2 3.2 0 01-.9 2.3z" /></svg><span data-i18n="h.nav.help">Help</span></button>
         <div class="side-foot">
@@ -297,6 +298,87 @@
               Example: show a “Hype cam” source for 8 s on overtime, or switch to a “Victory” scene and come back automatically.
             </p>
             <div class="obs-table" id="obsTable"></div>
+          </div>
+        </section>
+
+        <!-- ============================== CASTER ============================== -->
+        <section id="tab-caster" class="tab">
+          <div class="card">
+            <div class="card-head">
+              <h2 data-i18n="h.cs.title">Caster mode</h2>
+              <span class="muted" data-i18n="h.cs.sub">For casting matches as a spectator</span>
+            </div>
+            <p class="muted" data-i18n="h.cs.intro">
+              A full broadcast overlay: scorebug with the series score, every player's boost, the spectated player's card, goal banner, statfeed
+              and an end-of-match scoreboard. Add it in OBS as a <b>full-screen</b> Browser source, then join the match as a <b>spectator</b>:
+              it shows up by itself.
+            </p>
+            <div class="caster-pv"><iframe id="casterPv" data-w="1920" data-h="1080"></iframe></div>
+            <div class="url">
+              <input readonly id="casterUrl" />
+              <button class="btn small" id="casterCopy" data-i18n="h.cs.copy">Copy</button>
+              <button class="btn small ghost" id="casterOpen" data-i18n="h.cs.open">Open</button>
+              <span class="muted small" id="casterLive"></span>
+            </div>
+            <div class="info-box caster-rate" id="casterRate"></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <h3 data-i18n="h.cs.series">Match and series</h3>
+              <div class="form">
+                <label><span data-i18n="h.cs.event">Event title (optional)</span> <input data-set="caster.title" maxlength="60" placeholder="RL-UI Cup · Grand Final" /></label>
+                <div class="row2">
+                  <label><span data-i18n="h.cs.blue">Blue team name</span> <input data-csname="0" maxlength="40" id="csName0" /></label>
+                  <label><span data-i18n="h.cs.orange">Orange team name</span> <input data-csname="1" maxlength="40" id="csName1" /></label>
+                </div>
+                <label><span data-i18n="h.cs.format">Format</span>
+                  <select data-set="caster.bestOf" data-type="number">
+                    <option value="1" data-i18n="h.cs.bo1">Single game (Bo1)</option>
+                    <option value="3">Best of 3</option>
+                    <option value="5">Best of 5</option>
+                    <option value="7">Best of 7</option>
+                  </select>
+                </label>
+              </div>
+              <div class="series" id="casterSeries"></div>
+              <div class="actions">
+                <button class="btn" data-cs="swap" data-i18n="h.cs.swap">Swap sides</button>
+                <button class="btn ghost" data-cs="reset" data-i18n="h.cs.reset">Reset series</button>
+              </div>
+              <label class="check"><input type="checkbox" data-set="caster.autoSeries" /> <span data-i18n="h.cs.auto">Count the winner automatically at the end of each game</span></label>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="h.cs.display">Display</h3>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="caster.showSeries" /> <span data-i18n="h.cs.showSeries">Series score and game number</span></label>
+                <label class="check"><input type="checkbox" data-set="caster.showBoosts" /> <span data-i18n="h.cs.showBoosts">Every player's boost</span></label>
+                <label class="check"><input type="checkbox" data-set="caster.showTarget" /> <span data-i18n="h.cs.showTarget">Spectated player card</span></label>
+                <label class="check"><input type="checkbox" data-set="caster.showGoals" /> <span data-i18n="h.cs.showGoals">Goal banner (scorer, assist, speed)</span></label>
+                <label class="check"><input type="checkbox" data-set="caster.showFeed" /> <span data-i18n="h.cs.showFeed">Statfeed (demolitions, epic saves…)</span></label>
+                <label class="check"><input type="checkbox" data-set="caster.showPostgame" /> <span data-i18n="h.cs.showPost">End-of-match scoreboard</span></label>
+                <label><span data-i18n="h.cs.unit">Speed unit</span>
+                  <select data-set="caster.speedUnit">
+                    <option value="kmh">km/h</option>
+                    <option value="mph">mph</option>
+                  </select>
+                </label>
+              </div>
+              <p class="muted small" data-i18n="h.cs.hideHelp">Hide parts in a single OBS source with the URL: <code>?hide=bug,boosts,target,goals,feed,post</code> — handy to put the scorebug and the boosts in separate scenes.</p>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head"><h3 data-i18n="h.cs.live">Live match</h3><span class="muted" id="casterClock"></span></div>
+              <div id="casterPlayers" class="caster-players"></div>
+            </div>
+            <div class="card">
+              <h3>Stream Deck</h3>
+              <p class="muted" data-i18n="h.cs.deck">Update the series from a Stream Deck (<b>Website</b> action, “GET request in background”).</p>
+              <div id="casterUrls" class="url-list"></div>
+            </div>
           </div>
         </section>
 

@@ -97,6 +97,21 @@ function defaultSettings() {
       undo: 'Ctrl+Alt+Shift+Backspace',
     },
     app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false },
+    // Mode caster : noms d'équipe (vide = nom du jeu), série (BO), options d'affichage de l'overlay
+    caster: {
+      title: '',
+      names: ['', ''],
+      bestOf: 5, // 1 | 3 | 5 | 7
+      wins: [0, 0],
+      autoSeries: true, // +1 à l'équipe gagnante à la fin de chaque partie observée
+      showSeries: true,
+      showBoosts: true,
+      showTarget: true,
+      showGoals: true,
+      showFeed: true,
+      showPostgame: true,
+      speedUnit: 'kmh', // kmh | mph
+    },
   };
 }
 
