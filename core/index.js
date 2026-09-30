@@ -19,6 +19,7 @@ const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
 const { ThemeManager } = require('./themes');
 const { CasterFeed } = require('./caster');
+const { TwitchChat } = require('./twitch');
 const { categoryLabels, describePlaylist, playlistLabel } = require('./playlists');
 const i18n = require('./i18n');
 
@@ -39,6 +40,7 @@ class Core extends EventEmitter {
     this.logWatcher = new RlLogWatcher({ documentsDir, logPath });
     this.tracker = new Tracker({ store: this.store, logWatcher: this.logWatcher });
     this.caster = new CasterFeed();
+    this.chat = new TwitchChat({ dataDir, getSettings: () => this.store.settings, render: (cmd) => this.chatResponse(cmd) });
     this._casterTimer = null;
     this._casterSentAt = 0;
     this.mmr = new MmrTracker(this.store);
@@ -65,6 +67,7 @@ class Core extends EventEmitter {
     this.stats.start();
     this.logWatcher.start();
     this.themes.watch();
+    this.chat.start();
     this.themes.on('changed', () => {
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
       this._changed();
@@ -86,6 +89,7 @@ class Core extends EventEmitter {
     this.stats.stop();
     this.logWatcher.stop();
     this.themes.stop();
+    this.chat.disconnect();
     this.obs.stop();
     await this.server.stop();
     this.store.flush();
@@ -193,6 +197,9 @@ class Core extends EventEmitter {
     this.caster.on('update', () => this._casterChanged());
     this.caster.on('event', (e) => this.server.broadcast({ type: 'casterEvent', event: e }, { topic: 'caster' }));
     this.caster.on('ended', (r) => this._casterEnded(r));
+
+    this.chat.on('status', () => this._changed());
+    this.chat.on('command', (c) => this.log(tr('s.chatCmd', { u: c.user, c: c.name, t: c.text })));
     this.obs.on('log', (m) => this.log(m, 'warn'));
   }
 
@@ -266,6 +273,51 @@ class Core extends EventEmitter {
     this.server.broadcast({ type: 'alert', alert });
     this.emit('alert', alert);
     return alert;
+  }
+
+  // ---------------------------------------------------------------- commandes du chat
+  chatVars() {
+    const st = this.sessionStats();
+    const mmr = this.mmrSummary();
+    const v = templateVars(st, this.store.settings, mmr);
+    const lw = this.labelWin();
+    const ll = this.labelLoss();
+    const ms = this.store.sessionMatches();
+    const r = ms[ms.length - 1];
+    const p = mmr && mmr.primary;
+    return {
+      ...v,
+      name: (this.logWatcher.account && this.logWatcher.account.name) || 'Streamer',
+      streak: st.streak > 0 ? `${st.streak}${lw}` : st.streak < 0 ? `${-st.streak}${ll}` : '0',
+      playlist: p ? p.name : '',
+      last: r
+        ? `${tr(r.result === 'W' ? 's.win' : 's.loss')}${Number.isFinite(r.scoreFor) && !r.manual ? ` ${r.scoreFor}-${r.scoreAgainst}` : ''}${r.overtime ? ' (OT)' : ''} · ${playlistLabel(r)}`
+        : '',
+      _hasMmr: !!(p && p.current != null),
+      _hasLast: !!r,
+    };
+  }
+
+  // réponse d'une commande : texte perso ou texte par défaut de la langue choisie
+  chatResponse(cmd) {
+    const v = this.chatVars();
+    const def = ['wl', 'mmr', 'last', 'streak', 'ot'].includes(cmd.name) ? tr(`chat.${cmd.name}`) : '';
+    let tpl = String(cmd.text || '').trim() || def;
+    if (!cmd.text && cmd.name === 'mmr' && !v._hasMmr) tpl = tr('chat.mmrNone');
+    if (!cmd.text && cmd.name === 'last' && !v._hasLast) tpl = tr('chat.lastNone');
+    return renderTemplate(tpl, v);
+  }
+
+  async chatAction(name) {
+    try {
+      if (name === 'login') return { ok: true, chat: await this.chat.startLogin() };
+      if (name === 'logout') this.chat.logout();
+      else if (name === 'reconnect') this.chat.connect();
+      else return { ok: false, error: tr('s.unknownAction', { n: name }) };
+      return { ok: true, chat: this.chat.status() };
+    } catch (e) {
+      return { ok: false, error: e.message === 'twitch-unavailable' ? tr('s.twitchUnavailable') : e.message };
+    }
   }
 
   // ---------------------------------------------------------------- mises à jour
@@ -514,6 +566,7 @@ class Core extends EventEmitter {
       logs: this.logs.slice(-80),
       hotkeyErrors: this.hotkeyErrors,
       update: this.update,
+      chat: this.chat.status(),
       themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir },
       mmr: {
         summary: this.mmrSummary(),
@@ -673,6 +726,10 @@ class Core extends EventEmitter {
       this._statsChanged();
     }
     if (langChanged || JSON.stringify(prev.caster) !== JSON.stringify(s.caster)) this._casterChanged();
+    if (prev.chat.channel !== s.chat.channel || prev.chat.enabled !== s.chat.enabled) {
+      if (s.chat.enabled === false) this.chat.disconnect();
+      else if (this.chat.auth) this.chat.connect();
+    }
     if (langChanged || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay) || JSON.stringify(prev.alerts) !== JSON.stringify(s.alerts)) {
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
     }
@@ -819,7 +876,7 @@ class Core extends EventEmitter {
       return false;
     }
     if (target === 'url' && typeof url === 'string') {
-      const ok = /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url);
+      const ok = /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url) || /^https:\/\/(www\.)?twitch\.tv\/activate/.test(url);
       if (ok && this.hooks.openExternal) {
         await this.hooks.openExternal(url);
         return true;

@@ -262,6 +262,15 @@ class AppServer extends EventEmitter {
         const r = this.core.casterAction(m[1]);
         return this._json(res, r.ok ? 200 : 400, r);
       }
+      m = /^\/api\/chat\/(login|logout|reconnect)$/.exec(p);
+      if (m && method === 'POST') {
+        const r = await this.core.chatAction(m[1]);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/chat/preview') {
+        const list = this.core.store.settings.chat.commands || [];
+        return this._json(res, 200, { ok: true, responses: list.map((c) => ({ name: c.name, text: this.core.chatResponse(c) })) });
+      }
       m = /^\/api\/update\/(check|install)$/.exec(p);
       if (m && method === 'POST') {
         const r = await this.core.updateAction(m[1]);

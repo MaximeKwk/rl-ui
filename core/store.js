@@ -97,6 +97,19 @@ function defaultSettings() {
       undo: 'Ctrl+Alt+Shift+Backspace',
     },
     app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true },
+    // Commandes du chat Twitch (texte vide = réponse par défaut dans la langue choisie)
+    chat: {
+      enabled: true,
+      channel: '', // vide = la chaîne du compte connecté
+      cooldown: 10, // secondes entre deux utilisations d'une même commande
+      commands: [
+        { name: 'wl', aliases: 'record, score', enabled: true, text: '' },
+        { name: 'mmr', aliases: 'elo', enabled: true, text: '' },
+        { name: 'last', aliases: 'lastgame', enabled: true, text: '' },
+        { name: 'streak', aliases: '', enabled: true, text: '' },
+        { name: 'ot', aliases: 'overtime', enabled: false, text: '' },
+      ],
+    },
     // Mode caster : noms d'équipe (vide = nom du jeu), série (BO), options d'affichage de l'overlay
     caster: {
       title: '',

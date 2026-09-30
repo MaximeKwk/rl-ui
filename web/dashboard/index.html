@@ -300,6 +300,26 @@
             </p>
             <div class="obs-table" id="obsTable"></div>
           </div>
+
+          <div class="card" id="chatCard">
+            <div class="card-head">
+              <h2 data-i18n="h.tw.title">Chat commands · Twitch</h2>
+              <span id="chatState" class="pill"></span>
+            </div>
+            <p class="muted" data-i18n="h.tw.intro">
+              Viewers type <code>!wl</code>, <code>!mmr</code>, <code>!last</code>… and RL-UI answers in your chat with your live stats. No bot to install:
+              connect your Twitch account (or a bot account) below.
+            </p>
+            <div id="chatAuth" class="chat-auth"></div>
+            <div class="form cols">
+              <label class="check"><input type="checkbox" data-set="chat.enabled" /> <span data-i18n="h.tw.enable">Answer chat commands</span></label>
+              <label><span data-i18n="h.tw.channel">Channel (empty = the connected account's channel)</span> <input data-set="chat.channel" maxlength="40" placeholder="zoxam" /></label>
+              <label><span data-i18n="h.tw.cooldown">Cooldown per command (s)</span> <input type="number" min="0" max="600" data-set="chat.cooldown" /></label>
+            </div>
+            <p class="muted small" data-i18n="h.tw.vars">In the answers: {name} {w} {l} {lw} {ll} {wr} {streak} {best} {otw} {otl} {mvp} {goals} {played} {mmr} {mmrd} {playlist} {last}. Leave an answer empty to use the default one.</p>
+            <div class="chat-table" id="chatTable"></div>
+            <div class="actions"><button class="btn small ghost" id="chatAdd" data-i18n="h.tw.add">Add a command</button></div>
+          </div>
         </section>
 
         <!-- ============================== CASTER ============================== -->

@@ -429,3 +429,13 @@ details .form { margin-top: 10px; }
 .update-bar { display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 10px; padding: 4px 6px 4px 12px; border-radius: 10px; background: rgba(61, 149, 255, 0.14); border: 1px solid rgba(61, 149, 255, 0.4); font-size: 13px; font-weight: 600; }
 .update-info { margin-top: 10px; }
 .update-info .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Commandes du chat */
+.chat-auth { margin: 8px 0 14px; display: flex; flex-direction: column; gap: 8px; }
+.chat-auth .actions { display: flex; gap: 8px; }
+.tw-code { font: 900 38px var(--display); letter-spacing: 0.18em; color: #bf94ff; }
+.chat-table { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.c-row { display: grid; grid-template-columns: auto 150px 170px 1fr 34px; gap: 8px; align-items: center; padding: 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); }
+.c-row .c-name { display: flex; align-items: center; gap: 2px; font-weight: 800; }
+.c-row .c-name input { width: 100%; }
+.c-row .c-pv { grid-column: 2 / -1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

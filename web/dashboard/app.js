@@ -334,6 +334,28 @@
     });
     $('#obsRefresh').addEventListener('click', loadObsScenes);
 
+    // Commandes du chat
+    $('#chatAuth').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-chat]');
+      if (!b) return;
+      if (b.dataset.chat === 'activate') return post('/api/open', { target: 'url', url: (D.chat && D.chat.uri) || 'https://www.twitch.tv/activate' });
+      const r = await post(`/api/chat/${b.dataset.chat}`);
+      if (r.ok === false) toast(r.error || t('d.failed'), 'err');
+    });
+    $('#chatTable').addEventListener('change', (e) => {
+      if (e.target.closest('[data-cmd]')) saveCommands();
+    });
+    $('#chatTable').addEventListener('click', (e) => {
+      const d = e.target.closest('[data-cmddel]');
+      if (!d) return;
+      d.closest('[data-cmd]').remove();
+      saveCommands();
+    });
+    $('#chatAdd').addEventListener('click', () => {
+      const list = [...(D.settings.chat.commands || []), { name: `cmd${(D.settings.chat.commands || []).length + 1}`, aliases: '', enabled: true, text: 'RL-UI' }];
+      saveSetting('chat.commands', list);
+    });
+
     // Mode caster
     $('#casterCopy').addEventListener('click', () => copy($('#casterUrl').value));
     $('#casterOpen').addEventListener('click', () => post('/api/open', { target: 'url', url: $('#casterUrl').value }));
@@ -820,6 +842,52 @@
     $(`#dl-src-${type}`).innerHTML = srcs.map((s) => `<option value="${esc(s)}"></option>`).join('');
   }
 
+  // ------------------------------------------------------------------ commandes du chat
+  const BUILTIN_CMDS = ['wl', 'mmr', 'last', 'streak', 'ot'];
+  function renderChat() {
+    const c = D.chat || { available: false, state: 'off' };
+    const el = $('#chatState');
+    el.className = `pill ${c.state === 'connected' ? 'ok' : c.state === 'error' ? 'err' : c.state === 'off' ? '' : 'wait'}`;
+    el.textContent = t(`d.tw.st.${c.state}`);
+    let html;
+    if (!c.available) html = `<div class="wr">${esc(t('d.tw.unavailable'))}</div>`;
+    else if (c.state === 'code')
+      html = `<div>${esc(t('d.tw.codeHelp'))}</div><div class="tw-code">${esc(c.code)}</div><div class="actions"><button class="btn primary small" data-chat="activate">${esc(t('d.tw.openActivate'))}</button><button class="btn ghost small" data-chat="logout">${esc(t('d.tw.cancel'))}</button></div>`;
+    else if (c.login)
+      html = `<div class="ok">${t('d.tw.as', { n: `<b>${esc(c.login)}</b>`, c: `<b>#${esc(c.channel)}</b>` })}</div><div class="actions"><button class="btn ghost small" data-chat="reconnect">${esc(t('d.tw.reconnect'))}</button><button class="btn ghost small danger" data-chat="logout">${esc(t('d.tw.logout'))}</button></div>`;
+    else html = `${c.error ? `<div class="wr">${esc(t(c.error === 'expired' ? 'd.tw.expired' : c.error === 'auth' ? 'd.tw.authLost' : 'd.tw.error', { e: c.error }))}</div>` : ''}<div class="actions"><button class="btn primary" data-chat="login">${esc(t('d.tw.login'))}</button></div>`;
+    $('#chatAuth').innerHTML = html;
+  }
+
+  async function renderChatTable() {
+    const list = D.settings.chat.commands || [];
+    const pv = await api('/api/chat/preview');
+    const resp = {};
+    for (const r of (pv && pv.responses) || []) resp[r.name] = r.text;
+    $('#chatTable').innerHTML = list
+      .map(
+        (c, i) => `<div class="c-row" data-cmd="${i}">
+          <input type="checkbox" class="c-on" ${c.enabled !== false ? 'checked' : ''} title="${esc(t('d.enable'))}" />
+          <label class="c-name">!<input class="c-n" value="${esc(c.name)}" maxlength="30" /></label>
+          <input class="c-al" value="${esc(c.aliases || '')}" placeholder="${esc(t('d.tw.aliases'))}" />
+          <input class="c-tx" value="${esc(c.text || '')}" placeholder="${esc(BUILTIN_CMDS.includes(c.name) ? t(`chat.${c.name}`) : '')}" />
+          ${BUILTIN_CMDS.includes(c.name) ? '<span></span>' : `<button class="btn icon small ghost" data-cmddel="${i}" title="${esc(t('d.delete'))}">×</button>`}
+          <div class="c-pv muted small">→ ${esc(resp[c.name] || '')}</div>
+        </div>`
+      )
+      .join('');
+  }
+
+  function saveCommands() {
+    const list = $$('#chatTable [data-cmd]').map((row) => ({
+      name: row.querySelector('.c-n').value.trim().replace(/^!/, '').toLowerCase() || 'cmd',
+      aliases: row.querySelector('.c-al').value.trim(),
+      enabled: row.querySelector('.c-on').checked,
+      text: row.querySelector('.c-tx').value.trim(),
+    }));
+    saveSetting('chat.commands', list);
+  }
+
   // ------------------------------------------------------------------ mises à jour
   function renderUpdate() {
     const u = D.update || { state: 'idle', mode: 'dev' };
@@ -1050,6 +1118,8 @@
     if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
     renderObs();
     if (changed('update', [D.update, D.version])) renderUpdate();
+    if (changed('chat', D.chat)) renderChat();
+    if (changed('chatCmds', [D.settings.chat.commands, D.sessionMatches.length, D.settings.language])) renderChatTable();
     if (changed('caster', [D.port, D.status.overlays, D.settings.caster, D.status.rlConfig, D.settings.apiKey])) renderCasterStatic();
     if (changed('settingsView', [D.status.account, D.status.rlConfig, D.status.api.state, D.hotkeyErrors, D.settings, D.textDir, D.lanAddresses, D.port, D.mmr && D.mmr.known])) renderSettings();
     if (historyDirty) loadHistory();
