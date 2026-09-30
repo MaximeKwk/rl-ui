@@ -35,6 +35,7 @@ Les thèmes perso sont rangés dans le dossier de données de RL-UI (`%APPDATA%\
 | Champ | Rôle |
 | --- | --- |
 | `colors` | Couleurs victoire / défaite / overtime, au format `#rrggbb`. Utilisées partout (chiffres, halos, confettis). Désactivables dans RL-UI (« Utiliser les couleurs du thème »). |
+| `translations` | Facultatif : nom et description dans une autre langue, ex. `"translations": { "fr": { "name": "Ma DA", "description": "…" } }` (le nom principal est affiché en anglais). |
 | `sounds` | Sons des alertes. Types : `win`, `loss`, `overtime`, `ot_win`, `ot_loss`, `streak`. Un son perso choisi dans RL-UI reste prioritaire. |
 
 ## theme.css

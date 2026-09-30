@@ -100,8 +100,8 @@ function cleanup(code) {
   ok(unauth.status === 401, 'API protégée sans clé');
   const settings = JSON.parse(fs.readFileSync(path.join(dataDir, 'data.json'), 'utf8')).settings;
   const dash = JSON.parse((await get(`/api/dashboard?key=${settings.apiKey}`)).body);
-  ok(dash.sessionMatches[1].playlistName === '2v2 Classé', `playlist lue dans le log : ${dash.sessionMatches[1].playlistName}`);
-  const conn = dash.logs.map((l) => l.msg).find((m) => m.startsWith('Connecté à la Stats API')) || '';
+  ok(dash.sessionMatches[1].playlistName === '2v2 Ranked', `playlist lue dans le log : ${dash.sessionMatches[1].playlistName}`);
+  const conn = dash.logs.map((l) => l.msg).find((m) => m.startsWith('Connected to the Stats API')) || '';
   const expected = { tcp: '(TCP)', ws: '(WebSocket)', auto: '(' }[transport];
   ok(conn.includes(expected), `transport utilisé : ${conn}`);
 
@@ -125,6 +125,13 @@ function cleanup(code) {
 
   const page = await get('/overlay/counter');
   ok(page.status === 200 || page.status === 404, 'route overlay');
+
+  // Langue : anglais par défaut, passage en français
+  ok(/lang="en"/.test(page.body), 'overlay servi en anglais par défaut');
+  await fetch(`http://127.0.0.1:${PORT}/api/settings?key=${settings.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: 'fr' }) });
+  const dashFr = JSON.parse((await get(`/api/dashboard?key=${settings.apiKey}`)).body);
+  ok(dashFr.sessionMatches[1].playlistName === '2v2 Classé', `en français : ${dashFr.sessionMatches[1].playlistName}`);
+  ok(/lang="fr"/.test((await get('/overlay/counter')).body), 'overlay servi en français');
   console.log(`\nTout est OK (${transport}${asObject ? ', Data objet' : ', Data chaîne'})`);
   ws.close();
   cleanup(0);

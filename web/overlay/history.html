@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{LANG}}">
   <head>
     <meta charset="utf-8" />
-    <title>RL-UI — Dernières parties</title>
+    <title>RL-UI — Recent matches</title>
     <link rel="stylesheet" href="/static/shared/overlay.css" />
     <style>
       body { padding: calc(14px * var(--s)); display: flex; }
@@ -66,7 +66,8 @@
     </style>
   </head>
   <body>
-    <div class="bar" id="bar"><div class="deco"></div><span class="ttl" id="ttl">Dernières</span><span id="pills"></span></div>
+    <div class="bar" id="bar"><div class="deco"></div><span class="ttl" id="ttl" data-i18n="ov.recent">Recent</span><span id="pills"></span></div>
+    <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
     <script>
       (function () {
@@ -80,14 +81,14 @@
         pills.style.display = 'inline-flex';
         pills.style.gap = 'calc(8px * var(--s))';
         if (P.get('title') === '0') document.getElementById('ttl').style.display = 'none';
-        let labels = { w: 'V', l: 'D' };
+        let labels = { w: 'W', l: 'L' };
         let seen = null;
         function render(st) {
           const last = ((st && st.session && st.session.last) || []).slice(-n);
           const list = newestFirst ? [...last].reverse() : last;
           const ids = new Set(list.map((r) => r.id));
           if (!list.length) {
-            pills.innerHTML = '<span class="empty">Aucune partie</span>';
+            pills.innerHTML = `<span class="empty">${OT.esc(OT.t('ov.noMatch'))}</span>`;
             seen = ids;
             return;
           }
@@ -101,7 +102,7 @@
         }
         OT.on('config', (c) => {
           OT.applyColors(c.overlay);
-          labels = { w: c.overlay.labelWin || 'V', l: c.overlay.labelLoss || 'D' };
+          labels = { w: c.overlay.labelWin || OT.t('lbl.w'), l: c.overlay.labelLoss || OT.t('lbl.l') };
           document.documentElement.style.setProperty('--s', OT.num('scale', Number(c.overlay.scale) || 1));
           render(OT.state);
         });

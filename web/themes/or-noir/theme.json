@@ -1,7 +1,13 @@
 {
-  "name": "Or & Noir",
+  "name": "Gold & Black",
   "author": "Zoxam",
   "version": "1.0.0",
-  "description": "Noir profond et liseré doré, style finale RLCS.",
+  "description": "Deep black and gold trim, RLCS finals style.",
+  "translations": {
+    "fr": {
+      "name": "Or & Noir",
+      "description": "Noir profond et liseré doré, style finale RLCS."
+    }
+  },
   "colors": { "win": "#f5c542", "loss": "#ff5a5a", "ot": "#ffd97a" }
 }

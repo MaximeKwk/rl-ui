@@ -134,7 +134,7 @@ test('OBS : mauvais mot de passe', async () => {
   const b = new StreamBridge(() => settings({ port: fake.port, password: 'faux' }));
   b.apply();
   assert.ok(await waitFor(() => b.state === 'error'));
-  assert.match(b.error, /mot de passe/i);
+  assert.match(b.error, /password/i);
   b.stop();
   fake.wss.close();
 });
@@ -167,7 +167,7 @@ test('Streamlabs : jeton refusé', async () => {
   const b = new StreamBridge(() => settings({ software: 'streamlabs', slPort: fake.port, slToken: 'mauvais' }));
   b.apply();
   assert.ok(await waitFor(() => b.state === 'error'));
-  assert.strictEqual(b.error, 'Jeton Streamlabs refusé');
+  assert.strictEqual(b.error, 'Streamlabs token rejected');
   b.stop();
   fake.wss.close();
   fake.server.close();
@@ -183,7 +183,7 @@ test('Streamlabs : source introuvable signalée dans le journal', async () => {
   b.apply();
   assert.ok(await waitFor(() => b.state === 'connected'));
   assert.strictEqual(await b.trigger('loss'), false);
-  assert.match(logs[0], /Source « Inexistante » introuvable/);
+  assert.match(logs[0], /Source “Inexistante” not found/);
   b.stop();
   fake.wss.close();
   fake.server.close();

@@ -5,6 +5,7 @@
 const { EventEmitter } = require('events');
 const crypto = require('crypto');
 const { describePlaylist } = require('./playlists');
+const { t: tr } = require('./i18n');
 
 const norm = (s) =>
   String(s || '')
@@ -62,7 +63,7 @@ class Tracker extends EventEmitter {
       clearTimeout(this._lostTimer);
       this._handle(event, data && typeof data === 'object' ? data : {});
     } catch (e) {
-      this.emit('log', `Erreur tracker (${event}) : ${e.message}`);
+      this.emit('log', tr('s.trackerErr', { e: event, m: e.message }));
     }
     this._touch();
   }
@@ -148,7 +149,7 @@ class Tracker extends EventEmitter {
         m.endedAt = now;
         m.record = this.store.data.matches.find((r) => r.id === guid) || null;
       }
-      this.emit('log', `Nouvelle partie détectée${guid ? '' : ' (hors-ligne)'}`);
+      this.emit('log', tr(guid ? 's.newMatch' : 's.newMatchOff'));
     }
     return m;
   }
@@ -162,8 +163,8 @@ class Tracker extends EventEmitter {
       playlistFromApi: false,
       arena: '',
       teams: [
-        { num: 0, name: 'Bleu', score: 0, color: '' },
-        { num: 1, name: 'Orange', score: 0, color: '' },
+        { num: 0, name: tr('team.blue'), score: 0, color: '' },
+        { num: 1, name: tr('team.orange'), score: 0, color: '' },
       ],
       goalCount: [0, 0],
       time: null,
@@ -207,7 +208,7 @@ class Tracker extends EventEmitter {
     if (Array.isArray(g.Teams) && g.Teams.length) {
       m.teams = g.Teams.map((t) => ({
         num: num(t.TeamNum),
-        name: t.Name || (num(t.TeamNum) === 0 ? 'Bleu' : 'Orange'),
+        name: t.Name || tr(num(t.TeamNum) === 0 ? 'team.blue' : 'team.orange'),
         score: num(t.Score),
         color: t.ColorPrimary ? `#${String(t.ColorPrimary).replace('#', '')}` : '',
       })).sort((a, b) => a.num - b.num);
@@ -360,7 +361,7 @@ class Tracker extends EventEmitter {
     clearTimeout(this._lostTimer);
     this._lostTimer = setTimeout(() => {
       if (this.match === m && !m.ended) {
-        this.emit('log', 'Partie interrompue (jeu fermé ou déconnecté)');
+        this.emit('log', tr('s.interrupted'));
         this._closeMatch(m, 'lost');
         this._touch();
       }
@@ -479,13 +480,13 @@ class Tracker extends EventEmitter {
     clearTimeout(m.hintTimer);
     m.hintTimer = null;
     if (winner !== 0 && winner !== 1) {
-      this.emit('log', 'Fin de partie sans vainqueur identifiable : non comptée');
+      this.emit('log', tr('s.noWinner'));
       return;
     }
     m.winner = winner;
     if (!m.me) {
       m.pendingResult = { winner, reason };
-      this.emit('log', 'Fin de partie : en attente de ton identification');
+      this.emit('log', tr('s.waitId'));
       return;
     }
     this._record(m, winner, reason);
@@ -506,7 +507,7 @@ class Tracker extends EventEmitter {
     const cat = this._category(m);
     const policy = this.settings.abandonAsLoss;
     if (!(policy === 'always' || (policy === 'ranked' && cat === 'ranked'))) {
-      this.emit('log', 'Partie quittée avant la fin : non comptée');
+      this.emit('log', tr('s.leftEarly'));
       return;
     }
     const me = m.players.get(m.me.key);
@@ -517,11 +518,11 @@ class Tracker extends EventEmitter {
   _record(m, winner, reason, extra = {}) {
     const cat = this._category(m);
     if (this.settings.paused) {
-      this.emit('log', 'Tracker en pause : partie non comptée');
+      this.emit('log', tr('s.pausedMatch'));
       return;
     }
     if (!this._counts(cat)) {
-      this.emit('log', `Partie ignorée (${describePlaylist(m.playlistId, !!m.guid).name})`);
+      this.emit('log', tr('s.ignored', { pl: describePlaylist(m.playlistId, !!m.guid).name }));
       return;
     }
     const id = m.guid || m.localId;

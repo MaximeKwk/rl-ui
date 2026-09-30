@@ -1,8 +1,14 @@
 {
-  "name": "Modèle (avec images)",
+  "name": "Template (with images)",
   "author": "Zoxam",
   "version": "1.0.0",
-  "description": "Thème d'exemple à dupliquer : image de fond du compteur, logo sur les alertes, emplacements pour ta police et tes sons.",
+  "description": "Example theme to duplicate: counter background image, logo on alerts, slots for your font and sounds.",
+  "translations": {
+    "fr": {
+      "name": "Modèle (avec images)",
+      "description": "Thème d'exemple à dupliquer : image de fond du compteur, logo sur les alertes, emplacements pour ta police et tes sons."
+    }
+  },
   "colors": { "win": "#35e0ff", "loss": "#ff5470", "ot": "#ffc23d" },
   "sounds": {}
 }

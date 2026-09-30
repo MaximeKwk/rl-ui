@@ -1,6 +1,12 @@
 {
-  "name": "Classique",
+  "name": "Classic",
   "author": "Zoxam",
   "version": "1.0.0",
-  "description": "Le style d'origine de RL-UI : verre sombre, vert / rouge / orange."
+  "description": "The original RL-UI style: dark glass, green / red / orange.",
+  "translations": {
+    "fr": {
+      "name": "Classique",
+      "description": "Le style d'origine de RL-UI : verre sombre, vert / rouge / orange."
+    }
+  }
 }

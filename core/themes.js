@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
 const { readZip, writeZip } = require('./zip');
+const { t: tr, getLang } = require('./i18n');
 
 const ALLOWED = new Set(['.json', '.css', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.woff2', '.woff', '.ttf', '.otf', '.mp3', '.wav', '.ogg', '.md', '.txt']);
 const SOUND_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
@@ -64,6 +65,8 @@ class ThemeManager extends EventEmitter {
       const rel = safeRel(meta.sounds && meta.sounds[t]);
       if (rel && files.includes(rel)) sounds[t] = rel;
     }
+    // traductions facultatives : "translations": { "fr": { "name": …, "description": … } }
+    const loc = (meta.translations && meta.translations[getLang()]) || {};
     const colors = {};
     for (const k of ['win', 'loss', 'ot']) {
       if (meta.colors && /^#[0-9a-f]{6}$/i.test(meta.colors[k] || '')) colors[k] = meta.colors[k];
@@ -71,10 +74,10 @@ class ThemeManager extends EventEmitter {
     return {
       id,
       builtin,
-      name: String(meta.name || id).slice(0, 60),
+      name: String(loc.name || meta.name || id).slice(0, 60),
       author: String(meta.author || '').slice(0, 60),
       version: String(meta.version || '1.0.0').slice(0, 20),
-      description: String(meta.description || '').slice(0, 300),
+      description: String(loc.description || meta.description || '').slice(0, 300),
       colors,
       sounds,
       hasCss: files.includes('theme.css'),
@@ -139,13 +142,13 @@ class ThemeManager extends EventEmitter {
   install(buffer) {
     const entries = readZip(buffer);
     const manifest = entries.find((e) => /(^|\/)theme\.json$/i.test(e.name));
-    if (!manifest) throw new Error('Ce .zip ne contient pas de theme.json');
+    if (!manifest) throw new Error(tr('s.zipNoManifest'));
     const prefix = manifest.name.slice(0, manifest.name.length - 'theme.json'.length);
     let meta;
     try {
       meta = JSON.parse(manifest.data.toString('utf8').replace(/^﻿/, ''));
     } catch {
-      throw new Error('theme.json illisible');
+      throw new Error(tr('s.zipBadManifest'));
     }
     const wanted = slug(meta.id || meta.name);
     const existing = this.get(wanted);
@@ -175,7 +178,7 @@ class ThemeManager extends EventEmitter {
   // Copie un thème dans les thèmes perso pour le modifier
   duplicate(id, name) {
     const src = this.get(id);
-    if (!src) throw new Error('Thème introuvable');
+    if (!src) throw new Error(tr('s.themeMissing'));
     const newName = String(name || `${src.name} (perso)`).slice(0, 60);
     const newId = this._freeId(newName);
     const dest = path.join(this.userDir, newId);
@@ -190,14 +193,14 @@ class ThemeManager extends EventEmitter {
     try {
       meta = JSON.parse(fs.readFileSync(metaFile, 'utf8').replace(/^﻿/, ''));
     } catch {}
-    fs.writeFileSync(metaFile, `${JSON.stringify({ ...meta, id: newId, name: newName }, null, 2)}\n`);
+    fs.writeFileSync(metaFile, `${JSON.stringify({ ...meta, id: newId, name: newName, translations: undefined }, null, 2)}\n`);
     this._changed();
     return { id: newId, dir: dest };
   }
 
   exportZip(id) {
     const t = this.get(id);
-    if (!t) throw new Error('Thème introuvable');
+    if (!t) throw new Error(tr('s.themeMissing'));
     const files = walk(t.dir)
       .filter((rel) => safeRel(rel))
       .map((rel) => ({ name: `${t.id}/${rel}`, data: fs.readFileSync(path.join(t.dir, rel)) }));

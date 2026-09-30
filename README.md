@@ -150,6 +150,7 @@ Guide complet (tous les éléments modifiables, exemples) : **[docs/THEMES.md](d
 | **Thèmes** | DA toute faite ou perso (images, police, couleurs, sons), installables et partageables en .zip |
 | **Compteur** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical ou collé à la jauge de boost, badge OVERTIME en direct |
 | **Sessions et historique** | Nouvelle session automatique après 6 h sans jouer, historique complet par mode, corrections manuelles |
+| **Langues** | Anglais par défaut, français en option (interface, overlays, alertes, noms des modes) |
 | **Identification** | Ton compte Steam / Epic est reconnu seul : fonctionne en solo, duo et trio |
 
 ## Intégrations

@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{LANG}}">
   <head>
     <meta charset="utf-8" />
-    <title>RL-UI — Récap de session</title>
+    <title>RL-UI — Session recap</title>
     <link rel="stylesheet" href="/static/shared/overlay.css" />
     <style>
       html, body { width: 100vw; height: 100vh; }
@@ -81,12 +81,12 @@
   <body>
     <div class="card">
       <div class="deco"></div>
-      <div class="head"><h1 id="title">Récap de session</h1><span class="who" id="who"></span></div>
+      <div class="head"><h1 id="title" data-i18n="ov.recap">Session recap</h1><span class="who" id="who"></span></div>
       <div class="main">
         <div class="rec">
-          <div class="big w"><b id="w">0</b><i id="lw">Victoires</i></div>
+          <div class="big w"><b id="w">0</b><i id="lw" data-i18n="ov.wins">Wins</i></div>
           <div class="vs">–</div>
-          <div class="big l"><b id="l">0</b><i id="ll">Défaites</i></div>
+          <div class="big l"><b id="l">0</b><i id="ll" data-i18n="ov.losses">Losses</i></div>
         </div>
         <div class="ring">
           <svg viewBox="0 0 120 120">
@@ -94,21 +94,22 @@
             <circle id="arcL" cx="60" cy="60" r="52" fill="none" stroke="var(--loss)" stroke-width="10" stroke-dasharray="0 999" />
             <circle id="arcW" cx="60" cy="60" r="52" fill="none" stroke="var(--win)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 999" />
           </svg>
-          <div class="val"><div><b id="wr">—</b><i>winrate</i></div></div>
+          <div class="val"><div><b id="wr">—</b><i data-i18n="ov.winrate">winrate</i></div></div>
         </div>
       </div>
       <div class="grid">
-        <div class="tile hot"><b id="best">0</b><i>Meilleure série</i></div>
+        <div class="tile hot"><b id="best">0</b><i data-i18n="ov.best">Best streak</i></div>
         <div class="tile ot"><b id="ot">0-0</b><i>Overtime</i></div>
         <div class="tile"><b id="mvp">0</b><i>MVP</i></div>
-        <div class="tile"><b id="time">0 min</b><i>Temps de jeu</i></div>
-        <div class="tile"><b id="goals">0</b><i>Buts</i></div>
-        <div class="tile"><b id="assists">0</b><i>Passes D.</i></div>
-        <div class="tile"><b id="saves">0</b><i>Arrêts</i></div>
-        <div class="tile" id="gdTile"><b id="gd">0</b><i id="gdLbl">Diff. de buts</i></div>
+        <div class="tile"><b id="time">0 min</b><i data-i18n="ov.time">Time played</i></div>
+        <div class="tile"><b id="goals">0</b><i data-i18n="ov.goals">Goals</i></div>
+        <div class="tile"><b id="assists">0</b><i data-i18n="ov.assists">Assists</i></div>
+        <div class="tile"><b id="saves">0</b><i data-i18n="ov.saves">Saves</i></div>
+        <div class="tile" id="gdTile"><b id="gd">0</b><i id="gdLbl">Goal diff.</i></div>
       </div>
-      <div class="last"><span class="t">Dernières</span><span id="pills" style="display: inline-flex; gap: calc(8px * var(--s))"></span></div>
+      <div class="last"><span class="t" data-i18n="ov.recent">Recent</span><span id="pills" style="display: inline-flex; gap: calc(8px * var(--s))"></span></div>
     </div>
+    <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
     <script>
       (function () {
@@ -116,7 +117,7 @@
         if (P.get('preview')) document.body.classList.add('preview');
         const $ = (id) => document.getElementById(id);
         const C = 2 * Math.PI * 52;
-        let labels = { w: 'V', l: 'D' };
+        let labels = { w: 'W', l: 'L' };
         function scale(c) {
           const vs = Math.min(innerWidth / 1920, innerHeight / 1080) || 1;
           document.documentElement.style.setProperty('--s', vs * OT.num('scale', 1));
@@ -154,7 +155,7 @@
             const gd = s.goalsFor - s.goalsAgainst;
             $('gd').textContent = gd > 0 ? `+${gd}` : gd;
             $('gd').style.color = '';
-            $('gdLbl').textContent = 'Diff. de buts';
+            $('gdLbl').textContent = OT.t('ov.gd');
           }
           $('who').textContent = st.status && st.status.account ? st.status.account : '';
           $('pills').innerHTML = s.last
@@ -164,7 +165,7 @@
         }
         OT.on('config', (c) => {
           OT.applyColors(c.overlay);
-          labels = { w: c.overlay.labelWin || 'V', l: c.overlay.labelLoss || 'D' };
+          labels = { w: c.overlay.labelWin || OT.t('lbl.w'), l: c.overlay.labelLoss || OT.t('lbl.l') };
           render(OT.state);
         });
         OT.on('state', render);

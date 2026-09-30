@@ -130,7 +130,7 @@ test('ini du jeu réel (si Rocket League est installé)', { skip: !fs.existsSync
 });
 
 test('playlists', () => {
-  assert.strictEqual(describePlaylist(11).name, '2v2 Classé');
+  assert.strictEqual(describePlaylist(11).name, '2v2 Ranked');
   assert.strictEqual(describePlaylist(11).ranked, true);
   assert.strictEqual(describePlaylist(2).cat, 'casual');
   assert.strictEqual(describePlaylist(999).cat, 'extra');

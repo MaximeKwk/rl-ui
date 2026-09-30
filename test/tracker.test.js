@@ -54,7 +54,7 @@ test('victoire classique 3-1', () => {
   assert.strictEqual(r.overtime, false);
   assert.strictEqual(r.scoreFor, 3);
   assert.strictEqual(r.scoreAgainst, 1);
-  assert.strictEqual(r.playlistName, '2v2 Classé');
+  assert.strictEqual(r.playlistName, '2v2 Ranked');
   assert.strictEqual(r.identity, 'account');
   assert.strictEqual(out.overtimes.length, 0);
   assert.strictEqual(computeStats(store.sessionMatches()).wins, 1);
@@ -267,7 +267,7 @@ test('faux GoalScored de fin de replay (buteur vide) ignoré même hors replay',
 test('PlaylistId envoyé par le jeu prioritaire sur le log', () => {
   const { out, play } = setup({ playlist: 2 });
   play(buildScenario('win', { playlistId: 13 }));
-  assert.strictEqual(out.results[0].playlistName, '3v3 Classé');
+  assert.strictEqual(out.results[0].playlistName, '3v3 Ranked');
   assert.strictEqual(out.results[0].ranked, true);
 });
 
@@ -306,7 +306,7 @@ test('données réelles (format capturé sur le jeu) : UpdateState avec Target e
   };
   for (let i = 0; i < 5; i++) tracker.handle('UpdateState', us);
   const live = tracker.live();
-  assert.strictEqual(live.playlist.name, '2v2 Classé');
+  assert.strictEqual(live.playlist.name, '2v2 Ranked');
   assert.strictEqual(live.arena, 'TrainStation Night');
   assert.strictEqual(live.me.name, 'Nitro_42');
   assert.strictEqual(live.me.via, 'camera');

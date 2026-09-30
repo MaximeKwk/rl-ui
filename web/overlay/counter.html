@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{LANG}}">
   <head>
     <meta charset="utf-8" />
-    <title>RL-UI — Compteur</title>
+    <title>RL-UI — Counter</title>
     <link rel="stylesheet" href="/static/shared/overlay.css" />
     <style>
       body {
@@ -303,14 +303,14 @@
       <div class="deco"></div>
       <div class="tag hidden" id="tag"><span class="dot"></span><span id="tagText"></span></div>
       <div class="rec">
-        <div class="cell win"><div class="num" id="wins"></div><div class="lbl" id="lw">V</div></div>
+        <div class="cell win"><div class="num" id="wins"></div><div class="lbl" id="lw">W</div></div>
         <div class="dash"></div>
-        <div class="cell loss"><div class="num" id="losses"></div><div class="lbl" id="ll">D</div></div>
+        <div class="cell loss"><div class="num" id="losses"></div><div class="lbl" id="ll">L</div></div>
       </div>
       <div class="stats">
-        <div class="st wr" id="stWr"><b id="wr">—</b><i>winrate</i></div>
-        <div class="st streak" id="stStreak"><b id="streak">—</b><i>série</i></div>
-        <div class="st ot" id="stOt"><b id="ot">0-0</b><i>overtime</i></div>
+        <div class="st wr" id="stWr"><b id="wr">—</b><i data-i18n="ov.winrate">winrate</i></div>
+        <div class="st streak" id="stStreak"><b id="streak">—</b><i data-i18n="ov.streak">streak</i></div>
+        <div class="st ot" id="stOt"><b id="ot">0-0</b><i data-i18n="ov.overtime">overtime</i></div>
         <div class="st mmr hidden" id="stMmr"><b id="mmr">—</b><i id="mmrLbl">MMR</i></div>
       </div>
       <div class="otbadge"><span>OVERTIME</span><span class="clk" id="clk">+0:00</span></div>
@@ -323,13 +323,14 @@
       <div class="deco"></div>
       <svg id="bSvg"><path id="bFill" class="bfill" /><path id="bRim" class="brim" /><g id="bTicks" class="bticks"></g></svg>
       <div class="bcol" id="bCol">
-        <div class="brow win"><div class="num" id="bWins"></div><span class="blbl" id="bLw">V</span></div>
+        <div class="brow win"><div class="num" id="bWins"></div><span class="blbl" id="bLw">W</span></div>
         <div class="bsep"></div>
-        <div class="brow loss"><div class="num" id="bLosses"></div><span class="blbl" id="bLl">D</span></div>
+        <div class="brow loss"><div class="num" id="bLosses"></div><span class="blbl" id="bLl">L</span></div>
         <div class="bstats" id="bStats"></div>
       </div>
       <div class="botbadge" id="bOt"><span>OVERTIME</span><b id="bClk">+0:00</b></div>
     </div>
+    <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
     <script src="/static/overlay/counter.js"></script>
   </body>

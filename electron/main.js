@@ -6,6 +6,7 @@ const { app, BrowserWindow, Tray, Menu, nativeImage, shell, globalShortcut, dial
 const path = require('path');
 const { Core } = require('../core');
 const { migrateLegacyData } = require('./migrate');
+const { t } = require('../core/i18n');
 const pkg = require('../package.json');
 
 // Dossier de données alternatif (tests) : RLUI_DATA=C:\chemin
@@ -72,8 +73,8 @@ function createWindow(show = true) {
     if (!core.store.settings.app.trayHintShown && tray) {
       tray.displayBalloon({
         iconType: 'info',
-        title: 'RL-UI tourne toujours',
-        content: 'Le tracking continue en arrière-plan. Clic droit sur l\'icône pour quitter.',
+        title: t('e.stillRunning'),
+        content: t('e.stillRunningBody'),
       });
       core.store.patchSettings({ app: { trayHintShown: true } });
     }
@@ -94,20 +95,22 @@ function updateTray() {
   if (!tray) return;
   const st = core.sessionStats();
   const s = core.store.settings;
-  tray.setToolTip(`RL-UI — ${st.wins}V - ${st.losses}D${s.paused ? ' (pause)' : ''}`);
+  const lw = core.labelWin();
+  const ll = core.labelLoss();
+  tray.setToolTip(`RL-UI — ${st.wins}${lw} - ${st.losses}${ll}${s.paused ? t('e.pausedTip') : ''}`);
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: `Session : ${st.wins}V - ${st.losses}D${st.played ? ` (${st.winRate}%)` : ''}`, enabled: false },
+      { label: t('e.session', { w: st.wins, lw, l: st.losses, ll, wr: st.played ? ` (${st.winRate}%)` : '' }), enabled: false },
       { type: 'separator' },
-      { label: 'Ouvrir le tableau de bord', click: showWindow },
-      { label: '+1 victoire', click: () => core.action('win') },
-      { label: '+1 défaite', click: () => core.action('loss') },
-      { label: 'Annuler la dernière partie', click: () => core.action('undo') },
-      { label: s.paused ? 'Reprendre le tracking' : 'Mettre en pause', click: () => core.action('toggle-pause') },
-      { label: 'Nouvelle session', click: () => core.action('new-session') },
+      { label: t('e.open'), click: showWindow },
+      { label: t('e.win'), click: () => core.action('win') },
+      { label: t('e.loss'), click: () => core.action('loss') },
+      { label: t('e.undo'), click: () => core.action('undo') },
+      { label: t(s.paused ? 'e.resume' : 'e.pause'), click: () => core.action('toggle-pause') },
+      { label: t('e.newSession'), click: () => core.action('new-session') },
       { type: 'separator' },
       {
-        label: 'Quitter',
+        label: t('e.quit'),
         click: () => {
           quitting = true;
           app.quit();
@@ -165,12 +168,12 @@ app.whenReady().then(async () => {
   try {
     await core.start();
   } catch (e) {
-    dialog.showErrorBox('RL-UI', `Impossible de démarrer le serveur local des overlays :\n${e.message}`);
+    dialog.showErrorBox('RL-UI', t('e.serverFail', { e: e.message }));
     quitting = true;
     app.quit();
     return;
   }
-  if (migrated) core.log('Historique et réglages repris de l\'ancienne version (Overtime Tracker)');
+  if (migrated) core.log(t('s.migrated'));
   registerHotkeys();
   tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16, quality: 'best' }));
   tray.on('click', showWindow);

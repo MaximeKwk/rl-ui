@@ -7,9 +7,24 @@ const crypto = require('crypto');
 
 const ALERT_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
 
+// Anciennes valeurs par défaut (en français) : remplacées par "vide" pour suivre la langue choisie
+const OLD_DEFAULTS = {
+  texts: { win: 'VICTOIRE', loss: 'DÉFAITE', overtime: 'OVERTIME', ot_win: 'VICTOIRE EN OVERTIME', ot_loss: 'DÉFAITE EN OVERTIME', streak: 'SÉRIE DE {n}' },
+  template: '{w}{lw} - {l}{ll} · {wr}% · Série {streak}',
+};
+
+function migrateDefaults(s) {
+  if (!['en', 'fr'].includes(s.language)) s.language = 'en';
+  for (const [k, v] of Object.entries(OLD_DEFAULTS.texts)) if (s.alerts.texts[k] === v) s.alerts.texts[k] = '';
+  if (s.overlay.labelWin === 'V') s.overlay.labelWin = '';
+  if (s.overlay.labelLoss === 'D') s.overlay.labelLoss = '';
+  if (s.text.template === OLD_DEFAULTS.template) s.text.template = '';
+}
+
 function defaultSettings() {
   const obsAction = (type = 'none') => ({ type, scene: '', source: '', duration: 8, returnBack: true });
   return {
+    language: 'en', // en | fr
     port: 5757,
     lanAccess: false,
     apiKey: crypto.randomBytes(9).toString('base64url'),
@@ -30,8 +45,8 @@ function defaultSettings() {
       boostY: 0,
       boostTeamColor: true,
       boostGuide: false,
-      labelWin: 'V',
-      labelLoss: 'D',
+      labelWin: '', // vide = W / V selon la langue
+      labelLoss: '', // vide = L / D selon la langue
       showWinrate: true,
       showStreak: true,
       showOt: true,
@@ -47,12 +62,13 @@ function defaultSettings() {
     alerts: {
       enabled: { win: true, loss: true, overtime: true, ot_win: true, ot_loss: true, streak: true },
       texts: {
-        win: 'VICTOIRE',
-        loss: 'DÉFAITE',
-        overtime: 'OVERTIME',
-        ot_win: 'VICTOIRE EN OVERTIME',
-        ot_loss: 'DÉFAITE EN OVERTIME',
-        streak: 'SÉRIE DE {n}',
+        // vide = texte par défaut dans la langue choisie
+        win: '',
+        loss: '',
+        overtime: '',
+        ot_win: '',
+        ot_loss: '',
+        streak: '',
       },
       duration: { win: 5, loss: 4, overtime: 4, ot_win: 7, ot_loss: 4.5, streak: 4 },
       streakMilestones: [3, 5, 10, 15, 20],
@@ -63,7 +79,7 @@ function defaultSettings() {
       position: 'center', // center | top | bottom
       scale: 1,
     },
-    text: { enabled: true, dir: '', template: '{w}{lw} - {l}{ll} · {wr}% · Série {streak}' },
+    text: { enabled: true, dir: '', template: '' }, // vide = format par défaut selon la langue
     obs: {
       enabled: false,
       software: 'obs', // obs | streamlabs
@@ -125,6 +141,7 @@ class Store {
         const raw = JSON.parse(fs.readFileSync(f, 'utf8').replace(/^﻿/, ''));
         const data = { ...base, ...raw };
         data.settings = deepMerge(defaultSettings(), raw.settings || {});
+        migrateDefaults(data.settings);
         if (!Array.isArray(data.matches)) data.matches = [];
         if (!Array.isArray(data.sessions)) data.sessions = [];
         if (!data.currentSessionId) this._newSession(data);

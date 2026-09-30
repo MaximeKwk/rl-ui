@@ -1,4 +1,5 @@
 'use strict';
+const { t: tr } = require('./i18n');
 // Actions automatiques dans le logiciel de stream, pour OBS Studio ou Streamlabs Desktop :
 // changer de scène (avec retour automatique) ou afficher une source pendant N secondes,
 // à chaque événement (overtime, victoire, défaite, OT gagné / perdu, série).
@@ -55,12 +56,12 @@ class ObsDriver {
         this.pending.delete(msg.d.requestId);
         clearTimeout(p.timer);
         if (msg.d.requestStatus && msg.d.requestStatus.result) p.resolve(msg.d.responseData || {});
-        else p.reject(new Error((msg.d.requestStatus && msg.d.requestStatus.comment) || 'Requête OBS refusée'));
+        else p.reject(new Error((msg.d.requestStatus && msg.d.requestStatus.comment) || tr('s.obsRefused')));
       }
     });
     ws.on('close', (code) => {
       this._rejectAll();
-      this.bridge._closed(this, code === 4009 ? 'Mot de passe OBS incorrect' : 'OBS non joignable (serveur WebSocket activé ?)');
+      this.bridge._closed(this, code === 4009 ? tr('s.obsBadPwd') : tr('s.obsUnreachable'));
     });
     ws.on('error', () => {});
   }
@@ -79,18 +80,18 @@ class ObsDriver {
   _rejectAll() {
     for (const p of this.pending.values()) {
       clearTimeout(p.timer);
-      p.reject(new Error('Déconnecté d\'OBS'));
+      p.reject(new Error(tr('s.disconnectedFrom', { n: 'OBS' })));
     }
     this.pending.clear();
   }
 
   request(requestType, requestData) {
     return new Promise((resolve, reject) => {
-      if (!this.ws || this.ws.readyState !== 1) return reject(new Error('OBS non connecté'));
+      if (!this.ws || this.ws.readyState !== 1) return reject(new Error(tr('s.notConnected', { n: 'OBS' })));
       const requestId = crypto.randomUUID();
       const timer = setTimeout(() => {
         this.pending.delete(requestId);
-        reject(new Error('OBS ne répond pas'));
+        reject(new Error(tr('s.noAnswer', { n: 'OBS' })));
       }, 5000);
       this.pending.set(requestId, { resolve, reject, timer });
       this.ws.send(JSON.stringify({ op: 6, d: { requestType, requestId, requestData } }));
@@ -141,12 +142,12 @@ class StreamlabsDriver {
     const ws = new WebSocket(`ws://${s.host || '127.0.0.1'}:${Number(s.slPort) || 59650}/api/websocket`, { handshakeTimeout: 4000 });
     this.ws = ws;
     ws.on('open', async () => {
-      if (!s.slToken) return this.bridge._fail('Colle le jeton de Streamlabs (Paramètres > Contrôle à distance)');
+      if (!s.slToken) return this.bridge._fail(tr('s.slPasteToken'));
       try {
         await this.call('auth', 'TcpServerService', [String(s.slToken).trim()]);
         this.bridge._connected('');
       } catch (e) {
-        this.bridge._fail(/auth|token|jeton/i.test(e.message) ? 'Jeton Streamlabs refusé' : e.message);
+        this.bridge._fail(/auth|token|jeton/i.test(e.message) ? tr('s.slBadToken') : e.message);
       }
     });
     ws.on('message', (raw) => {
@@ -163,13 +164,13 @@ class StreamlabsDriver {
         if (!p) continue;
         this.pending.delete(msg.id);
         clearTimeout(p.timer);
-        if (msg.error) p.reject(new Error(String(msg.error.message || 'Erreur Streamlabs').replace('INTERNAL_JSON_RPC_ERROR ', '')));
+        if (msg.error) p.reject(new Error(String(msg.error.message || tr('s.slError')).replace('INTERNAL_JSON_RPC_ERROR ', '')));
         else p.resolve(msg.result);
       }
     });
     ws.on('close', () => {
       this._rejectAll();
-      this.bridge._closed(this, 'Streamlabs non joignable (contrôle à distance activé ?)');
+      this.bridge._closed(this, tr('s.slUnreachable'));
     });
     ws.on('error', () => {});
   }
@@ -188,18 +189,18 @@ class StreamlabsDriver {
   _rejectAll() {
     for (const p of this.pending.values()) {
       clearTimeout(p.timer);
-      p.reject(new Error('Déconnecté de Streamlabs'));
+      p.reject(new Error(tr('s.disconnectedFrom', { n: 'Streamlabs' })));
     }
     this.pending.clear();
   }
 
   call(method, resource, args = []) {
     return new Promise((resolve, reject) => {
-      if (!this.ws || this.ws.readyState !== 1) return reject(new Error('Streamlabs non connecté'));
+      if (!this.ws || this.ws.readyState !== 1) return reject(new Error(tr('s.notConnected', { n: 'Streamlabs' })));
       const id = this.nextId++;
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error('Streamlabs ne répond pas'));
+        reject(new Error(tr('s.noAnswer', { n: 'Streamlabs' })));
       }, 5000);
       this.pending.set(id, { resolve, reject, timer });
       this.ws.send(`${JSON.stringify({ jsonrpc: '2.0', id, method, params: { resource, args } })}\n`);
@@ -213,7 +214,7 @@ class StreamlabsDriver {
 
   async _sceneByName(name) {
     const sc = (await this._scenes()).find((x) => x.name === name);
-    if (!sc) throw new Error(`Scène « ${name} » introuvable dans Streamlabs`);
+    if (!sc) throw new Error(tr('s.sceneMissing', { n: name }));
     return sc;
   }
 
@@ -238,7 +239,7 @@ class StreamlabsDriver {
     const sc = await this._sceneByName(scene);
     const items = await this.call('getItems', sc.resourceId || `Scene["${sc.id}"]`);
     const item = (items || []).find((i) => i.name === source);
-    if (!item) throw new Error(`Source « ${source} » introuvable dans la scène « ${scene} »`);
+    if (!item) throw new Error(tr('s.sourceMissing', { s: source, c: scene }));
     await this.call('setVisibility', item.resourceId || `SceneItem["${sc.id}","${item.sceneItemId}","${item.sourceId}"]`, [visible]);
   }
 
@@ -353,7 +354,7 @@ class StreamBridge extends EventEmitter {
   }
 
   _ready() {
-    if (!this.driver || this.state !== 'connected') throw new Error(`${SOFTWARE_NAMES[this.software]} non connecté`);
+    if (!this.driver || this.state !== 'connected') throw new Error(tr('s.notConnected', { n: SOFTWARE_NAMES[this.software] }));
     return this.driver;
   }
 

@@ -86,3 +86,36 @@ test('installation : les scripts sont ignorés, un thème intégré n\'est jamai
 test('installation : un zip sans theme.json est refusé', () => {
   assert.throws(() => manager().install(writeZip([{ name: 'x.css', data: Buffer.from('a') }])), /theme\.json/);
 });
+
+test('langue : anglais par défaut, français en option (serveur et pages)', () => {
+  const i18n = require('../core/i18n');
+  const { describePlaylist } = require('../core/playlists');
+  const I = require('../web/shared/i18n.js');
+  i18n.setLang('en');
+  assert.strictEqual(describePlaylist(11).name, '2v2 Ranked');
+  assert.strictEqual(i18n.t('alert.win'), 'VICTORY');
+  i18n.setLang('fr');
+  assert.strictEqual(describePlaylist(11).name, '2v2 Classé');
+  assert.strictEqual(i18n.t('alert.win'), 'VICTOIRE');
+  assert.strictEqual(i18n.tn('d.nWins', 2), '2 victoires');
+  i18n.setLang('xx');
+  assert.strictEqual(i18n.getLang(), 'en');
+  // chaque texte français a son équivalent anglais (hors textes du HTML, déjà en anglais dans la page)
+  const missing = Object.keys(I.DICT.fr).filter((k) => !k.startsWith('h.') && !(k in I.DICT.en));
+  assert.deepStrictEqual(missing, []);
+  const missingFr = Object.keys(I.DICT.en).filter((k) => !(k in I.DICT.fr));
+  assert.deepStrictEqual(missingFr, []);
+});
+
+test('langue : chaque texte des pages a sa traduction française', () => {
+  const I = require('../web/shared/i18n.js');
+  const web = path.join(__dirname, '..', 'web');
+  const pages = ['dashboard/index.html', 'overlay/counter.html', 'overlay/history.html', 'overlay/summary.html'];
+  const keys = new Set();
+  for (const p of pages) {
+    const html = fs.readFileSync(path.join(web, p), 'utf8');
+    for (const m of html.matchAll(/data-i18n(?:-title|-ph)?="([^"]+)"/g)) keys.add(m[1]);
+  }
+  const missing = [...keys].filter((k) => !(k in I.DICT.fr));
+  assert.deepStrictEqual(missing, []);
+});

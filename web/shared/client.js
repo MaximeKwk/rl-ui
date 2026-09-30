@@ -99,9 +99,47 @@
       if (col.loss) c.overlay.lossColor = col.loss;
       if (col.ot) c.overlay.otColor = col.ot;
     }
+    if (c.lang) OT.setLang(c.lang);
     applyTheme(c.theme);
     OT.emit('config', c);
   }
+
+  // ---- Langue (anglais par défaut, français en option) : voir /static/shared/i18n.js
+  const I = window.I18N || { norm: () => 'en', t: (l, k) => k, tn: (l, k) => k, DICT: { en: {} } };
+  OT.lang = I.norm(document.documentElement.lang);
+  OT.t = (key, vars) => I.t(OT.lang, key, vars);
+  OT.tn = (key, n, vars) => I.tn(OT.lang, key, n, vars);
+  // Éléments du HTML : data-i18n (contenu), data-i18n-title, data-i18n-ph (placeholder).
+  // L'anglais est dans le HTML : on le garde de côté pour pouvoir y revenir.
+  OT.applyI18n = function (root = document) {
+    const d = I.DICT[OT.lang] || {};
+    for (const el of root.querySelectorAll('[data-i18n]')) {
+      if (el.dataset.i18nEn == null) el.dataset.i18nEn = el.innerHTML;
+      const v = d[el.dataset.i18n];
+      el.innerHTML = v != null ? v : el.dataset.i18nEn;
+    }
+    for (const [attr, prop] of [
+      ['title', 'i18nTitle'],
+      ['placeholder', 'i18nPh'],
+    ]) {
+      for (const el of root.querySelectorAll(`[data-${attr === 'title' ? 'i18n-title' : 'i18n-ph'}]`)) {
+        const keep = `${prop}En`;
+        if (el.dataset[keep] == null) el.dataset[keep] = el.getAttribute(attr) || '';
+        const v = d[el.dataset[prop]];
+        el.setAttribute(attr, v != null ? v : el.dataset[keep]);
+      }
+    }
+  };
+  OT.setLang = function (lang) {
+    const l = I.norm(lang);
+    if (l === OT.lang) return;
+    OT.lang = l;
+    document.documentElement.lang = l;
+    OT.applyI18n();
+    OT.emit('lang', l);
+  };
+  if (OT.lang !== 'en') OT.applyI18n();
+  if (!/^(en|fr)$/.test(document.documentElement.lang)) document.documentElement.lang = OT.lang;
 
   // Thème (DA) : feuille de style chargée en dernier, rechargée quand un fichier du thème change
   function applyTheme(t) {

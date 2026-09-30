@@ -1,4 +1,5 @@
 'use strict';
+const { playlistLabel } = require('./playlists');
 // Calcul des statistiques à partir d'une liste de parties (ordre chronologique).
 
 function computeStats(records) {
@@ -62,7 +63,7 @@ function computeStats(records) {
 function statsByPlaylist(records) {
   const map = new Map();
   for (const r of records) {
-    const key = r.playlistName || (r.manual ? 'Ajout manuel' : 'Inconnu');
+    const key = playlistLabel(r);
     if (!map.has(key)) map.set(key, []);
     map.get(key).push(r);
   }

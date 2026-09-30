@@ -9,6 +9,7 @@
 
 const { EventEmitter } = require('events');
 const { describePlaylist } = require('./playlists');
+const { t: tr } = require('./i18n');
 
 const round1 = (n) => Math.round(n * 10) / 10;
 const accountOf = (key) => String(key).slice(0, String(key).lastIndexOf('|'));
@@ -74,7 +75,7 @@ class MmrTracker extends EventEmitter {
     const covered = pend.filter((m) => m.endedAt <= at + 2000).sort((a, b) => a.endedAt - b.endedAt);
     const later = pend.filter((m) => m.endedAt > at + 2000);
     if (!covered.length) {
-      this.emit('log', 'Le MMR a changé sans partie suivie (partie jouée hors de l\'app ?)');
+      this.emit('log', tr('s.mmrNoMatch'));
       return [];
     }
     // Le plus court préfixe qui explique la variation (une mise à jour peut arriver en retard)

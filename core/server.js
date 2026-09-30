@@ -35,6 +35,7 @@ const MIME = {
 
 // Pages d'overlay : un thème ne peut charger que des fichiers locaux (pas de pistage, pas de script externe)
 const OVERLAY_CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:";
+const { t: tr, getLang } = require('./i18n');
 const OVERLAYS = new Set(['counter', 'alerts', 'history', 'summary']);
 
 function isLoopback(addr) {
@@ -190,7 +191,7 @@ class AppServer extends EventEmitter {
   // ---------------------------------------------------------------- HTTP
   _handle(req, res) {
     const url = new URL(req.url, 'http://x');
-    if (!this._hostAllowed(req.headers.host)) return this._text(res, 403, 'Hôte non autorisé');
+    if (!this._hostAllowed(req.headers.host)) return this._text(res, 403, tr('s.hostDenied'));
     const p = decodeURIComponent(url.pathname);
     Promise.resolve()
       .then(() => this._route(req, res, url, p))
@@ -202,12 +203,12 @@ class AppServer extends EventEmitter {
   async _route(req, res, url, p) {
     const method = req.method;
     if (p === '/' || p === '/index.html') {
-      if (!isLoopback(req.socket.remoteAddress)) return this._text(res, 403, 'Le tableau de bord est accessible uniquement depuis ce PC.');
-      return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey });
+      if (!isLoopback(req.socket.remoteAddress)) return this._text(res, 403, tr('s.dashLocal'));
+      return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang() });
     }
     if (p === '/favicon.ico') return this._file(res, path.join(this.webDir, 'assets', 'icon.png'));
     let m = /^\/overlay\/([a-z]+)\/?$/.exec(p);
-    if (m && OVERLAYS.has(m[1])) return this._page(res, path.join(this.webDir, 'overlay', `${m[1]}.html`), {}, OVERLAY_CSP);
+    if (m && OVERLAYS.has(m[1])) return this._page(res, path.join(this.webDir, 'overlay', `${m[1]}.html`), { LANG: getLang() }, OVERLAY_CSP);
     // fichiers des thèmes : jamais exécutables, aucune ressource externe
     m = /^\/themes\/([a-z0-9-]+)\/(.+)$/.exec(p);
     if (m) {
@@ -237,7 +238,7 @@ class AppServer extends EventEmitter {
 
     // ---- API protégée par la clé
     if (p.startsWith('/api/')) {
-      if (!this._authorized(req, url)) return this._json(res, 401, { ok: false, error: 'Clé API manquante ou invalide' });
+      if (!this._authorized(req, url)) return this._json(res, 401, { ok: false, error: tr('s.keyInvalid') });
       m = /^\/api\/action\/([a-z-]+)$/.exec(p);
       if (m && (method === 'GET' || method === 'POST')) {
         const params = Object.fromEntries(url.searchParams);
@@ -302,7 +303,7 @@ class AppServer extends EventEmitter {
         const b = await this._body(req, true);
         return this._json(res, 200, { ok: await this.core.open(b.target, b.url) });
       }
-      return this._json(res, 404, { ok: false, error: 'Route inconnue' });
+      return this._json(res, 404, { ok: false, error: tr('s.unknownRoute') });
     }
     return this._text(res, 404, 'Introuvable');
   }
@@ -314,7 +315,7 @@ class AppServer extends EventEmitter {
       req.on('data', (c) => {
         size += c.length;
         if (size > limit) {
-          reject(new Error('Fichier trop lourd'));
+          reject(new Error(tr('s.tooBig')));
           req.destroy();
           return;
         }
@@ -326,7 +327,7 @@ class AppServer extends EventEmitter {
         try {
           resolve(buf.length ? JSON.parse(buf.toString('utf8')) : {});
         } catch {
-          reject(new Error('JSON invalide'));
+          reject(new Error(tr('s.badJson')));
         }
       });
       req.on('error', reject);

@@ -13,12 +13,15 @@ const { StatsApiClient } = require('./statsApiClient');
 const { RlLogWatcher } = require('./rlLogWatcher');
 const rlConfig = require('./rlConfig');
 const { computeStats, statsByPlaylist } = require('./stats');
-const { TextExporter, renderTemplate, templateVars } = require('./textExport');
+const { TextExporter, renderTemplate, templateVars, customTemplate } = require('./textExport');
 const { StreamBridge } = require('./streamBridge');
 const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
 const { ThemeManager } = require('./themes');
-const { CATEGORY_LABELS, describePlaylist } = require('./playlists');
+const { categoryLabels, describePlaylist, playlistLabel } = require('./playlists');
+const i18n = require('./i18n');
+
+const { t: tr, tn } = i18n;
 
 const SOUND_EXT = new Set(['mp3', 'wav', 'ogg', 'm4a']);
 
@@ -30,6 +33,7 @@ class Core extends EventEmitter {
     this.version = version;
     this.hooks = hooks;
     this.store = new Store(dataDir);
+    i18n.setLang(this.store.settings.language);
     this.soundsDir = path.join(dataDir, 'sounds');
     this.logWatcher = new RlLogWatcher({ documentsDir, logPath });
     this.tracker = new Tracker({ store: this.store, logWatcher: this.logWatcher });
@@ -51,7 +55,7 @@ class Core extends EventEmitter {
   // ---------------------------------------------------------------- démarrage / arrêt
   async start() {
     this.store.autoResetIfIdle();
-    await this.refreshRlConfig().catch((e) => this.log(`Config Rocket League illisible : ${e.message}`, 'warn'));
+    await this.refreshRlConfig().catch((e) => this.log(tr('s.cfgUnreadable', { e: e.message }), 'warn'));
     await this._backfillMmr();
     this.stats.start();
     this.logWatcher.start();
@@ -63,12 +67,12 @@ class Core extends EventEmitter {
     this.obs.apply();
     const port = await this.server.start();
     if (port !== this.store.settings.port) {
-      this.log(`Port ${this.store.settings.port} occupé : overlays servis sur le port ${port} (mets à jour les URL dans OBS)`, 'warn');
+      this.log(tr('s.portBusy', { p: this.store.settings.port, q: port }), 'warn');
     }
     this._checkRunning();
     this._rlTimer = setInterval(() => this._checkRunning(), 5000);
     this._writeText();
-    this.log(`RL-UI prêt — http://127.0.0.1:${port}`);
+    this.log(tr('s.ready', { p: port }));
     return port;
   }
 
@@ -101,9 +105,9 @@ class Core extends EventEmitter {
       const samples = await this.logWatcher.scanBackups({ maxFiles: 12, newerThan: this.mmr.lastSampleAt() - 60e3 });
       let n = 0;
       for (const s of samples) if (this.mmr.onSample(s)) n++;
-      if (n) this.log(`MMR : ${n} valeur${n > 1 ? 's' : ''} retrouvée${n > 1 ? 's' : ''} dans les journaux du jeu`);
+      if (n) this.log(tn('s.mmrFound', n));
     } catch (e) {
-      this.log(`Lecture des anciens journaux impossible : ${e.message}`, 'warn');
+      this.log(tr('s.oldLogs', { e: e.message }), 'warn');
     } finally {
       this._backfilling = false;
     }
@@ -120,7 +124,7 @@ class Core extends EventEmitter {
     const running = await rlConfig.isRocketLeagueRunning().catch(() => false);
     if (running !== this.rlRunning) {
       this.rlRunning = running;
-      this.log(running ? 'Rocket League est lancé' : 'Rocket League est fermé');
+      this.log(tr(running ? 's.rlRunning' : 's.rlClosed'));
       this._changed();
     }
   }
@@ -128,15 +132,15 @@ class Core extends EventEmitter {
   // ---------------------------------------------------------------- événements
   _wire() {
     this.stats.on('message', (env) => this.tracker.handle(env.event, env.data));
-    this.stats.on('connected', (kind) => this.log(`Connecté à la Stats API (${kind === 'tcp' ? 'TCP' : 'WebSocket'})`));
+    this.stats.on('connected', (kind) => this.log(tr('s.apiConnected', { k: kind === 'tcp' ? 'TCP' : 'WebSocket' })));
     this.stats.on('disconnected', () => {
-      this.log('Stats API déconnectée');
+      this.log(tr('s.apiDisconnected'));
       this.tracker.onDisconnected();
     });
     this.stats.on('status', () => this._changed());
 
     this.logWatcher.on('account', (a) => {
-      this.log(`Compte détecté : ${a.name} (${a.platform})`);
+      this.log(tr('s.account', { n: a.name, p: a.platform }));
       this.store.learnId(a.id);
       this._changed();
     });
@@ -150,7 +154,7 @@ class Core extends EventEmitter {
       if (!this._backfilling && u.delta != null && Math.abs(u.delta) >= 0.05) {
         const d = Math.round(u.delta);
         const n = u.assigned.length;
-        this.log(`MMR ${describePlaylist(u.playlist).name} : ${Math.round(u.mmr)} (${d > 0 ? '+' : ''}${d}${n > 1 ? ` sur ${n} parties` : ''})`);
+        this.log(tr('s.mmr', { pl: describePlaylist(u.playlist).name, v: Math.round(u.mmr), d: `${d > 0 ? '+' : ''}${d}`, g: n > 1 ? tr('s.overGames', { n }) : '' }));
       }
       this._statsChanged();
     });
@@ -159,11 +163,11 @@ class Core extends EventEmitter {
     this.tracker.on('live', () => this._changed());
     this.tracker.on('log', (m) => this.log(m));
     this.tracker.on('identity', (i) => {
-      const via = { account: 'compte du jeu', known: 'compte mémorisé', name: 'pseudo', camera: 'caméra', manual: 'choix manuel' }[i.via] || i.via;
-      this.log(`Tu joues : ${i.name} (identifié via ${via})`);
+      const via = ['account', 'known', 'name', 'camera', 'manual'].includes(i.via) ? tr(`s.via.${i.via}`) : i.via;
+      this.log(tr('s.playing', { n: i.name, v: via }));
     });
     this.tracker.on('session', () => {
-      this.log('Nouvelle session démarrée automatiquement (inactivité)');
+      this.log(tr('s.autoSession'));
       this._statsChanged();
     });
     this.tracker.on('overtime', (info) => {
@@ -183,10 +187,20 @@ class Core extends EventEmitter {
     if (this.store.settings.mmr.enabled && this.mmr.onMatch(r)) this.store.save();
     this._statsChanged();
     const st = this.sessionStats();
-    const label = r.result === 'W' ? 'Victoire' : 'Défaite';
     const mmrTxt = r.mmr ? ` · MMR ≈ ${r.mmr.delta > 0 ? '+' : ''}${Math.round(r.mmr.delta)}` : '';
     this.log(
-      `${label}${r.overtime ? ' en overtime' : ''}${r.abandon ? ' (abandon)' : ''} ${r.scoreFor}-${r.scoreAgainst} · ${r.playlistName} → session ${st.wins}V - ${st.losses}D${mmrTxt}`,
+      tr('s.result', {
+        r: tr(r.result === 'W' ? 's.win' : 's.loss'),
+        ot: r.overtime ? tr('s.inOt') : '',
+        ab: r.abandon ? tr('s.ab') : '',
+        s: `${r.scoreFor}-${r.scoreAgainst}`,
+        pl: playlistLabel(r),
+        w: st.wins,
+        lw: this.labelWin(),
+        l: st.losses,
+        ll: this.labelLoss(),
+        mmr: mmrTxt,
+      }),
       r.result === 'W' ? 'win' : 'loss'
     );
     const type = r.result === 'W' ? (r.overtime ? 'ot_win' : 'win') : r.overtime ? 'ot_loss' : 'loss';
@@ -209,7 +223,7 @@ class Core extends EventEmitter {
       otSeconds: r.otSeconds || 0,
       abandon: !!r.abandon,
       mvp: !!r.mvp,
-      playlist: r.playlistName || '',
+      playlist: playlistLabel(r),
       manual: !!r.manual,
       streak: st.streak,
       wins: st.wins,
@@ -230,7 +244,7 @@ class Core extends EventEmitter {
       id: crypto.randomUUID(),
       type,
       at: Date.now(),
-      title: renderTemplate(a.texts[type] || type, { n: data.n ?? data.streak ?? '' }),
+      title: renderTemplate(a.texts[type] || tr(`alert.${type}`), { n: data.n ?? data.streak ?? '' }),
       duration: Number(a.duration[type]) || 4,
       data,
       test: !!data.test,
@@ -238,6 +252,19 @@ class Core extends EventEmitter {
     this.server.broadcast({ type: 'alert', alert });
     this.emit('alert', alert);
     return alert;
+  }
+
+  labelWin() {
+    return this.store.settings.overlay.labelWin || tr('lbl.w');
+  }
+
+  labelLoss() {
+    return this.store.settings.overlay.labelLoss || tr('lbl.l');
+  }
+
+  // Partie telle qu'affichée : nom du mode dans la langue actuelle
+  _view(r) {
+    return { ...r, playlistName: playlistLabel(r) };
   }
 
   log(msg, level = 'info') {
@@ -345,6 +372,7 @@ class Core extends EventEmitter {
     const custom = {};
     for (const t of ALERT_TYPES) custom[t] = !!this.soundFile(t);
     return {
+      lang: i18n.getLang(),
       overlay: this._themedOverlay(),
       theme: this._themeInfo(),
       alerts: {
@@ -372,7 +400,7 @@ class Core extends EventEmitter {
       lanAddresses: this.server.lan ? this.server.lanAddresses() : [],
       dataDir: this.dataDir,
       textDir: this.text.dir(s),
-      sessionMatches: this.store.sessionMatches().slice(-100).reverse(),
+      sessionMatches: this.store.sessionMatches().slice(-100).reverse().map((r) => this._view(r)),
       allTime: { ...allStats, byPlaylist: statsByPlaylist(all), sessions: this.store.data.sessions.length },
       live: this.tracker.live(),
       status: {
@@ -386,7 +414,7 @@ class Core extends EventEmitter {
         obs: this.obs.status,
         overlays: this.server.overlayClients(),
       },
-      categories: CATEGORY_LABELS,
+      categories: categoryLabels(),
       logs: this.logs.slice(-80),
       hotkeyErrors: this.hotkeyErrors,
       themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir },
@@ -399,7 +427,7 @@ class Core extends EventEmitter {
 
   history(scope, limit) {
     const list = scope === 'all' ? this.store.data.matches : this.store.sessionMatches();
-    return { scope, total: list.length, matches: list.slice(-limit).reverse() };
+    return { scope, total: list.length, matches: list.slice(-limit).reverse().map((r) => this._view(r)) };
   }
 
   textValue(field) {
@@ -414,7 +442,7 @@ class Core extends EventEmitter {
       winrate: `${v.wr}%`,
       streak: v.streak,
       ot: `${v.otw} - ${v.otl}`,
-      summary: renderTemplate(this.store.settings.text.template, v),
+      summary: renderTemplate(customTemplate(this.store.settings), v),
       played: String(v.played),
     };
     return field in map ? map[field] : null;
@@ -435,11 +463,11 @@ class Core extends EventEmitter {
           result: name === 'win' ? 'W' : 'L',
           overtime: params.ot === '1' || params.ot === true,
           manual: true,
-          playlistName: 'Ajout manuel',
+          playlistName: tr('manual'),
           category: 'manual',
         });
         this._statsChanged();
-        this.log(`${name === 'win' ? 'Victoire' : 'Défaite'} ajoutée manuellement`);
+        this.log(tr('s.addedManually', { r: tr(name === 'win' ? 's.win' : 's.loss') }));
         if (alert) {
           const st = this.sessionStats();
           const type = name === 'win' ? (r.overtime ? 'ot_win' : 'win') : r.overtime ? 'ot_loss' : 'loss';
@@ -453,28 +481,28 @@ class Core extends EventEmitter {
         const r = this.store.removeLast(name === 'remove-win' ? 'W' : 'L');
         if (r) this.mmr.forget(r.id);
         this._statsChanged();
-        if (r) this.log(`${r.result === 'W' ? 'Victoire' : 'Défaite'} retirée`);
+        if (r) this.log(tr('s.removed', { r: tr(r.result === 'W' ? 's.win' : 's.loss') }));
         return { ok: !!r };
       }
       case 'undo': {
         const r = this.store.removeLast();
         if (r) this.mmr.forget(r.id);
         this._statsChanged();
-        if (r) this.log(`Dernière partie annulée (${r.result === 'W' ? 'victoire' : 'défaite'})`);
+        if (r) this.log(tr('s.undone', { r: tr(r.result === 'W' ? 's.win' : 's.loss').toLowerCase() }));
         return { ok: !!r };
       }
       case 'new-session':
       case 'reset':
         this.store.newSession();
         this._statsChanged();
-        this.log('Nouvelle session');
+        this.log(tr('s.newSession'));
         return { ok: true };
       case 'pause':
       case 'resume':
       case 'toggle-pause': {
         const paused = name === 'toggle-pause' ? !this.store.settings.paused : name === 'pause';
         this.store.patchSettings({ paused });
-        this.log(paused ? 'Tracker en pause' : 'Tracker réactivé');
+        this.log(tr(paused ? 's.paused' : 's.resumed'));
         this._changed();
         return { ok: true, paused };
       }
@@ -488,7 +516,7 @@ class Core extends EventEmitter {
           overtime: type.startsWith('ot') || type === 'overtime',
           otSeconds: 42,
           mvp: type === 'win' || type === 'ot_win',
-          playlist: '2v2 Classé',
+          playlist: describePlaylist(11).name,
           streak: type.includes('loss') ? -1 : Math.max(2, st.streak + 1),
           wins: st.wins,
           losses: st.losses,
@@ -504,7 +532,7 @@ class Core extends EventEmitter {
         return { ok: !!a, disabled: !a };
       }
       default:
-        return { ok: false, error: `Action inconnue : ${name}` };
+        return { ok: false, error: tr('s.unknownAction', { n: name }) };
     }
   }
 
@@ -529,7 +557,7 @@ class Core extends EventEmitter {
     if (r) {
       this.mmr.forget(r.id);
       this._statsChanged();
-      this.log('Partie supprimée de l\'historique');
+      this.log(tr('s.matchDeleted'));
     }
     return !!r;
   }
@@ -539,16 +567,18 @@ class Core extends EventEmitter {
     const prev = JSON.parse(before);
     const s = this.store.patchSettings(patch || {});
     if (JSON.stringify(s) === before) return s;
+    const langChanged = prev.language !== s.language;
+    if (langChanged) i18n.setLang(s.language);
     if (JSON.stringify(prev.stats) !== JSON.stringify(s.stats)) this.stats.configure(this._statsOpts(this.rlConfig));
     if (JSON.stringify(prev.obs) !== JSON.stringify(s.obs)) this.obs.apply();
     if (JSON.stringify(prev.mmr) !== JSON.stringify(s.mmr)) {
       this.mmr._learn = null;
       this._statsChanged();
     }
-    if (JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay) || JSON.stringify(prev.alerts) !== JSON.stringify(s.alerts)) {
+    if (langChanged || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay) || JSON.stringify(prev.alerts) !== JSON.stringify(s.alerts)) {
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
     }
-    if (JSON.stringify(prev.text) !== JSON.stringify(s.text) || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay)) {
+    if (langChanged || JSON.stringify(prev.text) !== JSON.stringify(s.text) || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay)) {
       this.text.cache.clear();
       this._writeText();
     }
@@ -558,10 +588,10 @@ class Core extends EventEmitter {
       setTimeout(async () => {
         try {
           const port = await this.server.restart();
-          this.log(`Serveur redémarré sur le port ${port}${s.lanAccess ? ' (accessible sur le réseau local)' : ''}`);
+          this.log(tr('s.restarted', { p: port, lan: s.lanAccess ? tr('s.lan') : '' }));
           if (this.hooks.onServerRestarted) this.hooks.onServerRestarted(port);
         } catch (e) {
-          this.log(`Impossible de redémarrer le serveur : ${e.message}`, 'error');
+          this.log(tr('s.restartFail', { e: e.message }), 'error');
         }
       }, 300);
     }
@@ -575,14 +605,14 @@ class Core extends EventEmitter {
       if (elevated) {
         await rlConfig.enableStatsApiElevated(this.documentsDir);
         await this.refreshRlConfig();
-        this.log('Stats API activée (administrateur). Redémarre Rocket League.');
+        this.log(tr('s.apiAdmin'));
         return { ok: true, config: this.rlConfig };
       }
       const r = await rlConfig.enableStatsApi(this.documentsDir);
       await this.refreshRlConfig();
       const failed = r.results.filter((x) => !x.ok);
-      if (failed.length) this.log(`Écriture impossible : ${failed.map((f) => f.file).join(', ')}`, 'warn');
-      else this.log('Stats API activée. Redémarre Rocket League pour l\'appliquer.');
+      if (failed.length) this.log(tr('s.writeFail', { f: failed.map((f) => f.file).join(', ') }), 'warn');
+      else this.log(tr('s.apiEnabled'));
       return { ok: failed.length === 0, needsAdmin: failed.some((f) => f.needsAdmin), results: r.results, config: this.rlConfig };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -593,7 +623,7 @@ class Core extends EventEmitter {
   installTheme(buf) {
     try {
       const r = this.themes.install(buf);
-      this.log(`Thème installé : ${r.name}${r.refused.length ? ` (${r.refused.length} fichier(s) refusé(s) : scripts ou formats non autorisés)` : ''}`);
+      this.log(tr('s.themeInstalled', { n: r.name, r: r.refused.length ? tr('s.themeRefused', { n: r.refused.length }) : '' }));
       return { ok: true, ...r };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -606,7 +636,7 @@ class Core extends EventEmitter {
       this.store.patchSettings({ overlay: { themePack: r.id } });
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
       this._changed();
-      this.log(`Thème perso créé : ${r.id} (modifie ses fichiers, les overlays se mettent à jour tout seuls)`);
+      this.log(tr('s.themeCreated', { n: r.id }));
       if (this.hooks.openPath) await this.hooks.openPath(r.dir);
       return { ok: true, ...r };
     } catch (e) {
@@ -617,7 +647,7 @@ class Core extends EventEmitter {
   removeTheme(id) {
     const ok = this.themes.remove(id);
     if (ok && this.store.settings.overlay.themePack === id) this.store.patchSettings({ overlay: { themePack: 'classique' } });
-    if (ok) this.log(`Thème supprimé : ${id}`);
+    if (ok) this.log(tr('s.themeDeleted', { n: id }));
     return ok;
   }
 
@@ -639,9 +669,9 @@ class Core extends EventEmitter {
 
   saveSound(type, buf, ext) {
     ext = String(ext || '').toLowerCase().replace('.', '');
-    if (!ALERT_TYPES.includes(type)) return { ok: false, error: 'Type inconnu' };
-    if (!SOUND_EXT.has(ext)) return { ok: false, error: 'Format accepté : mp3, wav, ogg, m4a' };
-    if (!buf || !buf.length) return { ok: false, error: 'Fichier vide' };
+    if (!ALERT_TYPES.includes(type)) return { ok: false, error: tr('s.unknownType') };
+    if (!SOUND_EXT.has(ext)) return { ok: false, error: tr('s.soundFormats') };
+    if (!buf || !buf.length) return { ok: false, error: tr('s.emptyFile') };
     fs.mkdirSync(this.soundsDir, { recursive: true });
     for (const e of SOUND_EXT) {
       try {

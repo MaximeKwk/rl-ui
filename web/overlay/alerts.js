@@ -33,19 +33,19 @@
     updateScale();
   }
 
-  const lw = () => (conf.overlay && conf.overlay.labelWin) || 'V';
-  const ll = () => (conf.overlay && conf.overlay.labelLoss) || 'D';
+  const lw = () => (conf.overlay && conf.overlay.labelWin) || OT.t('lbl.w');
+  const ll = () => (conf.overlay && conf.overlay.labelLoss) || OT.t('lbl.l');
 
   function kicker(a) {
     const d = a.data || {};
     const pl = d.manual ? '' : d.playlist || '';
     switch (a.type) {
       case 'overtime':
-        return `Mort subite${pl ? ` · ${pl}` : ''}`;
+        return `${OT.t('al.suddenDeath')}${pl ? ` · ${pl}` : ''}`;
       case 'ot_win':
-        return 'But en or';
+        return OT.t('al.golden');
       case 'streak':
-        return 'Victoires d\'affilée';
+        return OT.t('al.inARow');
       default:
         return pl;
     }
@@ -58,12 +58,12 @@
     const hasScore = Number.isFinite(d.scoreFor) && Number.isFinite(d.scoreAgainst) && !d.manual;
     if (a.type === 'overtime') {
       if (hasScore) out.push(`<span class="chip score"><b>${d.scoreFor}</b><i>–</i><b>${d.scoreAgainst}</b></span>`);
-      out.push(`<span class="chip hl">${ICON.bolt} Le prochain but gagne</span>`);
+      out.push(`<span class="chip hl">${ICON.bolt} ${esc(OT.t('al.nextGoal'))}</span>`);
       return out.join('');
     }
     if (a.type === 'streak') {
-      out.push(`<span class="chip hl">${ICON.fire} ${esc(d.n)} d'affilée</span>`);
-      out.push(`<span class="chip">Session ${d.wins}${esc(lw())} – ${d.losses}${esc(ll())}</span>`);
+      out.push(`<span class="chip hl">${ICON.fire} ${esc(OT.t('al.nInARow', { n: d.n }))}</span>`);
+      out.push(`<span class="chip">${esc(OT.t('al.session'))} ${d.wins}${esc(lw())} – ${d.losses}${esc(ll())}</span>`);
       return out.join('');
     }
     if (hasScore) out.push(`<span class="chip score"><b class="me">${d.scoreFor}</b><i>–</i><b>${d.scoreAgainst}</b></span>`);
@@ -73,8 +73,8 @@
       out.push(`<span class="chip mmr ${v >= 0 ? 'up' : 'down'}">${d.mmr.learned ? '' : '≈ '}${v > 0 ? '+' : ''}${v} MMR</span>`);
     }
     if (d.overtime && d.otSeconds > 0) out.push(`<span class="chip">${ICON.clock} OT ${OT.fmtClock(d.otSeconds, true)}</span>`);
-    if (isWin && d.streak >= 2) out.push(`<span class="chip hl">${ICON.fire} ${d.streak} d'affilée</span>`);
-    else if (Number.isFinite(d.wins)) out.push(`<span class="chip">Session ${d.wins}${esc(lw())} – ${d.losses}${esc(ll())}</span>`);
+    if (isWin && d.streak >= 2) out.push(`<span class="chip hl">${ICON.fire} ${esc(OT.t('al.nInARow', { n: d.streak }))}</span>`);
+    else if (Number.isFinite(d.wins)) out.push(`<span class="chip">${esc(OT.t('al.session'))} ${d.wins}${esc(lw())} – ${d.losses}${esc(ll())}</span>`);
     if (isWin && d.mvp) out.push(`<span class="chip">${ICON.star} MVP</span>`);
     return out.join('');
   }
@@ -197,13 +197,12 @@
   // Démo locale : /overlay/alerts?preview=1&demo=ot_win
   const demo = P.get('demo');
   if (demo) {
-    const d = { scoreFor: 3, scoreAgainst: 2, overtime: demo.startsWith('ot'), otSeconds: 42, mvp: true, playlist: '2v2 Classé', streak: 4, wins: 12, losses: 5, n: 5, mmr: { delta: 12, learned: true } };
+    const d = { scoreFor: 3, scoreAgainst: 2, overtime: demo.startsWith('ot'), otSeconds: 42, mvp: true, playlist: OT.lang === 'fr' ? '2v2 Classé' : '2v2 Ranked', streak: 4, wins: 12, losses: 5, n: 5, mmr: { delta: 12, learned: true } };
     if (demo === 'overtime' || demo === 'streak') d.mmr = null;
     if (demo === 'overtime') Object.assign(d, { scoreFor: 2, scoreAgainst: 2 });
     if (demo.includes('loss')) Object.assign(d, { scoreFor: 1, scoreAgainst: 2, streak: -1, mmr: { delta: -11, learned: true } });
-    const texts = { win: 'VICTOIRE', loss: 'DÉFAITE', overtime: 'OVERTIME', ot_win: 'VICTOIRE EN OVERTIME', ot_loss: 'DÉFAITE EN OVERTIME', streak: 'SÉRIE DE 5' };
     setTimeout(() => {
-      const title = ((conf.alerts.texts && conf.alerts.texts[demo]) || texts[demo] || demo).replace('{n}', d.n);
+      const title = ((conf.alerts.texts && conf.alerts.texts[demo]) || OT.t(`alert.${demo}`)).replace('{n}', d.n);
       queue.push({ type: demo, title, duration: OT.num('hold', 30), data: d });
       if (!busy) next();
     }, 400);

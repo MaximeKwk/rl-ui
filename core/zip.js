@@ -1,6 +1,7 @@
 'use strict';
 // Lecture / écriture de fichiers .zip (sans dépendance) pour installer et partager les thèmes.
 const zlib = require('zlib');
+const { t: tr } = require('./i18n');
 
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
@@ -28,14 +29,14 @@ function readZip(buf, { maxFiles = 500, maxTotal = 60 * 1024 * 1024 } = {}) {
       break;
     }
   }
-  if (eocd < 0) throw new Error('Fichier .zip invalide');
+  if (eocd < 0) throw new Error(tr('s.zipInvalid'));
   const count = buf.readUInt16LE(eocd + 10);
   let off = buf.readUInt32LE(eocd + 16);
-  if (count > maxFiles) throw new Error('Trop de fichiers dans le .zip');
+  if (count > maxFiles) throw new Error(tr('s.zipTooMany'));
   const out = [];
   let total = 0;
   for (let i = 0; i < count; i++) {
-    if (buf.readUInt32LE(off) !== 0x02014b50) throw new Error('Fichier .zip corrompu');
+    if (buf.readUInt32LE(off) !== 0x02014b50) throw new Error(tr('s.zipCorrupt'));
     const method = buf.readUInt16LE(off + 10);
     const csize = buf.readUInt32LE(off + 20);
     const usize = buf.readUInt32LE(off + 24);
@@ -47,13 +48,13 @@ function readZip(buf, { maxFiles = 500, maxTotal = 60 * 1024 * 1024 } = {}) {
     off += 46 + nlen + elen + clen;
     if (name.endsWith('/')) continue;
     total += usize;
-    if (total > maxTotal) throw new Error('Thème trop lourd (60 Mo max)');
+    if (total > maxTotal) throw new Error(tr('s.zipTooBig'));
     const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
     const raw = buf.subarray(start, start + csize);
     let data;
     if (method === 0) data = Buffer.from(raw);
     else if (method === 8) data = zlib.inflateRawSync(raw, { maxOutputLength: Math.max(usize, 1) + 1024 });
-    else throw new Error(`Compression non gérée dans le .zip (${name})`);
+    else throw new Error(tr('s.zipMethod', { n: name }));
     out.push({ name, data });
   }
   return out;

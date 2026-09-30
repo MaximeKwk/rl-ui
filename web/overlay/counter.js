@@ -40,8 +40,8 @@
     document.documentElement.style.setProperty('--s', OT.num('scale', Number(cfg.scale) || 1));
     document.body.classList.remove('align-left', 'align-center', 'align-right');
     document.body.classList.add(`align-${opt('align', 'left')}`);
-    for (const id of ['lw', 'bLw']) $(id).textContent = opt('lw', cfg.labelWin || 'V');
-    for (const id of ['ll', 'bLl']) $(id).textContent = opt('ll', cfg.labelLoss || 'D');
+    for (const id of ['lw', 'bLw']) $(id).textContent = opt('lw', cfg.labelWin || OT.t('lbl.w'));
+    for (const id of ['ll', 'bLl']) $(id).textContent = opt('ll', cfg.labelLoss || OT.t('lbl.l'));
     hide = new Set(String(opt('hide', '')).split(',').filter(Boolean));
     $('stWr').classList.toggle('hidden', hide.has('wr') || cfg.showWinrate === false);
     $('stStreak').classList.toggle('hidden', hide.has('streak') || cfg.showStreak === false);
@@ -224,8 +224,8 @@
       const t = mmrText(mm);
       items.push(`<div class="bst"><b class="${t.cls}">${t.html}</b><i>MMR</i></div>`);
     }
-    if (cfg.showStreak !== false && !hide.has('streak')) items.push(`<div class="bst"><b class="${s.streak > 0 ? 'hot' : s.streak < 0 ? 'cold' : ''}">${streakHtml}</b><i>série</i></div>`);
-    if (cfg.showWinrate !== false && !hide.has('wr')) items.push(`<div class="bst"><b>${s.played ? `${s.winRate}%` : '—'}</b><i>winrate</i></div>`);
+    if (cfg.showStreak !== false && !hide.has('streak')) items.push(`<div class="bst"><b class="${s.streak > 0 ? 'hot' : s.streak < 0 ? 'cold' : ''}">${streakHtml}</b><i>${OT.esc(OT.t('ov.streak'))}</i></div>`);
+    if (cfg.showWinrate !== false && !hide.has('wr')) items.push(`<div class="bst"><b>${s.played ? `${s.winRate}%` : '—'}</b><i>${OT.esc(OT.t('ov.winrate'))}</i></div>`);
     if (cfg.showOt !== false && !hide.has('ot')) items.push(`<div class="bst"><b>${s.otWins}-${s.otLosses}</b><i>OT</i></div>`);
     $('bStats').innerHTML = items.slice(0, 2).join('');
     const acc = accentColor(live);

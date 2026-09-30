@@ -3,6 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { t: tr } = require('./i18n');
 
 const signed = (n) => (n > 0 ? `+${n}` : String(n));
 
@@ -23,8 +24,8 @@ function templateVars(stats, settings, mmr = null) {
     otl: stats.otLosses,
     mvp: stats.mvps,
     goals: stats.myGoals,
-    lw: o.labelWin,
-    ll: o.labelLoss,
+    lw: o.labelWin || tr('lbl.w'),
+    ll: o.labelLoss || tr('lbl.l'),
   };
 }
 
@@ -47,9 +48,9 @@ class TextExporter {
     const dir = this.dir(settings);
     const v = templateVars(stats, settings, mmr);
     const last = lastRecord
-      ? `${lastRecord.result === 'W' ? settings.overlay.labelWin : settings.overlay.labelLoss}${
+      ? `${lastRecord.result === 'W' ? v.lw : v.ll}${
           Number.isFinite(lastRecord.scoreFor) && !lastRecord.manual ? ` ${lastRecord.scoreFor}-${lastRecord.scoreAgainst}` : ''
-        }${lastRecord.overtime ? ' (OT)' : ''}${lastRecord.abandon ? ' (abandon)' : ''}`
+        }${lastRecord.overtime ? ' (OT)' : ''}${lastRecord.abandon ? ` (${tr('abandon')})` : ''}`
       : '';
     const files = {
       'wins.txt': String(v.w),
@@ -61,7 +62,7 @@ class TextExporter {
       'last.txt': last,
       'mmr.txt': v.mmr,
       'mmr-session.txt': v.mmrd,
-      'custom.txt': renderTemplate(settings.text.template, v),
+      'custom.txt': renderTemplate(settings.text.template || tr('text.template'), v),
     };
     try {
       fs.mkdirSync(dir, { recursive: true });
@@ -77,4 +78,6 @@ class TextExporter {
   }
 }
 
-module.exports = { TextExporter, renderTemplate, templateVars };
+const customTemplate = (settings) => settings.text.template || tr('text.template');
+
+module.exports = { TextExporter, renderTemplate, templateVars, customTemplate };

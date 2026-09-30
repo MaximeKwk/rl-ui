@@ -7,6 +7,7 @@
 - **Overlays** pour OBS et Streamlabs : compteur (horizontal, vertical ou collé à la jauge de boost), alertes animées avec sons (victoire, défaite, overtime, OT gagné / perdu, séries), dernières parties, récap de session.
 - **Actions automatiques** dans OBS Studio ou Streamlabs Desktop (afficher une source, changer de scène).
 - **Thèmes** : Classique, Néon, Or & Noir et un modèle avec images ; personnalisation en direct (images, police, couleurs, sons), installation et partage en .zip (voir docs/THEMES.md).
+- **Langues** : application et overlays en anglais par défaut, français en option (Réglages → Language · Langue).
 - URLs **Stream Deck**, raccourcis clavier globaux, fichiers texte, historique complet.
 
 ## Bêtas (avant la 1.0.0)

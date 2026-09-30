@@ -156,7 +156,7 @@ test('bilan de session et MMR actuel', () => {
   sample(1112, 3000);
   match('W', 4000); // pas encore de valeur réelle après celle-ci
   const s = mmr.summary(store.sessionMatches(), { accountId: ACC });
-  assert.strictEqual(s.primary.name, '2v2 Classé');
+  assert.strictEqual(s.primary.name, '2v2 Ranked');
   assert.strictEqual(s.primary.delta, 24); // 12 exact + 12 estimé
   assert.strictEqual(s.primary.approx, true);
   assert.strictEqual(s.primary.current, 1124);
