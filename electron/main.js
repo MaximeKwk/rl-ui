@@ -6,6 +6,7 @@ const { app, BrowserWindow, Tray, Menu, nativeImage, shell, globalShortcut, dial
 const path = require('path');
 const { Core } = require('../core');
 const { migrateLegacyData } = require('./migrate');
+const { Updater } = require('./updater');
 const { t } = require('../core/i18n');
 const pkg = require('../package.json');
 
@@ -30,6 +31,8 @@ let core = null;
 let win = null;
 let tray = null;
 let quitting = false;
+let updater = null;
+let stopped = false;
 
 const dashboardUrl = () => `http://127.0.0.1:${core.server.port}/?app=1`;
 
@@ -139,7 +142,7 @@ function registerHotkeys() {
 }
 
 function applyLoginItem() {
-  if (isDev) return; // en développement on ne touche pas au démarrage de Windows
+  if (isDev || process.windowsStore) return; // dev : on ne touche pas au démarrage ; Store : réglé dans les paramètres de Windows
   const s = core.store.settings.app;
   app.setLoginItemSettings({ openAtLogin: !!s.startWithWindows, args: ['--hidden'] });
 }
@@ -162,6 +165,16 @@ app.whenReady().then(async () => {
       },
       onServerRestarted: () => {
         if (win) win.loadURL(dashboardUrl());
+      },
+      checkUpdate: () => updater.check(true),
+      installUpdate: async () => {
+        if (!updater || updater.status.state !== 'ready') return false;
+        // on arrête proprement le tracker avant de lancer l'installeur
+        quitting = true;
+        globalShortcut.unregisterAll();
+        await Promise.race([core.stop(), new Promise((r) => setTimeout(r, 2000))]);
+        stopped = true;
+        return updater.install();
       },
     },
   });
@@ -189,6 +202,13 @@ app.whenReady().then(async () => {
   const hidden = process.argv.includes('--hidden') || core.store.settings.app.startMinimized;
   createWindow(!hidden);
   applyLoginItem();
+  updater = new Updater({
+    app,
+    version: pkg.version,
+    onStatus: (st) => core.setUpdateStatus(st),
+    isEnabled: () => core.store.settings.app.autoUpdate !== false,
+  });
+  updater.start();
 });
 
 app.on('second-instance', () => {
@@ -203,14 +223,14 @@ app.on('window-all-closed', () => {
   if (!core || !core.store.settings.app.minimizeToTray) app.quit();
 });
 
-let stopped = false;
 app.on('will-quit', (e) => {
   if (stopped || !core) return;
   e.preventDefault();
   globalShortcut.unregisterAll();
+  // on relance la fermeture une fois le tracker arrêté (laisse l'installeur de mise à jour se lancer si besoin)
   const done = () => {
     stopped = true;
-    app.exit(0);
+    app.quit();
   };
   Promise.race([core.stop(), new Promise((r) => setTimeout(r, 2000))]).then(done, done);
 });

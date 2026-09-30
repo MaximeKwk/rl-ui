@@ -51,6 +51,7 @@ class Core extends EventEmitter {
     this.rlConfig = null;
     this.rlRunning = false;
     this.hotkeyErrors = [];
+    this.update = { state: 'idle', mode: 'dev' }; // mises à jour (fournies par l'application Electron)
     this._stats = null;
     this._changeTimer = null;
     this._wire();
@@ -265,6 +266,18 @@ class Core extends EventEmitter {
     this.server.broadcast({ type: 'alert', alert });
     this.emit('alert', alert);
     return alert;
+  }
+
+  // ---------------------------------------------------------------- mises à jour
+  setUpdateStatus(st) {
+    this.update = st;
+    this._changed();
+  }
+
+  async updateAction(name) {
+    if (name === 'check' && this.hooks.checkUpdate) return { ok: true, update: await this.hooks.checkUpdate() };
+    if (name === 'install' && this.hooks.installUpdate) return { ok: !!(await this.hooks.installUpdate()) };
+    return { ok: false, error: tr('s.noUpdater') };
   }
 
   // ---------------------------------------------------------------- mode caster
@@ -500,6 +513,7 @@ class Core extends EventEmitter {
       categories: categoryLabels(),
       logs: this.logs.slice(-80),
       hotkeyErrors: this.hotkeyErrors,
+      update: this.update,
       themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir },
       mmr: {
         summary: this.mmrSummary(),
@@ -805,7 +819,7 @@ class Core extends EventEmitter {
       return false;
     }
     if (target === 'url' && typeof url === 'string') {
-      const ok = /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url);
+      const ok = /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url);
       if (ok && this.hooks.openExternal) {
         await this.hooks.openExternal(url);
         return true;

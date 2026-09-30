@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- Images du Microsoft Store (build/appx) : store-tile.html?w=310&h=150&pad=0.12&name=1 — rendu par tools/shot.js -->
+<html><head><meta charset="utf-8"><style>
+@font-face { font-family: 'BC'; src: url('../web/assets/fonts/barlow-condensed-900-italic.woff2'); font-weight: 900; font-style: italic; }
+html,body{margin:0;overflow:hidden;background:transparent}
+.t{display:flex;align-items:center;justify-content:center;gap:6%;box-sizing:border-box}
+.t.bg{background:radial-gradient(120% 120% at 0% 100%,rgba(47,140,255,.35),transparent 60%),radial-gradient(120% 120% at 100% 100%,rgba(255,138,42,.3),transparent 60%),#0b1020}
+img{display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35))}
+b{font-family:BC,sans-serif;font-weight:900;font-style:italic;color:#fff;line-height:.9}
+b span{background:linear-gradient(90deg,#9fd0ff,#ff9a45);-webkit-background-clip:text;color:transparent;padding-right:.08em}
+</style></head><body>
+<div class="t" id="t"><img src="../build/icon.png" id="i"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const w = Number(q.get('w')), h = Number(q.get('h')), pad = Number(q.get('pad') || 0);
+const t = document.getElementById('t'), i = document.getElementById('i');
+t.style.width = w + 'px'; t.style.height = h + 'px';
+if (q.get('bg')) t.classList.add('bg');
+const s = Math.min(w, h) * (1 - 2 * pad);
+i.style.width = i.style.height = s + 'px';
+if (q.get('name')) {
+  const b = document.createElement('b');
+  b.innerHTML = 'RL<span>-UI</span>';
+  b.style.fontSize = (s * 0.62) + 'px';
+  t.appendChild(b);
+}
+</script>
+</body></html>

@@ -397,6 +397,16 @@
       location.reload();
     });
     if (!isApp) $('#appCard').classList.add('hidden');
+    document.addEventListener('click', async (e) => {
+      const u = e.target.closest('[data-upd]');
+      if (!u) return;
+      const act = u.dataset.upd;
+      if (act === 'download') return post('/api/open', { target: 'url', url: D.update.url });
+      if (act === 'check') toast(t('d.up.checking'));
+      const r = await post(`/api/update/${act}`);
+      if (r.ok === false) toast(r.error || t('d.failed'), 'err');
+      else if (act === 'check' && r.update && r.update.state === 'none') toast(t('d.up.none', { v: D.version }), 'ok');
+    });
 
     let tab = 'session';
     try {
@@ -810,6 +820,33 @@
     $(`#dl-src-${type}`).innerHTML = srcs.map((s) => `<option value="${esc(s)}"></option>`).join('');
   }
 
+  // ------------------------------------------------------------------ mises à jour
+  function renderUpdate() {
+    const u = D.update || { state: 'idle', mode: 'dev' };
+    const bar = $('#updateBar');
+    let html = '';
+    if (u.state === 'ready') html = `<span>${esc(t('d.up.ready', { v: u.version }))}</span><button class="btn small primary" data-upd="install">${esc(t('d.up.restart'))}</button>`;
+    else if (u.state === 'manual') html = `<span>${esc(t('d.up.available', { v: u.version }))}</span><button class="btn small primary" data-upd="download">${esc(t('d.up.download'))}</button>`;
+    else if (u.state === 'downloading') html = `<span class="muted">${esc(t('d.up.downloading', { p: u.percent || 0 }))}</span>`;
+    bar.innerHTML = html;
+    bar.classList.toggle('hidden', !html);
+
+    const info = $('#updateInfo');
+    const store = u.mode === 'store';
+    $('#autoUpdateRow').classList.toggle('hidden', store || u.mode === 'dev');
+    $('#startWinRow').classList.toggle('hidden', store);
+    if (store) info.innerHTML = `<div class="muted small">${esc(t('d.up.storeStartup'))}</div><span class="muted small">${esc(t('d.up.store'))}</span>`;
+    else if (u.mode === 'dev') info.innerHTML = `<span class="muted small">${esc(t('d.up.dev'))}</span>`;
+    else {
+      const line =
+        u.state === 'error' ? `<span class="wr small">${esc(t('d.up.error', { e: u.error || '' }))}</span>`
+        : u.state === 'none' ? `<span class="ok small">${esc(t('d.up.none', { v: D.version }))}</span>`
+        : u.state === 'checking' ? `<span class="muted small">${esc(t('d.up.checking'))}</span>`
+        : '';
+      info.innerHTML = `<div class="actions"><button class="btn ghost small" data-upd="check">${esc(t('d.up.check'))}</button>${line}</div>`;
+    }
+  }
+
   // ------------------------------------------------------------------ mode caster
   let C = null; // état du mode caster
   function layoutCasterPv() {
@@ -1012,6 +1049,7 @@
     if (changed('layout', D.settings.overlay.layout)) renderLayout();
     if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
     renderObs();
+    if (changed('update', [D.update, D.version])) renderUpdate();
     if (changed('caster', [D.port, D.status.overlays, D.settings.caster, D.status.rlConfig, D.settings.apiKey])) renderCasterStatic();
     if (changed('settingsView', [D.status.account, D.status.rlConfig, D.status.api.state, D.hotkeyErrors, D.settings, D.textDir, D.lanAddresses, D.port, D.mmr && D.mmr.known])) renderSettings();
     if (historyDirty) loadHistory();

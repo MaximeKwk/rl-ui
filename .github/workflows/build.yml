@@ -1,8 +1,10 @@
 name: Build
 
-# Tests + installeur Windows. Lancé seulement pour une nouvelle version (tag vX.Y.Z) ou à la main
-# (onglet Actions > Build > Run workflow), pour ne pas consommer les minutes GitHub Actions à chaque push.
-# Publier une version : git tag v1.2.0 && git push --tags -> les .exe sont joints à la release GitHub.
+# Tests + Windows installer. Runs only for a new version (tag vX.Y.Z) or manually
+# (Actions tab > Build > Run workflow), so GitHub Actions minutes aren't spent on every push.
+# Releasing: bump "version" in package.json, add the section to CHANGELOG.md, then
+#   git tag v1.2.0 && git push --tags
+# -> the .exe files and latest.yml (used by the in-app auto-update) are attached to the GitHub release.
 on:
   push:
     tags: ['v*']
@@ -15,33 +17,43 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
 
       - run: npm ci
 
-      - name: Tests unitaires
+      - name: Unit tests
         run: npm test
 
-      - name: Test de bout en bout (simulateur)
+      - name: End-to-end test (simulator)
         run: npm run e2e
 
-      - name: Installeur + version portable
+      - name: Installer + portable version
         run: npx electron-builder --win nsis portable --publish never
 
-      - uses: actions/upload-artifact@v4
+      - name: Release notes (from CHANGELOG.md)
+        shell: bash
+        run: node tools/release-notes.js > release-notes.md
+
+      - uses: actions/upload-artifact@v7
         with:
           name: RL-UI-windows
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest.yml
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
+          name: RL-UI ${{ github.ref_name }}
+          body_path: release-notes.md
           files: |
             dist/RL-UI-Setup-*.exe
+            dist/RL-UI-Setup-*.exe.blockmap
             dist/RL-UI-Portable-*.exe
+            dist/latest.yml

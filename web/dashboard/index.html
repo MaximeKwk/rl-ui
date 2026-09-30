@@ -17,6 +17,7 @@
         <span class="brand-sub" data-i18n="h.by">by Zoxam</span>
       </div>
       <div class="chips" id="statusChips"></div>
+      <div id="updateBar" class="update-bar hidden nodrag"></div>
       <button id="pauseBtn" class="btn small ghost nodrag" data-act="toggle-pause">Pause</button>
     </header>
 
@@ -519,9 +520,11 @@
               <h3>Application</h3>
               <div class="form">
                 <label class="check"><input type="checkbox" data-set="app.minimizeToTray" /> <span data-i18n="h.set.tray">Close = minimize to the system tray (tracking keeps running)</span></label>
-                <label class="check"><input type="checkbox" data-set="app.startWithWindows" /> <span data-i18n="h.set.startWin">Start with Windows</span></label>
+                <label class="check" id="startWinRow"><input type="checkbox" data-set="app.startWithWindows" /> <span data-i18n="h.set.startWin">Start with Windows</span></label>
                 <label class="check"><input type="checkbox" data-set="app.startMinimized" /> <span data-i18n="h.set.startMin">Start minimized</span></label>
+                <label class="check" id="autoUpdateRow"><input type="checkbox" data-set="app.autoUpdate" /> <span data-i18n="h.set.autoUpdate">Check for updates automatically</span></label>
               </div>
+              <div class="update-info" id="updateInfo"></div>
               <div class="actions"><button class="btn ghost small" id="openDataDir" data-i18n="h.set.openData">Open data folder</button></div>
             </div>
           </div>

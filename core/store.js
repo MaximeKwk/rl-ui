@@ -96,7 +96,7 @@ function defaultSettings() {
       loss: 'Ctrl+Alt+Shift+Down',
       undo: 'Ctrl+Alt+Shift+Backspace',
     },
-    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false },
+    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true },
     // Mode caster : noms d'équipe (vide = nom du jeu), série (BO), options d'affichage de l'overlay
     caster: {
       title: '',

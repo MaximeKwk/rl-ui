@@ -262,6 +262,11 @@ class AppServer extends EventEmitter {
         const r = this.core.casterAction(m[1]);
         return this._json(res, r.ok ? 200 : 400, r);
       }
+      m = /^\/api\/update\/(check|install)$/.exec(p);
+      if (m && method === 'POST') {
+        const r = await this.core.updateAction(m[1]);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
       if (p === '/api/caster') return this._json(res, 200, this.core.casterState());
       if (p === '/api/dashboard') return this._json(res, 200, this.core.dashboardState());
       if (p === '/api/settings' && method === 'POST') {

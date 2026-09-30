@@ -2,7 +2,7 @@
   "name": "rl-ui",
   "productName": "RL-UI",
   "version": "1.0.0",
-  "description": "Overlay de stream pour Rocket League : victoires / défaites, MMR, alertes victoire / défaite / overtime.",
+  "description": "Stream overlay for Rocket League: wins / losses, MMR, victory / defeat / overtime alerts, caster mode.",
   "main": "electron/main.js",
   "author": "Zoxam",
   "license": "SEE LICENSE IN LICENSE",
@@ -23,9 +23,11 @@
     "e2e": "node tools/e2e.js",
     "icon": "electron tools/make-icon.js",
     "shot": "electron tools/shot.js",
-    "dist": "electron-builder --win nsis portable"
+    "dist": "electron-builder --win nsis portable",
+    "dist:store": "electron-builder --win appx --publish never"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "ws": "^8.18.3"
   },
   "devDependencies": {
@@ -73,11 +75,40 @@
       "createStartMenuShortcut": true,
       "shortcutName": "RL-UI",
       "runAfterFinish": true,
-      "language": "1036",
-      "artifactName": "RL-UI-Setup-${version}.${ext}"
+      "artifactName": "RL-UI-Setup-${version}.${ext}",
+      "multiLanguageInstaller": true,
+      "installerLanguages": [
+        "en_US",
+        "fr_FR"
+      ]
     },
     "portable": {
       "artifactName": "RL-UI-Portable-${version}.exe"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "MaximeKwk",
+        "repo": "rl-ui"
+      }
+    ],
+    "appx": {
+      "applicationId": "RLUI",
+      "identityName": "Zoxam.RL-UI",
+      "publisher": "CN=00000000-0000-0000-0000-000000000000",
+      "publisherDisplayName": "Zoxam",
+      "displayName": "RL-UI",
+      "backgroundColor": "#0b1020",
+      "languages": [
+        "en-US",
+        "fr-FR"
+      ],
+      "showNameOnTiles": false,
+      "addAutoLaunchExtension": false,
+      "artifactName": "RL-UI-Store-${version}.${ext}",
+      "customExtensionsPath": "build/appx-extensions.xml",
+      "minVersion": "10.0.17763.0",
+      "maxVersionTested": "10.0.26100.0"
     }
   }
 }

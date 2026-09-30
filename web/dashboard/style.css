@@ -424,3 +424,8 @@ details .form { margin-top: 10px; }
 .caster-players tr.tgt td { background: rgba(255, 255, 255, 0.05); }
 .caster-players .mini { display: inline-block; width: 60px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); margin-right: 8px; vertical-align: middle; overflow: hidden; }
 .caster-players .mini i { display: block; height: 100%; background: linear-gradient(90deg, #ffd35a, #ff9d2a); }
+
+/* Mise à jour disponible (barre du haut) */
+.update-bar { display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 10px; padding: 4px 6px 4px 12px; border-radius: 10px; background: rgba(61, 149, 255, 0.14); border: 1px solid rgba(61, 149, 255, 0.4); font-size: 13px; font-weight: 600; }
+.update-info { margin-top: 10px; }
+.update-info .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }

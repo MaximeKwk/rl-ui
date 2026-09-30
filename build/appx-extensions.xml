@@ -1,0 +1,3 @@
+<desktop:Extension Category="windows.startupTask" Executable="app\RL-UI.exe" EntryPoint="Windows.FullTrustApplication">
+  <desktop:StartupTask TaskId="RLUIStartup" Enabled="false" DisplayName="RL-UI" />
+</desktop:Extension>

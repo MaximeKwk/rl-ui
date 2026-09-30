@@ -17,6 +17,8 @@ app.whenReady().then(async () => {
     height: 1080,
     show: false,
     useContentSize: true,
+    // "transparent": true dans un job -> images à fond transparent (icônes du Store)
+    ...(jobs.some((j) => j.transparent) ? { transparent: true, backgroundColor: '#00000000' } : {}),
     webPreferences: { offscreen: true, backgroundThrottling: false },
   });
   win.webContents.setAudioMuted(true);
