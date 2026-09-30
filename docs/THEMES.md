@@ -1,128 +1,130 @@
-# Créer un thème RL-UI
+# Creating an RL-UI theme
 
-Un thème change la DA de **tous les overlays** (compteur, alertes, dernières parties, récap) : couleurs, images, police et sons. Pas besoin de savoir coder : la plupart des thèmes se font en remplaçant deux images et trois couleurs.
+**English** · [Français](THEMES.fr.md)
+
+A theme changes the look of **every overlay** (counter, alerts, recent matches, recap, caster): colors, images, font and sounds. No coding needed: most themes only take two images and three colors.
 
 > [!TIP]
-> Le plus simple : dans RL-UI, **Overlays OBS → Thèmes → Personnaliser** sur le thème **« Modèle (avec images) »**. Une copie modifiable est créée et son dossier s'ouvre. Chaque fois que tu enregistres un fichier, les overlays se mettent à jour **en direct**, même dans OBS.
+> The easiest way: in RL-UI, **OBS overlays → Themes → Customize** on the **“Template (with images)”** theme. An editable copy is created and its folder opens. Every time you save a file, the overlays update **live**, even in OBS.
 
-## Contenu d'un thème
+## What's in a theme
 
 ```text
-mon-theme/
-├── theme.json        # nom, auteur, couleurs, sons   (obligatoire)
-├── theme.css         # ta mise en forme              (facultatif)
-├── preview.png       # vignette affichée dans RL-UI  (facultatif, 480 × 120 conseillé)
+my-theme/
+├── theme.json        # name, author, colors, sounds   (required)
+├── theme.css         # your styling                   (optional)
+├── preview.png       # thumbnail shown in RL-UI       (optional, 480 × 120 recommended)
 ├── images/           # .png .jpg .webp .gif .svg
 ├── fonts/            # .woff2 .woff .ttf .otf
 └── sounds/           # .mp3 .wav .ogg
 ```
 
-Les thèmes perso sont rangés dans le dossier de données de RL-UI (`%APPDATA%\RL-UI\themes`, bouton **Ouvrir le dossier des thèmes**).
+Custom themes live in RL-UI's data folder (`%APPDATA%\RL-UI\themes`, **Open themes folder** button).
 
 ## theme.json
 
 ```json
 {
-  "name": "Ma DA",
-  "author": "Ton pseudo",
+  "name": "My look",
+  "author": "Your name",
   "version": "1.0.0",
-  "description": "Une phrase qui décrit le thème.",
+  "description": "One sentence describing the theme.",
   "colors": { "win": "#35e0ff", "loss": "#ff5470", "ot": "#ffc23d" },
-  "sounds": { "win": "sounds/victoire.mp3", "overtime": "sounds/ot.mp3" }
+  "sounds": { "win": "sounds/victory.mp3", "overtime": "sounds/ot.mp3" }
 }
 ```
 
-| Champ | Rôle |
+| Field | Purpose |
 | --- | --- |
-| `colors` | Couleurs victoire / défaite / overtime, au format `#rrggbb`. Utilisées partout (chiffres, halos, confettis). Désactivables dans RL-UI (« Utiliser les couleurs du thème »). |
-| `translations` | Facultatif : nom et description dans une autre langue, ex. `"translations": { "fr": { "name": "Ma DA", "description": "…" } }` (le nom principal est affiché en anglais). |
-| `sounds` | Sons des alertes. Types : `win`, `loss`, `overtime`, `ot_win`, `ot_loss`, `streak`. Un son perso choisi dans RL-UI reste prioritaire. |
+| `colors` | Win / loss / overtime colors, as `#rrggbb`. Used everywhere (numbers, glows, confetti). Can be turned off in RL-UI (“Use the theme's colors”). |
+| `translations` | Optional: name and description in another language, e.g. `"translations": { "fr": { "name": "Ma DA", "description": "…" } }`. |
+| `sounds` | Alert sounds. Types: `win`, `loss`, `overtime`, `ot_win`, `ot_loss`, `streak`. A custom sound picked in RL-UI still takes priority. |
 
 ## theme.css
 
-`theme.css` est chargé **après** le style d'origine : tu ne réécris que ce que tu veux changer. Les chemins `url(...)` sont relatifs au dossier du thème.
+`theme.css` is loaded **after** the original style: only write what you want to change. `url(...)` paths are relative to the theme folder.
 
 ### Variables
 
-| Variable | Rôle |
+| Variable | Purpose |
 | --- | --- |
-| `--win`, `--loss`, `--ot` | Couleurs (déjà remplies depuis `theme.json`) |
-| `--font` | Police des overlays |
-| `--s` | Échelle (taille réglée dans RL-UI) : `calc(40px * var(--s))` |
+| `--win`, `--loss`, `--ot` | Colors (already filled from `theme.json`) |
+| `--font` | Overlay font |
+| `--s` | Scale (size set in RL-UI): `calc(40px * var(--s))` |
 
 ```css
-@font-face { font-family: 'MaPolice'; src: url('fonts/ma-police.woff2'); }
-:root { --font: 'MaPolice'; }
+@font-face { font-family: 'MyFont'; src: url('fonts/my-font.woff2'); }
+:root { --font: 'MyFont'; }
 ```
 
-### Cibler un overlay
+### Targeting an overlay
 
-Chaque page porte une classe sur `<body>` : `.ov-counter`, `.ov-alerts`, `.ov-history`, `.ov-summary`, `.ov-caster`. Le thème actif ajoute aussi `.pack-<id>`.
+Each page has a class on `<body>`: `.ov-counter`, `.ov-alerts`, `.ov-history`, `.ov-summary`, `.ov-caster`. The active theme also adds `.pack-<id>`.
 
-### Éléments modifiables
+### Elements you can change
 
-**Compteur** (`.ov-counter`)
+**Counter** (`.ov-counter`)
 
-| Sélecteur | Élément |
+| Selector | Element |
 | --- | --- |
-| `.w` | Le compteur entier (dispositions horizontale et verticale) |
-| `.theme-arena` / `.theme-broadcast` / `.theme-minimal` | Le style choisi dans RL-UI ; `::before` = liseré du haut |
-| `.cell.win .num`, `.cell.loss .num`, `.lbl` | Chiffres V / D et leurs lettres |
-| `.st`, `.st b`, `.st i` | Cases de stats (winrate, série, OT, MMR), valeur, libellé |
-| `.otbadge` | Badge « OVERTIME » pendant les prolongations |
-| `.boost`, `.bfill`, `.brim` | Disposition « Boost » (collée à la jauge) |
-| `.deco` | **Emplacement libre pour une image de fond** (dans `.w` et `.boost`) |
+| `.w` | The whole counter (horizontal and vertical layouts) |
+| `.theme-arena` / `.theme-broadcast` / `.theme-minimal` | The style picked in RL-UI; `::before` = top stripe |
+| `.cell.win .num`, `.cell.loss .num`, `.lbl` | W / L numbers and their letters |
+| `.st`, `.st b`, `.st i` | Stat boxes (winrate, streak, OT, MMR), value, label |
+| `.otbadge` | “OVERTIME” badge during overtime |
+| `.boost`, `.bfill`, `.brim` | “Boost” layout (next to the gauge) |
+| `.deco` | **Free slot for a background image** (in `.w` and `.boost`) |
 
-**Alertes** (`.ov-alerts`)
+**Alerts** (`.ov-alerts`)
 
-| Sélecteur | Élément |
+| Selector | Element |
 | --- | --- |
-| `.al` + `.t-win`, `.t-loss`, `.t-overtime`, `.t-ot_win`, `.t-ot_loss`, `.t-streak` | Une alerte, selon son type |
-| `.kicker` | Petite ligne au-dessus (mode de jeu) |
-| `.title .tx` | Le grand titre |
-| `.chip`, `.chip.hl`, `.chip.mmr` | Pastilles sous le titre (score, MMR, série…) |
-| `.art` | **Emplacement libre pour une image** (logo, mascotte), centré sur l'alerte |
+| `.al` + `.t-win`, `.t-loss`, `.t-overtime`, `.t-ot_win`, `.t-ot_loss`, `.t-streak` | An alert, by type |
+| `.kicker` | Small line above (game mode) |
+| `.title .tx` | The big title |
+| `.chip`, `.chip.hl`, `.chip.mmr` | Pills under the title (score, MMR, streak…) |
+| `.art` | **Free slot for an image** (logo, mascot), centered on the alert |
 
 **Caster** (`.ov-caster`)
 
-| Sélecteur | Élément |
+| Selector | Element |
 | --- | --- |
-| `.bug`, `.bug .team.c0` / `.c1`, `.bug .score`, `.bug .clock` | Tableau des scores (`.clock.ot` en overtime, `.clock.replay` pendant un replay) |
-| `.pips i.on` | Matchs gagnés dans la série |
-| `.boosts .pl`, `.pl.tgt`, `.pl.dead`, `.pl .bar i` | Boost des joueurs (joueur suivi, démoli) |
-| `.target` | Carte du joueur suivi |
-| `.goal .tag` | Bannière de but |
+| `.bug`, `.bug .team.c0` / `.c1`, `.bug .score`, `.bug .clock` | Scorebug (`.clock.ot` in overtime, `.clock.replay` during a replay) |
+| `.pips i.on` | Games won in the series |
+| `.boosts .pl`, `.pl.tgt`, `.pl.dead`, `.pl .bar i` | Player boost (spectated player, demolished) |
+| `.target` | Spectated player card |
+| `.goal .tag` | Goal banner |
 | `.feed .it` | Statfeed |
-| `.post .card` | Tableau de fin de match |
-| `--blue`, `--orange` | Couleurs des équipes (reçues du jeu) ; `--tc` = couleur de l'équipe de l'élément |
+| `.post .card` | End-of-match scoreboard |
+| `--blue`, `--orange` | Team colors (sent by the game); `--tc` = the element's team color |
 
-**Dernières parties** (`.ov-history`) : `.bar`, `.pill`, `.ttl`, `.deco`.
-**Récap de session** (`.ov-summary`) : `.card`, `.big b`, `.tile`, `.pill`, `.deco`.
+**Recent matches** (`.ov-history`): `.bar`, `.pill`, `.ttl`, `.deco`.
+**Session recap** (`.ov-summary`): `.card`, `.big b`, `.tile`, `.pill`, `.deco`.
 
-### Exemples
+### Examples
 
 ```css
-/* Image de fond du compteur */
-.ov-counter .w .deco { background: url('images/fond.png') center / cover; }
+/* Counter background image */
+.ov-counter .w .deco { background: url('images/background.png') center / cover; }
 .ov-counter .theme-arena { background: transparent; }
 
-/* Logo au-dessus des alertes de victoire uniquement */
+/* Logo above victory alerts only */
 .ov-alerts .al.t-win .art {
   width: calc(160px * var(--s)); height: calc(160px * var(--s));
   top: 0; transform: translate(-50%, -105%);
   background: url('images/logo.png') center / contain no-repeat;
 }
 
-/* Titre des défaites en gris */
+/* Grey title for defeats */
 .ov-alerts .al.t-loss .title .tx { color: #9aa3b2; }
 ```
 
-## Partager un thème
+## Sharing a theme
 
-- **Exporter** (dans RL-UI) crée un `.zip` du thème.
-- Les autres cliquent **Installer un thème (.zip)** : c'est tout.
-- Réinstaller un thème du même nom met à jour la version perso ; les thèmes intégrés ne sont jamais écrasés.
+- **Export** (in RL-UI) creates a `.zip` of the theme.
+- Others click **Install a theme (.zip)**: that's it.
+- Reinstalling a theme with the same name updates the custom copy; built-in themes are never overwritten.
 
-## Sécurité
+## Security
 
-Un thème ne peut contenir **aucun script** : seuls les fichiers listés plus haut sont acceptés, les autres (`.js`, `.html`, `.exe`…) sont ignorés à l'installation. Les fichiers sont servis avec une politique de sécurité stricte : un thème ne peut ni exécuter de code ni charger quoi que ce soit depuis Internet.
+A theme can't contain **any script**: only the files listed above are accepted, anything else (`.js`, `.html`, `.exe`…) is ignored on install. Files are served with a strict security policy: a theme can neither run code nor load anything from the Internet.

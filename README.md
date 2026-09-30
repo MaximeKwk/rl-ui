@@ -1,276 +1,284 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="RL-UI — overlay de stream pour Rocket League" width="100%">
+  <img src="docs/images/banner.png" alt="RL-UI — stream overlay for Rocket League" width="100%">
 </p>
 
 <p align="center">
   <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-2f8cff?style=flat-square"></a>
-  <img alt="Plateforme" src="https://img.shields.io/badge/plateforme-Windows%2010%20%7C%2011-0078d4?style=flat-square&logo=windows&logoColor=white">
-  <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-Stats%20API%20officielle-ff8a2a?style=flat-square">
-  <img alt="OBS et Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-302e31?style=flat-square&logo=obsstudio&logoColor=white">
-  <a href="LICENSE"><img alt="Licence" src="https://img.shields.io/badge/licence-tous%20droits%20r%C3%A9serv%C3%A9s-555?style=flat-square"></a>
+  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078d4?style=flat-square&logo=windows&logoColor=white">
+  <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-official%20Stats%20API-ff8a2a?style=flat-square">
+  <img alt="OBS and Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-302e31?style=flat-square&logo=obsstudio&logoColor=white">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-all%20rights%20reserved-555?style=flat-square"></a>
 </p>
 
 <p align="center">
-  <b>RL-UI</b> compte tout seul tes victoires, défaites et ton MMR sur Rocket League,<br>
-  et fait réagir ton stream quand tu gagnes, quand tu perds et quand la partie part en <b>overtime</b>.
+  <b>RL-UI</b> tracks your Rocket League wins, losses and MMR automatically,<br>
+  and makes your stream react when you win, when you lose and when the game goes to <b>overtime</b>.
 </p>
 
 <p align="center">
-  <a href="#démarrage-rapide">Démarrage rapide</a> ·
-  <a href="#aperçu">Aperçu</a> ·
-  <a href="#comment-ça-marche">Comment ça marche</a> ·
+  <b>English</b> · <a href="README.fr.md">Français</a>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#preview">Preview</a> ·
+  <a href="#how-it-works">How it works</a> ·
   <a href="#overlays">Overlays</a> ·
+  <a href="#caster-mode">Caster mode</a> ·
   <a href="#faq">FAQ</a>
 </p>
 
 > [!IMPORTANT]
-> RL-UI n'utilise **aucun mod** : ni BakkesMod, ni injection dans le jeu. Il lit uniquement la **Stats API officielle** de Psyonix
-> et le journal local du jeu. Il est donc compatible avec l'anti-cheat (EAC).
-> L'application n'est pas encore signée numériquement : au premier lancement, Windows SmartScreen peut afficher un avertissement
-> (*Informations complémentaires → Exécuter quand même*).
+> RL-UI uses **no mods**: no BakkesMod, no injection into the game. It only reads Psyonix's **official Stats API**
+> and the game's local log file, so it is compatible with the anti-cheat (EAC).
+> The app is not code-signed yet: on first launch, Windows SmartScreen may show a warning
+> (*More info → Run anyway*).
 
-## Aperçu
+## Preview
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/alert-win.png" alt="Alerte victoire"></td>
-    <td width="50%"><img src="docs/images/alert-overtime.png" alt="Alerte overtime"></td>
+    <td width="50%"><img src="docs/images/alert-win.png" alt="Victory alert"></td>
+    <td width="50%"><img src="docs/images/alert-overtime.png" alt="Overtime alert"></td>
   </tr>
   <tr>
-    <td align="center"><b>Victoire</b> — confettis, score, série, MMR, MVP</td>
-    <td align="center"><b>Overtime</b> — dès que la prolongation commence</td>
+    <td align="center"><b>Victory</b> — confetti, score, streak, MMR, MVP</td>
+    <td align="center"><b>Overtime</b> — as soon as overtime starts</td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/alert-ot-win.png" alt="Alerte victoire en overtime"></td>
-    <td width="50%"><img src="docs/images/alert-loss.png" alt="Alerte défaite"></td>
+    <td width="50%"><img src="docs/images/alert-ot-win.png" alt="Overtime victory alert"></td>
+    <td width="50%"><img src="docs/images/alert-loss.png" alt="Defeat alert"></td>
   </tr>
   <tr>
-    <td align="center"><b>Victoire en overtime</b> — but en or</td>
-    <td align="center"><b>Défaite</b> — effet glitch</td>
+    <td align="center"><b>Overtime victory</b> — golden goal</td>
+    <td align="center"><b>Defeat</b> — glitch effect</td>
   </tr>
 </table>
 
 <table>
   <tr>
-    <td><img src="docs/images/counter.png" alt="Compteur horizontal"></td>
-    <td rowspan="2"><img src="docs/images/counter-vertical.png" alt="Compteur vertical" width="160"></td>
+    <td><img src="docs/images/counter.png" alt="Horizontal counter"></td>
+    <td rowspan="2"><img src="docs/images/counter-vertical.png" alt="Vertical counter" width="160"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/counter-boost.png" alt="Compteur collé à la jauge de boost"></td>
+    <td><img src="docs/images/counter-boost.png" alt="Counter next to the boost gauge"></td>
   </tr>
   <tr>
-    <td align="center">Compteur horizontal, et mode <b>Boost</b> collé à la jauge du jeu, à la couleur de ton équipe</td>
+    <td align="center">Horizontal counter, and <b>Boost</b> mode stuck to the in-game boost gauge, in your team's color</td>
     <td align="center">Vertical</td>
   </tr>
 </table>
 
-<p align="center"><img src="docs/images/dashboard.png" alt="Tableau de bord" width="85%"></p>
+<p align="center"><img src="docs/images/dashboard.png" alt="Dashboard" width="85%"></p>
 
-## Comment ça marche
+## How it works
 
 ```mermaid
 flowchart LR
-    RL["Rocket League<br/>Stats API officielle<br/>(TCP 49123 / WS 49124)"] -->|score, overtime, fin de match| BS
-    LOG["Journal du jeu<br/>Launch.log"] -->|ton compte, ton MMR| BS
-    BS["RL-UI<br/>(tourne en local)"] -->|overlays navigateur| STREAM["OBS / Streamlabs"]
-    BS -->|scènes et sources| ACT["Actions automatiques<br/>OBS WebSocket / Streamlabs API"]
-    BS -->|URLs et raccourcis| DECK["Stream Deck / clavier"]
+    RL["Rocket League<br/>official Stats API<br/>(TCP 49123 / WS 49124)"] -->|score, overtime, end of match| APP
+    LOG["Game log<br/>Launch.log"] -->|your account, your MMR| APP
+    APP["RL-UI<br/>(runs locally)"] -->|browser overlays| STREAM["OBS / Streamlabs"]
+    APP -->|scenes and sources| ACT["Automatic actions<br/>OBS WebSocket / Streamlabs API"]
+    APP -->|URLs and hotkeys| DECK["Stream Deck / keyboard"]
 ```
 
-1. Rocket League diffuse en local les événements de la partie : buts, chrono, **overtime**, fin de match et vainqueur.
-2. RL-UI lit le journal du jeu pour savoir **quel joueur est toi** (Steam ou Epic) et récupérer ton **MMR réel**.
-3. Il enregistre chaque partie (victoire, défaite, OT, abandon, MVP…) et met à jour les overlays en direct, en moins d'une seconde.
+1. Rocket League broadcasts match events locally: goals, clock, **overtime**, end of match and winner.
+2. RL-UI reads the game log to know **which player is you** (Steam or Epic) and to get your **real MMR**.
+3. It records every match (win, loss, OT, early leave, MVP…) and updates the overlays live, in under a second.
 
-## Démarrage rapide
+## Quick start
 
-**Prérequis :** Windows 10 ou 11 (64 bits), Rocket League sur PC (Steam ou Epic), OBS Studio 28+ ou Streamlabs Desktop.
+**Requirements:** Windows 10 or 11 (64-bit), Rocket League on PC (Steam or Epic), OBS Studio 28+ or Streamlabs Desktop.
 
-1. **Installe** `RL-UI-Setup-x.y.z.exe` depuis les [Releases](https://github.com/MaximeKwk/rl-ui/releases)
-   (ou la version portable, sans installation).
-2. **Lance Rocket League** et joue une partie. La Stats API est activée d'office dans les versions récentes du jeu ; sinon
-   *Réglages → Activer / réparer l'API* puis redémarre le jeu.
-3. **Ajoute les overlays** dans OBS ou Streamlabs : *Sources → + → Navigateur*, colle l'URL (voir ci-dessous).
+1. **Install** `RL-UI-Setup-x.y.z.exe` from the [Releases](https://github.com/MaximeKwk/rl-ui/releases)
+   (or the portable version, no install needed).
+2. **Launch Rocket League** and play a match. The Stats API is enabled by default in recent versions of the game; otherwise
+   *Settings → Enable / repair the API*, then restart the game.
+3. **Add the overlays** in OBS or Streamlabs: *Sources → + → Browser*, paste the URL (see below).
 
-C'est tout : chaque victoire, défaite et overtime est détecté automatiquement.
-L'app vit dans la zone de notification (icône **RL**) ; fermer la fenêtre ne l'arrête pas.
+That's it: every win, loss and overtime is detected automatically.
+The app lives in the system tray (**RL** icon); closing the window doesn't stop it.
+The interface is in English by default; French is available in *Settings → Language · Langue*.
 
 ## Overlays
 
-| Overlay | URL | Taille de la source |
+| Overlay | URL | Source size |
 | --- | --- | --- |
-| Compteur horizontal | `http://127.0.0.1:5757/overlay/counter` | 1000 × 220 |
-| Compteur vertical | `http://127.0.0.1:5757/overlay/counter?layout=vertical` | 340 × 720 |
-| Compteur « Boost » | `http://127.0.0.1:5757/overlay/counter?layout=boost` | plein écran |
-| Alertes | `http://127.0.0.1:5757/overlay/alerts` | plein écran |
-| Dernières parties | `http://127.0.0.1:5757/overlay/history` | 700 × 90 |
-| Récap de session | `http://127.0.0.1:5757/overlay/summary` | plein écran |
-| Caster (spectateur) | `http://127.0.0.1:5757/overlay/caster` | plein écran |
+| Horizontal counter | `http://127.0.0.1:5757/overlay/counter` | 1000 × 220 |
+| Vertical counter | `http://127.0.0.1:5757/overlay/counter?layout=vertical` | 340 × 720 |
+| “Boost” counter | `http://127.0.0.1:5757/overlay/counter?layout=boost` | full screen |
+| Alerts | `http://127.0.0.1:5757/overlay/alerts` | full screen |
+| Recent matches | `http://127.0.0.1:5757/overlay/history` | 700 × 90 |
+| Session recap | `http://127.0.0.1:5757/overlay/summary` | full screen |
+| Caster (spectator) | `http://127.0.0.1:5757/overlay/caster` | full screen |
 
 > [!TIP]
-> Pour entendre les alertes sur le stream, coche **« Contrôler l'audio via OBS »** dans les propriétés de la source.
-> Les overlays suivent en direct les réglages du tableau de bord (thème, style, couleurs, textes, sons).
+> To hear the alerts on stream, tick **“Control audio via OBS”** in the source properties.
+> Overlays follow the dashboard settings live (theme, style, colors, texts, sounds, language).
 
-**Mode Boost** — le compteur se cale à gauche de la jauge de boost, son bord suit l'arc de la jauge et il prend la couleur de ton
-équipe. Si ton HUD a une autre taille : *Overlays → Compteur → Afficher le repère*, ajuste la taille et la position jusqu'à ce
-que le repère recouvre ta jauge dans OBS, puis masque-le.
+**Boost mode** — the counter snaps to the left of the boost gauge, its edge follows the gauge's arc and it takes your team's
+color. If your HUD has a different size: *OBS overlays → Counter → Show the gauge guide*, adjust the size and position until
+the guide covers your gauge in OBS, then hide it.
 
 <details>
-<summary><b>Paramètres d'URL avancés</b></summary>
+<summary><b>Advanced URL parameters</b></summary>
 
-| Overlay | Paramètres |
+| Overlay | Parameters |
 | --- | --- |
-| Compteur | `theme=arena\|broadcast\|minimal` · `layout=horizontal\|vertical\|boost` · `scale=1.3` · `align=left\|center\|right` · `hide=wr,streak,ot,mmr` · `mmr=session\|value\|both` · `bscale` · `bx` · `by` · `guide=1` |
-| Alertes | `pos=center\|top\|bottom` · `scale` · `mute=1` · `only=overtime,ot_win` · `mmr=0` |
-| Dernières parties | `n=5` · `order=old` · `bare=1` · `title=0` |
-| Tous | thème `pack=neon` · couleurs `win=2ef2a0&loss=ff4d6d&ot=ffb020` · aperçu `preview=1` |
+| Counter | `theme=arena\|broadcast\|minimal` · `layout=horizontal\|vertical\|boost` · `scale=1.3` · `align=left\|center\|right` · `hide=wr,streak,ot,mmr` · `mmr=session\|value\|both` · `bscale` · `bx` · `by` · `guide=1` |
+| Alerts | `pos=center\|top\|bottom` · `scale` · `mute=1` · `only=overtime,ot_win` · `mmr=0` |
+| Recent matches | `n=5` · `order=old` · `bare=1` · `title=0` |
+| Caster | `hide=bug,boosts,target,goals,feed,post` · `scale` |
+| All | theme `pack=neon` · colors `win=2ef2a0&loss=ff4d6d&ot=ffb020` · preview `preview=1` |
 
 </details>
 
-## Thèmes
+## Themes
 
-Change la DA de tous les overlays en un clic, ou crée la tienne avec tes images, ta police, tes couleurs et tes sons.
+Change the look of every overlay in one click, or build your own with your images, font, colors and sounds.
 
-<p align="center"><img src="docs/images/themes.png" alt="Choix du thème dans RL-UI" width="860" /></p>
+<p align="center"><img src="docs/images/themes.png" alt="Theme picker in RL-UI" width="860" /></p>
 
 | | |
 | --- | --- |
-| **Thèmes intégrés** | Classique, Néon, Or & Noir, et un **Modèle** avec images à dupliquer |
-| **Personnaliser** | Crée une copie modifiable et ouvre son dossier : remplace les images, les couleurs de `theme.json` ou le `theme.css`, les overlays se mettent à jour **en direct dans OBS** |
-| **Partager** | *Exporter* donne un `.zip` ; les autres le chargent avec *Installer un thème* |
-| **Sûr** | Aucun script accepté dans un thème : images, polices, sons et CSS uniquement |
+| **Built-in themes** | Classic, Neon, Gold & Black, and a **Template** with images, ready to duplicate |
+| **Customize** | Creates an editable copy and opens its folder: replace the images, the colors in `theme.json` or the `theme.css`, overlays update **live in OBS** |
+| **Share** | *Export* gives a `.zip`; others load it with *Install a theme* |
+| **Safe** | No scripts allowed in a theme: images, fonts, sounds and CSS only |
 
-Guide complet (tous les éléments modifiables, exemples) : **[docs/THEMES.md](docs/THEMES.md)**.
+Full guide (every element you can change, examples): **[docs/THEMES.md](docs/THEMES.md)**.
 
-## Mode caster
+## Caster mode
 
-Pour caster un match en **spectateur** (tournoi, scrim, match privé) : un overlay de diffusion complet, alimenté en direct par la Stats API.
+To cast a match as a **spectator** (tournament, scrim, private match): a full broadcast overlay, fed live by the Stats API.
 
 <table>
   <tr>
-    <td><img src="docs/images/caster.png" alt="Overlay caster en direct" /></td>
-    <td><img src="docs/images/caster-post.png" alt="Tableau de fin de match" /></td>
+    <td><img src="docs/images/caster.png" alt="Live caster overlay" /></td>
+    <td><img src="docs/images/caster-post.png" alt="End-of-match scoreboard" /></td>
   </tr>
 </table>
 
 | | |
 | --- | --- |
-| **Tableau des scores** | Noms d'équipe (ceux du jeu ou les tiens), score, chrono, overtime, replay, titre de l'événement |
-| **Série** | BO1, BO3, BO5, BO7 : victoire comptée automatiquement à la fin de chaque match, boutons + / − et « Inverser les côtés » (aussi depuis un Stream Deck) |
-| **Joueurs** | Boost de chacun, démolitions, carte du joueur suivi (boost, score, buts, passes, arrêts, tirs, démos) |
-| **Actions** | Bannière de but (buteur, passe, vitesse en km/h ou mph), statfeed (démolitions, arrêts épiques…) |
-| **Fin de match** | Tableau des stats de tous les joueurs, MVP, vainqueur du match ou de la série |
+| **Scorebug** | Team names (the game's or your own), score, clock, overtime, replay, event title |
+| **Series** | Bo1, Bo3, Bo5, Bo7: the winner is counted automatically at the end of each game, + / − and “Swap sides” buttons (also from a Stream Deck) |
+| **Players** | Everyone's boost, demolitions, spectated player card (boost, score, goals, assists, saves, shots, demos) |
+| **Plays** | Goal banner (scorer, assist, speed in km/h or mph), statfeed (demolitions, epic saves…) |
+| **End of match** | Stats of every player, MVP, winner of the game or of the series |
 
-Source OBS : `http://127.0.0.1:5757/overlay/caster` en **plein écran**. Pour séparer les éléments dans plusieurs scènes :
-`?hide=bug,boosts,target,goals,feed,post`. Pour des barres de boost fluides, passe la Stats API à 30 mises à jour/s
-(bouton dans l'onglet **Caster**, puis redémarre Rocket League).
+OBS source: `http://127.0.0.1:5757/overlay/caster` in **full screen**. To split the parts across several scenes:
+`?hide=bug,boosts,target,goals,feed,post`. For smooth boost bars, set the Stats API to 30 updates/s
+(button in the **Caster** tab, then restart Rocket League).
 
-## Fonctionnalités
+## Features
 
 | | |
 | --- | --- |
-| **Détection automatique** | Victoire, défaite, overtime, forfait, abandon (défaite en classé), MVP, mode de jeu (2v2 classé, 3v3…) |
-| **MMR réel** | Lu dans le journal du jeu, affiché en **+x** (vert) ou **−x** (rouge) ; estimation immédiate corrigée à la recherche suivante |
-| **Alertes animées** | Victoire, défaite, overtime, victoire / défaite en OT, séries (3, 5, 10…), sons intégrés ou personnalisés |
-| **Mode caster** | Overlay de diffusion pour caster en spectateur : scores, série BO, boost de tous les joueurs, joueur suivi, buts, tableau final |
-| **Thèmes** | DA toute faite ou perso (images, police, couleurs, sons), installables et partageables en .zip |
-| **Compteur** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical ou collé à la jauge de boost, badge OVERTIME en direct |
-| **Sessions et historique** | Nouvelle session automatique après 6 h sans jouer, historique complet par mode, corrections manuelles |
-| **Langues** | Anglais par défaut, français en option (interface, overlays, alertes, noms des modes) |
-| **Identification** | Ton compte Steam / Epic est reconnu seul : fonctionne en solo, duo et trio |
+| **Automatic detection** | Win, loss, overtime, forfeit, early leave (loss in ranked), MVP, game mode (2v2 ranked, 3v3…) |
+| **Real MMR** | Read from the game log, shown as **+x** (green) or **−x** (red); instant estimate corrected at the next search |
+| **Animated alerts** | Victory, defeat, overtime, OT victory / defeat, win streaks (3, 5, 10…), built-in or custom sounds |
+| **Caster mode** | Broadcast overlay for casting as a spectator: scores, Bo series, every player's boost, spectated player, goals, final scoreboard |
+| **Themes** | Ready-made or custom looks (images, font, colors, sounds), installable and shareable as .zip |
+| **Counter** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical or next to the boost gauge, live OVERTIME badge |
+| **Sessions and history** | New session automatically after 6 h without playing, full history per mode, manual corrections |
+| **Languages** | English by default, French available (interface, overlays, alerts, mode names) |
+| **Identification** | Your Steam / Epic account is recognized on its own: works in solo, duos and trios |
 
-## Intégrations
+## Integrations
 
-| Intégration | Ce que ça fait | Mise en place |
+| Integration | What it does | Setup |
 | --- | --- | --- |
-| **OBS Studio** 28+ | Affiche une source ou change de scène sur overtime, victoire, défaite, série | *Outils → Paramètres du serveur WebSocket* → copier le mot de passe |
-| **Streamlabs Desktop** | Les mêmes actions automatiques | *Paramètres → Contrôle à distance* → *Afficher les détails* → copier le jeton |
-| **Stream Deck** | +1 victoire / défaite, annuler, pause, nouvelle session | Action *Site web* + « Accéder en arrière-plan » avec les URL de *Réglages* |
-| **Raccourcis clavier** | `Ctrl+Alt+Shift+↑` / `↓` / `Retour arrière` | Actifs même en jeu, personnalisables |
-| **Fichiers texte** | `wins.txt`, `record.txt`, `mmr-session.txt`… pour une source « Texte (GDI+) » | `%APPDATA%\RL-UI\texte` |
+| **OBS Studio** 28+ | Shows a source or switches scene on overtime, win, loss, streak | *Tools → WebSocket Server Settings* → copy the password |
+| **Streamlabs Desktop** | The same automatic actions | *Settings → Remote Control* → *Show details* → copy the token |
+| **Stream Deck** | +1 win / loss, undo, pause, new session, caster series | *Website* action + “GET request in background” with the URLs from *Settings* |
+| **Hotkeys** | `Ctrl+Alt+Shift+↑` / `↓` / `Backspace` | Work even in game, customizable |
+| **Text files** | `wins.txt`, `record.txt`, `mmr-session.txt`… for a “Text (GDI+)” source | `%APPDATA%\RL-UI\texte` |
 | **HTTP** | `/api/text/record`, `/api/text/mmrsession`… | Streamer.bot, Touch Portal, etc. |
 
 ## FAQ
 
 <details>
-<summary><b>Est-ce que je risque un ban ?</b></summary>
+<summary><b>Can I get banned?</b></summary>
 
-RL-UI ne modifie pas le jeu et ne s'y injecte pas : il lit la Stats API officielle, prévue par Psyonix pour les overlays,
-et le fichier journal que le jeu écrit sur ton disque.
+RL-UI doesn't modify the game or inject anything into it: it reads the official Stats API, made by Psyonix for overlays,
+and the log file the game writes on your disk.
 </details>
 
 <details>
-<summary><b>D'où vient le MMR ?</b></summary>
+<summary><b>Where does the MMR come from?</b></summary>
 
-Quand tu lances une recherche de partie (seul ou chef de groupe), Rocket League écrit ton MMR pour le mode choisi dans son journal.
-La variation exacte d'un match est donc connue à la recherche suivante ; en attendant, RL-UI affiche une estimation basée sur
-tes vraies variations récentes. Si c'est ton mate qui lance la recherche, seule l'estimation est disponible.
+When you start a matchmaking search (solo or party leader), Rocket League writes your MMR for the chosen mode in its log.
+The exact change of a match is therefore known at the next search; meanwhile, RL-UI shows an estimate based on
+your recent real changes. If your teammate starts the search, only the estimate is available.
 </details>
 
 <details>
-<summary><b>Une partie n'a pas été comptée</b></summary>
+<summary><b>A match wasn't counted</b></summary>
 
-Regarde le journal du tableau de bord : le mode est peut-être exclu (parties privées, hors-ligne) ou le tracker était en pause.
-Tu peux toujours corriger avec les boutons + / −.
+Check the log in the dashboard: the mode may be excluded (private matches, offline) or the tracker was paused.
+You can always fix it with the + / − buttons.
 </details>
 
 <details>
-<summary><b>« Stats API : non joignable » alors que le jeu tourne</b></summary>
+<summary><b>“Stats API: unreachable” while the game is running</b></summary>
 
-*Réglages → Activer / réparer l'API*, puis redémarre complètement Rocket League (nécessaire aussi après certaines mises à jour du jeu).
+*Settings → Enable / repair the API*, then fully restart Rocket League (also needed after some game updates).
 </details>
 
 <details>
-<summary><b>J'ai un setup à deux PC</b></summary>
+<summary><b>I have a two-PC setup</b></summary>
 
-*Réglages → Serveur local → Accessible depuis le réseau local*, puis utilise l'adresse IP du PC de jeu dans les URL des overlays.
+*Settings → Local server → Reachable from the local network*, then use the gaming PC's IP address in the overlay URLs.
 </details>
 
-## Confidentialité
+## Privacy
 
-RL-UI fonctionne **entièrement en local**. Il n'envoie aucune donnée sur Internet, ne contient aucune télémétrie et n'a pas
-de compte à créer. Tes parties sont stockées dans `%APPDATA%\RL-UI\data.json`.
+RL-UI runs **entirely locally**. It sends no data over the Internet, contains no telemetry and needs no account.
+Your matches are stored in `%APPDATA%\RL-UI\data.json`.
 
-## Développement
+## Development
 
 ```bash
 npm install
-npm start          # lance l'application (Electron)
-npm test           # tests unitaires : tracker, MMR, journal du jeu, OBS / Streamlabs…
-npm run e2e        # test de bout en bout avec un faux Rocket League
-npm run dist       # installeur + version portable dans dist/
+npm start          # run the app (Electron)
+npm test           # unit tests: tracker, MMR, game log, OBS / Streamlabs, themes, caster…
+npm run e2e        # end-to-end test with a fake Rocket League
+npm run dist       # installer + portable version in dist/
 ```
 
 <details>
-<summary><b>Outils de développement</b></summary>
+<summary><b>Development tools</b></summary>
 
 ```bash
-node tools/simulator.js otwin win loss --speed 10                     # faux Rocket League (TCP 49123 + WebSocket 49124)
-node tools/simulator.js win loss --log <Launch.log> --mmr 1150 --lag  # + journal du jeu avec MMR
-node tools/sniff.js 120 capture.jsonl                                 # enregistre le flux brut du vrai jeu
-npm run headless                                                      # tracker sans interface
+node tools/simulator.js otwin win loss --speed 10                     # fake Rocket League (TCP 49123 + WebSocket 49124)
+node tools/simulator.js spectate --speed 10                           # spectated match (caster mode)
+node tools/simulator.js win loss --log <Launch.log> --mmr 1150 --lag  # + game log with MMR
+node tools/sniff.js 120 capture.jsonl                                 # record the raw feed of the real game
+npm run headless                                                      # tracker without UI
 ```
 
-| Dossier | Contenu |
+| Folder | Content |
 | --- | --- |
-| `core/` | Logique sans Electron : client Stats API, tracker, MMR, serveur des overlays, OBS / Streamlabs |
-| `web/` | Tableau de bord et overlays (HTML / CSS / JS, sans framework) |
-| `electron/` | Fenêtre, zone de notification, raccourcis globaux |
-| `tools/` · `test/` | Simulateur, captures, tests |
+| `core/` | Logic without Electron: Stats API client, tracker, MMR, caster feed, overlay server, OBS / Streamlabs |
+| `web/` | Dashboard, overlays and themes (HTML / CSS / JS, no framework); translations in `web/shared/i18n.js` |
+| `electron/` | Window, system tray, global hotkeys |
+| `tools/` · `test/` | Simulator, screenshots, tests |
 
-**Publier une version** : mettre à jour `version` dans `package.json` et le [journal des versions](CHANGELOG.md), puis
-`git tag vX.Y.Z && git push --tags`. Le workflow GitHub teste, compile et joint les `.exe` à la release.
+**Releasing a version**: update `version` in `package.json` and the [changelog](CHANGELOG.md), then
+`git tag vX.Y.Z && git push --tags`. The GitHub workflow tests, builds and attaches the `.exe` files to the release.
 </details>
 
-## Avertissement
+## Disclaimer
 
-RL-UI est un projet indépendant. Il n'est ni affilié, ni approuvé, ni sponsorisé par **Psyonix LLC** ou **Epic Games, Inc.**
-*Rocket League* est une marque de Psyonix LLC.
+RL-UI is an independent project. It is not affiliated with, endorsed or sponsored by **Psyonix LLC** or **Epic Games, Inc.**
+*Rocket League* is a trademark of Psyonix LLC.
 
-## Licence
+## License
 
-© 2026 Zoxam — tous droits réservés. Voir [LICENSE](LICENSE).
-Police [Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) sous SIL Open Font License.
+© 2026 Zoxam — all rights reserved. See [LICENSE](LICENSE).
+[Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) font under the SIL Open Font License.
 
-## À propos
+## About
 
-Créé par **Zoxam**. Une idée, un bug ? Ouvre une [issue](https://github.com/MaximeKwk/rl-ui/issues).
+Made by **Zoxam**. An idea, a bug? Open an [issue](https://github.com/MaximeKwk/rl-ui/issues).

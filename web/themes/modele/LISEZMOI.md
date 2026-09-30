@@ -8,4 +8,4 @@ Duplique ce thème depuis RL-UI (Overlays OBS > Thèmes > Personnaliser), puis :
 
 Pour partager ton thème : bouton « Exporter » -> un fichier .zip que les autres installent avec « Installer un thème ».
 
-Guide complet (tous les éléments modifiables) : https://github.com/MaximeKwk/rl-ui/blob/main/docs/THEMES.md
+Guide complet (tous les éléments modifiables) : https://github.com/MaximeKwk/rl-ui/blob/main/docs/THEMES.fr.md
