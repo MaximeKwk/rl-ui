@@ -123,6 +123,14 @@
       .sub .mid { white-space: nowrap; }
       .sub .ttl { color: #fff; }
 
+      /* logos et photos (onglet Caster) */
+      .bug .logo { height: calc(58px * var(--s)); width: calc(58px * var(--s)); object-fit: contain; flex: none; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
+      .target .photo { width: calc(82px * var(--s)); height: calc(82px * var(--s)); border-radius: 50%; object-fit: cover; flex: none; border: calc(3px * var(--s)) solid var(--tc); background: #05070d; }
+      .post .head .tm { display: flex; align-items: center; gap: calc(18px * var(--s)); }
+      .post .head .tm.c1 { flex-direction: row-reverse; }
+      .post .head .tm .logo { height: calc(84px * var(--s)); width: calc(84px * var(--s)); object-fit: contain; }
+      .post td .av { width: calc(30px * var(--s)); height: calc(30px * var(--s)); border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: calc(10px * var(--s)); }
+
       /* ---------------- Boost des joueurs ---------------- */
       .boosts { position: absolute; top: calc(24px * var(--s)); display: flex; flex-direction: column; gap: calc(8px * var(--s)); width: calc(330px * var(--s)); }
       .boosts.c0 { left: calc(24px * var(--s)); }
@@ -319,11 +327,11 @@
 
       <div class="bug" id="bug">
         <div class="row">
-          <div class="team c0"><span class="tname" id="n0"></span></div>
+          <div class="team c0"><span class="tname" id="n0"></span><img class="logo hide" id="l0" alt="" /></div>
           <div class="score c0" id="s0">0</div>
           <div class="clock" id="clock"><b id="clk">5:00</b><i id="clkSub"></i></div>
           <div class="score c1" id="s1">0</div>
-          <div class="team c1"><span class="tname" id="n1"></span></div>
+          <div class="team c1"><span class="tname" id="n1"></span><img class="logo hide" id="l1" alt="" /></div>
         </div>
         <div class="sub" id="sub">
           <div class="pips c0" id="p0"></div>

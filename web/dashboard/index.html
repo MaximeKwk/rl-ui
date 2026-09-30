@@ -353,6 +353,7 @@
                   <label><span data-i18n="h.cs.blue">Blue team name</span> <input data-csname="0" maxlength="40" id="csName0" /></label>
                   <label><span data-i18n="h.cs.orange">Orange team name</span> <input data-csname="1" maxlength="40" id="csName1" /></label>
                 </div>
+                <div class="row2 logos" id="casterLogos"></div>
                 <label><span data-i18n="h.cs.format">Format</span>
                   <select data-set="caster.bestOf" data-type="number">
                     <option value="1" data-i18n="h.cs.bo1">Single game (Bo1)</option>
@@ -387,6 +388,15 @@
                 </label>
               </div>
               <p class="muted small" data-i18n="h.cs.hideHelp">Hide parts in a single OBS source with the URL: <code>?hide=bug,boosts,target,goals,feed,post</code> — handy to put the scorebug and the boosts in separate scenes.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3 data-i18n="h.cs.photos">Player photos</h3><span class="muted small" data-i18n="h.cs.photosSub">Shown on the spectated player card and the final scoreboard</span></div>
+            <div class="photo-grid" id="casterPhotos"></div>
+            <div class="photo-add">
+              <input id="photoName" maxlength="40" data-i18n-ph="h.cs.photoName" placeholder="Player name (as in game)" />
+              <button class="btn small" id="photoAdd" data-i18n="h.cs.photoAdd">Add a photo…</button>
             </div>
           </div>
 

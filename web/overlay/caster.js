@@ -56,6 +56,11 @@
     $('bug').classList.toggle('hide', hidden.has('bug'));
     for (const tm of m.teams) {
       $(`n${tm.num}`).textContent = tm.name;
+      const lg = $(`l${tm.num}`);
+      if (tm.logo) {
+        if (lg.getAttribute('src') !== tm.logo) lg.setAttribute('src', tm.logo);
+        lg.classList.remove('hide');
+      } else lg.classList.add('hide');
       const s = $(`s${tm.num}`);
       if (s.textContent !== String(tm.score)) {
         s.textContent = tm.score;
@@ -118,7 +123,7 @@
       const team = m.teams[tp.team] ? m.teams[tp.team].name : '';
       const html = `
         <div class="ring"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="40"/><circle class="fg" cx="50" cy="50" r="40" stroke-dasharray="${(C * tp.boost) / 100} ${C}"/></svg><b>${tp.boost}</b></div>
-        <div class="who"><b>${esc(tp.name)}</b><span>${esc(team)}</span></div>
+        ${tp.photo ? `<img class="photo" src="${esc(tp.photo)}" alt="" />` : ''}<div class="who"><b>${esc(tp.name)}</b><span>${esc(team)}</span></div>
         <div class="st">${stat(tp.score, 'c.score')}${stat(tp.goals, 'c.goals')}${stat(tp.assists, 'c.assists')}${stat(tp.saves, 'c.saves')}${stat(tp.shots, 'c.shots')}${stat(tp.demos, 'c.demos')}</div>`;
       if (tgt.dataset.html !== html) {
         tgt.dataset.html = html;
@@ -148,13 +153,13 @@
     const ser = S.series;
     const w = m.teams[m.winner];
     const done = ser.bestOf > 1 && ser.wins[m.winner] >= ser.need;
-    const head = (tm) => `<div class="tm c${tm.num}"><b>${esc(tm.name)}</b>${ser.bestOf > 1 && S.options.showSeries ? `<div class="pips c${tm.num}">${Array.from({ length: ser.need }, (_, i) => `<i class="${i < tm.seriesWins ? 'on' : ''}"></i>`).join('')}</div>` : ''}</div>`;
+    const head = (tm) => `<div class="tm c${tm.num}">${tm.logo ? `<img class="logo" src="${esc(tm.logo)}" alt="" />` : ''}<div><b>${esc(tm.name)}</b>${ser.bestOf > 1 && S.options.showSeries ? `<div class="pips c${tm.num}">${Array.from({ length: ser.need }, (_, i) => `<i class="${i < tm.seriesWins ? 'on' : ''}"></i>`).join('')}</div>` : ''}</div></div>`;
     const players = [...m.players].sort((a, b) => a.team - b.team || b.score - a.score);
     const best = Math.max(...players.map((p) => p.score), 0);
     const rows = players
       .map(
         (p) =>
-          `<tr class="c${p.team}${p.score === best && best > 0 ? ' best' : ''}"><td>${esc(p.name)}${p.key === m.mvp ? `<span class="mvp">MVP</span>` : ''}</td><td>${p.score}</td><td>${p.goals}</td><td>${p.assists}</td><td>${p.saves}</td><td>${p.shots}</td><td>${p.demos}</td></tr>`
+          `<tr class="c${p.team}${p.score === best && best > 0 ? ' best' : ''}"><td>${p.photo ? `<img class="av" src="${esc(p.photo)}" alt="" />` : ''}${esc(p.name)}${p.key === m.mvp ? `<span class="mvp">MVP</span>` : ''}</td><td>${p.score}</td><td>${p.goals}</td><td>${p.assists}</td><td>${p.saves}</td><td>${p.shots}</td><td>${p.demos}</td></tr>`
       )
       .join('');
     const cols = ['c.score', 'c.goals', 'c.assists', 'c.saves', 'c.shots', 'c.demos'].map((k) => `<th>${esc(t(k))}</th>`).join('');
@@ -233,6 +238,7 @@
     const apply = () => {
       if (OT.caster && OT.caster.options) st.options = { ...OT.caster.options };
       if (OT.caster && OT.caster.series && OT.caster.series.title) st.series.title = OT.caster.series.title;
+      if (OT.caster && OT.caster.match) OT.caster.match.teams.forEach((tm) => (st.match.teams[tm.num].logo = tm.logo));
       render(st);
     };
     OT.on('caster', apply);

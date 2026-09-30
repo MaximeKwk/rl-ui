@@ -20,6 +20,7 @@ const { MmrTracker } = require('./mmr');
 const { ThemeManager } = require('./themes');
 const { CasterFeed } = require('./caster');
 const { TwitchChat } = require('./twitch');
+const { CasterAssets } = require('./casterAssets');
 const { categoryLabels, describePlaylist, playlistLabel } = require('./playlists');
 const i18n = require('./i18n');
 
@@ -40,6 +41,7 @@ class Core extends EventEmitter {
     this.logWatcher = new RlLogWatcher({ documentsDir, logPath });
     this.tracker = new Tracker({ store: this.store, logWatcher: this.logWatcher });
     this.caster = new CasterFeed();
+    this.casterAssets = new CasterAssets(path.join(dataDir, 'caster'));
     this.chat = new TwitchChat({ dataDir, getSettings: () => this.store.settings, render: (cmd) => this.chatResponse(cmd) });
     this._casterTimer = null;
     this._casterSentAt = 0;
@@ -339,13 +341,16 @@ class Core extends EventEmitter {
     const bestOf = [1, 3, 5, 7].includes(Number(c.bestOf)) ? Number(c.bestOf) : 5;
     const need = Math.ceil(bestOf / 2);
     const wins = [0, 1].map((i) => Math.max(0, Math.min(need, Math.round(Number(c.wins && c.wins[i]) || 0))));
+    const A = this.casterAssets;
     const teams = m.teams.map((t) => ({
       ...t,
+      logo: A.logoUrl(t.num),
       name: (c.names && String(c.names[t.num] || '').trim()) || t.name || tr(t.num === 0 ? 'team.blue' : 'team.orange'),
       seriesWins: wins[t.num],
     }));
     return {
-      match: { ...m, teams },
+      match: { ...m, teams, players: m.players.map((p) => ({ ...p, photo: A.photoUrl(p.name) })) },
+      photos: A.photos(),
       series: { title: c.title || '', bestOf, need, wins, game: Math.min(bestOf, wins[0] + wins[1] + (m.ended ? 0 : 1)), done: wins.some((w) => w >= need) },
       options: {
         showSeries: c.showSeries !== false,
@@ -387,6 +392,7 @@ class Core extends EventEmitter {
     const c = this.store.settings.caster;
     if (name === 'swap') {
       this.store.patchSettings({ caster: { names: [c.names[1] || '', c.names[0] || ''], wins: [c.wins[1] || 0, c.wins[0] || 0] } });
+      this.casterAssets.swapLogos();
     } else if (name === 'reset') {
       this.store.patchSettings({ caster: { wins: [0, 0] } });
     } else if (/^(win|unwin)-[01]$/.test(name)) {
@@ -400,6 +406,26 @@ class Core extends EventEmitter {
     this._casterChanged();
     this._changed();
     return { ok: true, series: this.casterState().series };
+  }
+
+  // logos / photos du mode caster
+  casterImage(kind, key, buf, ext) {
+    try {
+      this.casterAssets.save(kind, key, buf, ext);
+    } catch (e) {
+      const k = { format: 's.imgFormats', size: 's.imgSize', empty: 's.emptyFile', name: 's.imgName' }[e.message];
+      return { ok: false, error: k ? tr(k) : e.message };
+    }
+    this._casterChanged();
+    this._changed();
+    return { ok: true };
+  }
+
+  casterImageRemove(kind, key) {
+    const ok = this.casterAssets.remove(kind, key);
+    this._casterChanged();
+    this._changed();
+    return { ok };
   }
 
   labelWin() {

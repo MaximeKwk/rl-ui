@@ -89,3 +89,24 @@ test('caster : série comptée automatiquement, inversion des côtés', async ()
   clearTimeout(core._casterTimer);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('caster : logos et photos (formats, remplacement, inversion des côtés)', () => {
+  const { CasterAssets } = require('../core/casterAssets');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rlui-ca-'));
+  const a = new CasterAssets(dir);
+  const png = Buffer.from('89504e470d0a1a0a', 'hex');
+  const n1 = a.save('logo', 0, png, 'png');
+  assert.ok(a.logoUrl(0).endsWith(n1));
+  assert.strictEqual(a.logoUrl(1), null);
+  assert.throws(() => a.save('logo', 1, png, 'exe'), /format/);
+  a.save('photo', 'Nova', png, 'jpg');
+  assert.ok(a.photoUrl('NOVA'), 'photo retrouvée quelle que soit la casse');
+  a.save('photo', 'Nova', png, 'png');
+  assert.strictEqual(fs.readdirSync(dir).filter((f) => f.startsWith('photo-')).length, 1, "l'ancienne photo est supprimée");
+  a.swapLogos();
+  assert.strictEqual(a.logoUrl(0), null);
+  assert.ok(a.logoUrl(1).endsWith(n1));
+  assert.strictEqual(a.file('../caster.json'), null);
+  assert.ok(new CasterAssets(dir).photoUrl('nova'), "l'index est conservé");
+  fs.rmSync(dir, { recursive: true, force: true });
+});

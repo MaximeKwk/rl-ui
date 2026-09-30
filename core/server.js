@@ -226,6 +226,13 @@ class AppServer extends EventEmitter {
       if (!f) return this._text(res, 404, 'Introuvable');
       return this._file(res, f, { 'Content-Security-Policy': "default-src 'none'; img-src 'self' data:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src 'self'; sandbox" });
     }
+    // images du mode caster (logos, photos) : jamais exécutables
+    m = /^\/caster-assets\/([a-z0-9-]+\.(png|jpe?g|webp|gif|svg))$/.exec(p);
+    if (m) {
+      const f = this.core.casterAssets.file(m[1]);
+      if (!f) return this._text(res, 404, 'Not found');
+      return this._file(res, f, { 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox" });
+    }
     if (p.startsWith('/static/')) return this._static(res, p.slice('/static/'.length));
     m = /^\/sounds\/([a-z_]+)$/.exec(p);
     if (m) {
@@ -274,6 +281,14 @@ class AppServer extends EventEmitter {
       m = /^\/api\/update\/(check|install)$/.exec(p);
       if (m && method === 'POST') {
         const r = await this.core.updateAction(m[1]);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      m = /^\/api\/caster\/(logo|photo)$/.exec(p);
+      if (m && (method === 'POST' || method === 'DELETE')) {
+        const key = url.searchParams.get(m[1] === 'logo' ? 'team' : 'name') || '';
+        if (method === 'DELETE') return this._json(res, 200, this.core.casterImageRemove(m[1], key));
+        const buf = await this._body(req, false, 5 * 1024 * 1024);
+        const r = this.core.casterImage(m[1], key, buf, url.searchParams.get('ext'));
         return this._json(res, r.ok ? 200 : 400, r);
       }
       if (p === '/api/caster') return this._json(res, 200, this.core.casterState());

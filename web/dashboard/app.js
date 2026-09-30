@@ -372,6 +372,20 @@
       })
     );
     new ResizeObserver(layoutCasterPv).observe($('.caster-pv'));
+    document.addEventListener('click', async (e) => {
+      const up = e.target.closest('[data-img]');
+      if (up) return pickImage(up.dataset.img, up.dataset.key);
+      const rm = e.target.closest('[data-imgdel]');
+      if (rm) {
+        const q = rm.dataset.imgdel === 'logo' ? `team=${rm.dataset.key}` : `name=${encodeURIComponent(rm.dataset.key)}`;
+        await api(`/api/caster/${rm.dataset.imgdel}?${q}`, { method: 'DELETE' });
+      }
+    });
+    $('#photoAdd').addEventListener('click', () => {
+      const n = $('#photoName').value.trim();
+      if (!n) return $('#photoName').focus();
+      pickImage('photo', n, () => ($('#photoName').value = ''));
+    });
 
     // Historique
     $('#histScope').addEventListener('click', (e) => {
@@ -917,6 +931,7 @@
 
   // ------------------------------------------------------------------ mode caster
   let C = null; // état du mode caster
+  let lastImgSig = '';
   function layoutCasterPv() {
     const box = $('.caster-pv');
     const f = $('#casterPv');
@@ -964,6 +979,46 @@
       .join('');
   }
 
+  function pickImage(kind, key, done) {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.png,.jpg,.jpeg,.webp,.gif,.svg,image/*';
+    inp.onchange = async () => {
+      const f = inp.files[0];
+      if (!f) return;
+      if (f.size > 5 * 1024 * 1024) return toast(t('d.cs.imgBig'), 'err');
+      const ext = (f.name.split('.').pop() || 'png').toLowerCase();
+      const q = kind === 'logo' ? `team=${key}` : `name=${encodeURIComponent(key)}`;
+      const r = await api(`/api/caster/${kind}?${q}&ext=${encodeURIComponent(ext)}`, { method: 'POST', body: await f.arrayBuffer() });
+      if (r.ok === false) return toast(r.error || t('d.failed'), 'err');
+      toast(t(kind === 'logo' ? 'd.cs.logoSaved' : 'd.cs.photoSaved'), 'ok');
+      if (done) done();
+    };
+    inp.click();
+  }
+
+  function renderCasterImages() {
+    const m = C.match;
+    const thumb = (url, cls) => (url ? `<img class="${cls}" src="${esc(url)}" alt="" />` : `<div class="${cls} empty"></div>`);
+    $('#casterLogos').innerHTML = [0, 1]
+      .map(
+        (i) => `<div class="logo-pick c${i}">${thumb(m.teams[i].logo, 'lg')}<button class="btn small" data-img="logo" data-key="${i}">${esc(t('d.cs.logo'))}</button>${m.teams[i].logo ? `<button class="btn small ghost" data-imgdel="logo" data-key="${i}">✕</button>` : ''}</div>`
+      )
+      .join('');
+    // joueurs de la partie en cours + photos déjà enregistrées
+    const byName = new Map();
+    for (const p of m.players) byName.set(p.name.toLowerCase(), { name: p.name, url: p.photo, team: p.team });
+    for (const ph of C.photos || []) if (!byName.has(ph.name)) byName.set(ph.name, { name: ph.name, url: ph.url, team: null });
+    const list = [...byName.values()];
+    $('#casterPhotos').innerHTML = list.length
+      ? list
+          .map(
+            (p) => `<div class="ph${p.team != null ? ` c${p.team}` : ''}">${thumb(p.url, 'av')}<b>${esc(p.name)}</b><div class="acts"><button class="btn small" data-img="photo" data-key="${esc(p.name)}">${esc(t('d.cs.photo'))}</button>${p.url ? `<button class="btn small ghost" data-imgdel="photo" data-key="${esc(p.name)}">✕</button>` : ''}</div></div>`
+          )
+          .join('')
+      : `<div class="empty">${esc(t('d.cs.noPlayers'))}</div>`;
+  }
+
   async function setFluid() {
     const r = await post('/api/statsapi/enable', { rate: 30 });
     if (r.ok) return toast(t('d.cs.rateDone'), 'ok');
@@ -985,6 +1040,11 @@
     };
     $('#casterSeries').innerHTML = `${team(0)}<div class="vs">${ser.bestOf > 1 ? esc(t('d.cs.game', { n: ser.game, b: ser.bestOf })) : esc(t('d.cs.single'))}</div>${team(1)}`;
     for (const i of [0, 1]) $(`#csName${i}`).placeholder = m.teams[i].name;
+    const imgSig = JSON.stringify([m.teams.map((x) => x.logo), m.players.map((p) => [p.name, p.photo, p.team]), C.photos, OT.lang]);
+    if (imgSig !== lastImgSig) {
+      lastImgSig = imgSig;
+      renderCasterImages();
+    }
     // partie en direct
     $('#casterClock').textContent = m.active ? `${m.teams[0].score} - ${m.teams[1].score} · ${OT.fmtClock(m.time, m.overtime) || ''}${m.replay ? ` · ${t('c.replay')}` : ''}` : '';
     if (!m.active || !m.players.length) {
