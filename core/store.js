@@ -22,6 +22,8 @@ function defaultSettings() {
     mmr: { enabled: true, includeCasual: false, defaultDelta: 12, showInAlerts: true },
     overlay: {
       theme: 'arena', // arena | minimal | broadcast
+      themePack: 'classique', // thème (DA) : intégré ou perso
+      themeColors: true, // utiliser les couleurs du thème
       layout: 'horizontal', // horizontal | vertical | boost (collé à la jauge de boost du jeu)
       boostScale: 1, // calibrage de la disposition "boost" (taille du HUD du jeu)
       boostX: 0,

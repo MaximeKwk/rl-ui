@@ -27,6 +27,7 @@
     },
     connect(options = {}) {
       opts = options;
+      if (options.overlay) document.body.classList.add(`ov-${options.overlay}`);
       open();
       return OT;
     },
@@ -58,7 +59,7 @@
         OT.emit('state', m.state);
       } else if (m.type === 'config') {
         OT.config = m.config;
-        OT.emit('config', m.config);
+        emitConfig();
       } else if (m.type === 'dashboard') {
         OT.dashboard = m.data;
         OT.emit('dashboard', m.data);
@@ -72,6 +73,54 @@
       schedule();
     };
     ws.onerror = () => {};
+  }
+
+  // ?pack=<id> : force un thème (aperçus du tableau de bord) sans toucher au réglage
+  let packOverride = null;
+  const forced = params.get('pack');
+  if (forced && /^[a-z0-9-]+$/.test(forced)) {
+    fetch(`/api/theme/${forced}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((t) => {
+        packOverride = t;
+        if (OT.config) emitConfig();
+      })
+      .catch(() => {});
+  }
+
+  function emitConfig() {
+    const c = OT.config;
+    if (!c) return;
+    if (packOverride) {
+      c.theme = packOverride;
+      const col = packOverride.colors || {};
+      c.overlay = { ...c.overlay };
+      if (col.win) c.overlay.winColor = col.win;
+      if (col.loss) c.overlay.lossColor = col.loss;
+      if (col.ot) c.overlay.otColor = col.ot;
+    }
+    applyTheme(c.theme);
+    OT.emit('config', c);
+  }
+
+  // Thème (DA) : feuille de style chargée en dernier, rechargée quand un fichier du thème change
+  function applyTheme(t) {
+    const id = (t && t.id) || 'classique';
+    document.body.className = document.body.className.replace(/\bpack-\S+/g, '').trim();
+    document.body.classList.add(`pack-${id}`);
+    let link = document.getElementById('rlui-theme');
+    const href = (t && t.css) || '';
+    if (!href) {
+      if (link) link.remove();
+      return;
+    }
+    if (!link) {
+      link = document.createElement('link');
+      link.id = 'rlui-theme';
+      link.rel = 'stylesheet';
+    }
+    if (link.getAttribute('href') !== href) link.setAttribute('href', href);
+    document.head.appendChild(link);
   }
 
   function schedule() {

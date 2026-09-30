@@ -15,7 +15,7 @@ body {
   padding: 0;
   background: transparent;
   overflow: hidden;
-  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-family: var(--font, 'Barlow Condensed'), 'Barlow Condensed', 'Arial Narrow', sans-serif;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   user-select: none;
@@ -50,3 +50,7 @@ body.preview::before {
   vertical-align: -0.12em;
   fill: currentColor;
 }
+
+/* Emplacements libres pour les images des thèmes (voir docs/THEMES.md) */
+.deco { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: -1; }
+.art { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 3; }

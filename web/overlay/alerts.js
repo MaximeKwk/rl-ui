@@ -86,7 +86,7 @@
     const layers = [a.type === 'overtime' ? '<div class="fx-layer band"></div>' : loss ? '' : '<div class="fx-layer rays"></div>', '<div class="fx-layer glow"></div>'];
     if (!loss) layers.push('<div class="fx-layer ring"></div><div class="fx-layer ring r2"></div>');
     const t = esc(a.title);
-    el.innerHTML = `${layers.join('')}<div class="kicker">${esc(kicker(a))}</div><div class="title"><span class="tx">${t}</span><span class="gl g1">${t}</span><span class="gl g2">${t}</span></div><div class="subs">${chips(a)}</div>`;
+    el.innerHTML = `${layers.join('')}<div class="art"></div><div class="kicker">${esc(kicker(a))}</div><div class="title"><span class="tx">${t}</span><span class="gl g1">${t}</span><span class="gl g2">${t}</span></div><div class="subs">${chips(a)}</div>`;
     return el;
   }
 
@@ -153,7 +153,8 @@
   function sound(a) {
     const al = conf.alerts || {};
     if (al.sound === false || P.get('mute') === '1') return;
-    const custom = al.customSounds && al.customSounds[a.type] ? `/sounds/${a.type}?v=${confVersion}` : null;
+    const themeSnd = conf.theme && conf.theme.sounds && conf.theme.sounds[a.type];
+    const custom = al.customSounds && al.customSounds[a.type] ? `/sounds/${a.type}?v=${confVersion}` : themeSnd || null;
     try {
       SFX.play(a.type, al.volume ?? 0.7, custom);
     } catch {}

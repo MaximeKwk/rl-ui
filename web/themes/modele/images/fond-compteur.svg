@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d1b3d"/><stop offset="1" stop-color="#2a0f3a"/></linearGradient>
+    <pattern id="p" width="36" height="36" patternUnits="userSpaceOnUse" patternTransform="rotate(-30)"><rect width="36" height="36" fill="none"/><rect width="10" height="36" fill="rgba(53,224,255,0.08)"/></pattern>
+  </defs>
+  <rect width="1000" height="200" fill="url(#g)"/>
+  <rect width="1000" height="200" fill="url(#p)"/>
+  <text x="980" y="186" text-anchor="end" font-family="Arial Black, sans-serif" font-size="120" fill="rgba(255,255,255,0.05)">TA DA</text>
+</svg>

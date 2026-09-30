@@ -1,0 +1,18 @@
+/* Néon — contours lumineux cyan / magenta */
+.ov-counter .theme-arena,
+.ov-counter .boost .bfill,
+.ov-history .bar,
+.ov-summary .card {
+  background: rgba(6, 0, 22, 0.86);
+  border: 2px solid #00e5ff;
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.8), inset 0 0 22px rgba(255, 45, 149, 0.3);
+}
+.ov-counter .theme-arena::before,
+.ov-summary .card::before { background: linear-gradient(90deg, #00e5ff, #ff2d95); }
+.ov-counter .num,
+.ov-summary .big b { text-shadow: 0 0 10px currentColor, 0 0 28px currentColor; }
+.ov-counter .st b { color: #e9fbff; text-shadow: 0 0 10px #00e5ff; }
+.ov-alerts .tx { filter: drop-shadow(0 0 16px #ff2d95) drop-shadow(0 0 36px #00e5ff); }
+.ov-alerts .chip { border-color: #00e5ff; box-shadow: 0 0 14px rgba(0, 229, 255, 0.6); background: rgba(6, 0, 22, 0.9); }
+.ov-alerts .chip.hl { background: linear-gradient(180deg, #ff2d95, #b3126a); color: #fff; border-color: #ff8fc8; box-shadow: 0 0 16px rgba(255, 45, 149, 0.8); }
+.ov-alerts .kicker { color: #00e5ff; text-shadow: 0 0 12px #00e5ff; }

@@ -9,6 +9,8 @@
       body.align-center { justify-content: center; }
       body.align-right { justify-content: flex-end; }
       .bar {
+        position: relative;
+        isolation: isolate;
         display: inline-flex;
         align-items: center;
         gap: calc(8px * var(--s));
@@ -64,7 +66,7 @@
     </style>
   </head>
   <body>
-    <div class="bar" id="bar"><span class="ttl" id="ttl">Dernières</span><span id="pills"></span></div>
+    <div class="bar" id="bar"><div class="deco"></div><span class="ttl" id="ttl">Dernières</span><span id="pills"></span></div>
     <script src="/static/shared/client.js"></script>
     <script>
       (function () {

@@ -16,6 +16,7 @@
       body.align-right { justify-content: flex-end; }
 
       .w {
+        isolation: isolate;
         position: relative;
         display: inline-flex;
         align-items: stretch;
@@ -230,6 +231,7 @@
 
       /* ---------- Disposition BOOST : collée à gauche de la jauge de boost du jeu ---------- */
       body.layout-boost { display: block; padding: 0; width: 100vw; height: 100vh; }
+      .boost { isolation: isolate; }
       .boost, .bguide { position: absolute; --k: 1; --acc: #cfd8e3; --acc-glow: rgba(207, 216, 227, 0.45); }
       .boost { opacity: 0; transition: opacity 0.5s; }
       .boost.ready { opacity: 1; }
@@ -298,6 +300,7 @@
   </head>
   <body>
     <div id="w" class="w theme-arena">
+      <div class="deco"></div>
       <div class="tag hidden" id="tag"><span class="dot"></span><span id="tagText"></span></div>
       <div class="rec">
         <div class="cell win"><div class="num" id="wins"></div><div class="lbl" id="lw">V</div></div>
@@ -317,6 +320,7 @@
     <!-- Disposition "boost" -->
     <div id="bGuide" class="bguide hidden"><svg id="bGuideSvg"></svg></div>
     <div id="boost" class="boost hidden">
+      <div class="deco"></div>
       <svg id="bSvg"><path id="bFill" class="bfill" /><path id="bRim" class="brim" /><g id="bTicks" class="bticks"></g></svg>
       <div class="bcol" id="bCol">
         <div class="brow win"><div class="num" id="bWins"></div><span class="blbl" id="bLw">V</span></div>

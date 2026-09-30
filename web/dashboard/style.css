@@ -384,3 +384,18 @@ details .form { margin-top: 10px; }
 .toast.ok { border-color: rgba(46, 242, 160, 0.45); }
 .toast.err { border-color: rgba(255, 77, 109, 0.5); }
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } }
+
+/* Thèmes */
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin: 12px 0; }
+.th { border: 1px solid var(--line); border-radius: 12px; background: rgba(0, 0, 0, 0.2); overflow: hidden; display: flex; flex-direction: column; }
+.th.on { border-color: rgba(46, 242, 160, 0.55); box-shadow: 0 0 0 1px rgba(46, 242, 160, 0.25); }
+.th .thumb { position: relative; aspect-ratio: 16 / 5; background: #05070d; border-bottom: 1px solid var(--line); }
+.th .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+.th .thumb .pill { position: absolute; top: 8px; right: 8px; }
+.th .sw { display: flex; height: 100%; }
+.th .sw i { flex: 1; opacity: 0.85; }
+.th .info { padding: 10px 12px 4px; display: flex; flex-direction: column; gap: 3px; }
+.th .info b { font: 800 16px var(--display); letter-spacing: 0.05em; text-transform: uppercase; }
+.th .info .desc { font-size: 12.5px; color: var(--muted); }
+.th .acts { padding: 8px 12px 12px; display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }

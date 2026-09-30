@@ -1,0 +1,7 @@
+{
+  "name": "Or & Noir",
+  "author": "Zoxam",
+  "version": "1.0.0",
+  "description": "Noir profond et liseré doré, style finale RLCS.",
+  "colors": { "win": "#f5c542", "loss": "#ff5a5a", "ot": "#ffd97a" }
+}

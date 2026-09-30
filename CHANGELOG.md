@@ -6,6 +6,7 @@
 - **MMR réel** lu dans le journal du jeu, avec estimation immédiate en fin de match corrigée automatiquement (+x en vert, −x en rouge).
 - **Overlays** pour OBS et Streamlabs : compteur (horizontal, vertical ou collé à la jauge de boost), alertes animées avec sons (victoire, défaite, overtime, OT gagné / perdu, séries), dernières parties, récap de session.
 - **Actions automatiques** dans OBS Studio ou Streamlabs Desktop (afficher une source, changer de scène).
+- **Thèmes** : Classique, Néon, Or & Noir et un modèle avec images ; personnalisation en direct (images, police, couleurs, sons), installation et partage en .zip (voir docs/THEMES.md).
 - URLs **Stream Deck**, raccourcis clavier globaux, fichiers texte, historique complet.
 
 ## Bêtas (avant la 1.0.0)

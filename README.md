@@ -107,7 +107,7 @@ L'app vit dans la zone de notification (icône **RL**) ; fermer la fenêtre ne l
 
 > [!TIP]
 > Pour entendre les alertes sur le stream, coche **« Contrôler l'audio via OBS »** dans les propriétés de la source.
-> Les overlays suivent en direct les réglages du tableau de bord (thème, couleurs, textes, sons).
+> Les overlays suivent en direct les réglages du tableau de bord (thème, style, couleurs, textes, sons).
 
 **Mode Boost** — le compteur se cale à gauche de la jauge de boost, son bord suit l'arc de la jauge et il prend la couleur de ton
 équipe. Si ton HUD a une autre taille : *Overlays → Compteur → Afficher le repère*, ajuste la taille et la position jusqu'à ce
@@ -121,9 +121,24 @@ que le repère recouvre ta jauge dans OBS, puis masque-le.
 | Compteur | `theme=arena\|broadcast\|minimal` · `layout=horizontal\|vertical\|boost` · `scale=1.3` · `align=left\|center\|right` · `hide=wr,streak,ot,mmr` · `mmr=session\|value\|both` · `bscale` · `bx` · `by` · `guide=1` |
 | Alertes | `pos=center\|top\|bottom` · `scale` · `mute=1` · `only=overtime,ot_win` · `mmr=0` |
 | Dernières parties | `n=5` · `order=old` · `bare=1` · `title=0` |
-| Tous | couleurs `win=2ef2a0&loss=ff4d6d&ot=ffb020` · aperçu `preview=1` |
+| Tous | thème `pack=neon` · couleurs `win=2ef2a0&loss=ff4d6d&ot=ffb020` · aperçu `preview=1` |
 
 </details>
+
+## Thèmes
+
+Change la DA de tous les overlays en un clic, ou crée la tienne avec tes images, ta police, tes couleurs et tes sons.
+
+<p align="center"><img src="docs/images/themes.png" alt="Choix du thème dans RL-UI" width="860" /></p>
+
+| | |
+| --- | --- |
+| **Thèmes intégrés** | Classique, Néon, Or & Noir, et un **Modèle** avec images à dupliquer |
+| **Personnaliser** | Crée une copie modifiable et ouvre son dossier : remplace les images, les couleurs de `theme.json` ou le `theme.css`, les overlays se mettent à jour **en direct dans OBS** |
+| **Partager** | *Exporter* donne un `.zip` ; les autres le chargent avec *Installer un thème* |
+| **Sûr** | Aucun script accepté dans un thème : images, polices, sons et CSS uniquement |
+
+Guide complet (tous les éléments modifiables, exemples) : **[docs/THEMES.md](docs/THEMES.md)**.
 
 ## Fonctionnalités
 
@@ -132,7 +147,8 @@ que le repère recouvre ta jauge dans OBS, puis masque-le.
 | **Détection automatique** | Victoire, défaite, overtime, forfait, abandon (défaite en classé), MVP, mode de jeu (2v2 classé, 3v3…) |
 | **MMR réel** | Lu dans le journal du jeu, affiché en **+x** (vert) ou **−x** (rouge) ; estimation immédiate corrigée à la recherche suivante |
 | **Alertes animées** | Victoire, défaite, overtime, victoire / défaite en OT, séries (3, 5, 10…), sons intégrés ou personnalisés |
-| **Compteur** | 3 thèmes (Arena, Broadcast, Minimal), horizontal, vertical ou collé à la jauge de boost, badge OVERTIME en direct |
+| **Thèmes** | DA toute faite ou perso (images, police, couleurs, sons), installables et partageables en .zip |
+| **Compteur** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical ou collé à la jauge de boost, badge OVERTIME en direct |
 | **Sessions et historique** | Nouvelle session automatique après 6 h sans jouer, historique complet par mode, corrections manuelles |
 | **Identification** | Ton compte Steam / Epic est reconnu seul : fonctionne en solo, duo et trio |
 

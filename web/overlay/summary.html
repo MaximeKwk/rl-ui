@@ -8,6 +8,7 @@
       html, body { width: 100vw; height: 100vh; }
       body { display: flex; align-items: center; justify-content: center; }
       .card {
+        isolation: isolate;
         position: relative;
         width: calc(1180px * var(--s));
         padding: calc(46px * var(--s)) calc(56px * var(--s)) calc(40px * var(--s));
@@ -79,6 +80,7 @@
   </head>
   <body>
     <div class="card">
+      <div class="deco"></div>
       <div class="head"><h1 id="title">Récap de session</h1><span class="who" id="who"></span></div>
       <div class="main">
         <div class="rec">

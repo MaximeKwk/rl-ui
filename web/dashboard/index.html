@@ -117,6 +117,23 @@
           </div>
 
           <div class="card">
+            <div class="card-head">
+              <h2>Thèmes</h2>
+              <div class="head-actions">
+                <button class="btn small" id="themeInstall">Installer un thème (.zip)</button>
+                <button class="btn small ghost" id="themeFolder">Ouvrir le dossier des thèmes</button>
+              </div>
+            </div>
+            <p class="muted">
+              Choisis une DA toute faite, ou clique <b>Personnaliser</b> : une copie modifiable est créée et son dossier s'ouvre. Remplace les images,
+              les couleurs de <code>theme.json</code> ou le <code>theme.css</code> : les overlays se mettent à jour en direct, même dans OBS.
+              Guide complet dans <code>LISEZMOI.md</code> du thème « Modèle ».
+            </p>
+            <div class="theme-grid" id="themeGrid"></div>
+            <label class="check"><input type="checkbox" data-set="overlay.themeColors" /> Utiliser les couleurs du thème (sinon, celles réglées plus bas)</label>
+          </div>
+
+          <div class="card">
             <div class="card-head"><h2>Tester les alertes</h2><span class="muted">Les compteurs ne bougent pas</span></div>
             <div class="test-row" id="testRow"></div>
             <label class="check"><input type="checkbox" id="testObs" /> Déclencher aussi les actions OBS / Streamlabs</label>
@@ -147,7 +164,7 @@
                   </div>
                   <div><button class="btn small ghost" id="boostReset">Réinitialiser le calibrage</button></div>
                 </div>
-                <label>Thème
+                <label>Style du compteur
                   <select data-set="overlay.theme">
                     <option value="arena">Arena (carte vitrée)</option>
                     <option value="broadcast">Broadcast (style RLCS)</option>

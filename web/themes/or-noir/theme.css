@@ -1,0 +1,17 @@
+/* Or & Noir — noir profond, liseré doré */
+.ov-counter .theme-arena,
+.ov-history .bar,
+.ov-summary .card {
+  background: linear-gradient(180deg, #111, #050505);
+  border: 1px solid rgba(245, 197, 66, 0.7);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 230, 160, 0.25);
+}
+.ov-counter .theme-arena::before,
+.ov-summary .card::before { background: linear-gradient(90deg, transparent, #f5c542, transparent); }
+.ov-counter .st { border-color: rgba(245, 197, 66, 0.25); }
+.ov-counter .st i,
+.ov-summary .tile i { color: #f5c542; opacity: 0.8; }
+.ov-alerts .tx { filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.6)) drop-shadow(0 0 30px rgba(245, 197, 66, 0.7)); }
+.ov-alerts .chip { background: #0b0b0b; border-color: rgba(245, 197, 66, 0.7); }
+.ov-alerts .kicker { color: #f5c542; }
+.ov-alerts .chip.hl { background: linear-gradient(180deg, #f5c542, #b8891a); color: #140d00; border-color: #ffe39a; }

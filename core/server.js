@@ -24,8 +24,17 @@ const MIME = {
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
   '.m4a': 'audio/mp4',
+  '.gif': 'image/gif',
+  '.jpeg': 'image/jpeg',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.md': 'text/plain; charset=utf-8',
+  '.zip': 'application/zip',
 };
 
+// Pages d'overlay : un thème ne peut charger que des fichiers locaux (pas de pistage, pas de script externe)
+const OVERLAY_CSP = "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:";
 const OVERLAYS = new Set(['counter', 'alerts', 'history', 'summary']);
 
 function isLoopback(addr) {
@@ -198,7 +207,14 @@ class AppServer extends EventEmitter {
     }
     if (p === '/favicon.ico') return this._file(res, path.join(this.webDir, 'assets', 'icon.png'));
     let m = /^\/overlay\/([a-z]+)\/?$/.exec(p);
-    if (m && OVERLAYS.has(m[1])) return this._page(res, path.join(this.webDir, 'overlay', `${m[1]}.html`), {});
+    if (m && OVERLAYS.has(m[1])) return this._page(res, path.join(this.webDir, 'overlay', `${m[1]}.html`), {}, OVERLAY_CSP);
+    // fichiers des thèmes : jamais exécutables, aucune ressource externe
+    m = /^\/themes\/([a-z0-9-]+)\/(.+)$/.exec(p);
+    if (m) {
+      const f = this.core.themes.file(m[1], m[2]);
+      if (!f) return this._text(res, 404, 'Introuvable');
+      return this._file(res, f, { 'Content-Security-Policy': "default-src 'none'; img-src 'self' data:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; media-src 'self'; sandbox" });
+    }
     if (p.startsWith('/static/')) return this._static(res, p.slice('/static/'.length));
     m = /^\/sounds\/([a-z_]+)$/.exec(p);
     if (m) {
@@ -208,6 +224,11 @@ class AppServer extends EventEmitter {
 
     // ---- API publique (lecture seule)
     if (p === '/api/state') return this._json(res, 200, this.core.publicState());
+    m = /^\/api\/theme\/([a-z0-9-]+)$/.exec(p);
+    if (m) {
+      const t = this.core.themeInfo(m[1]);
+      return t ? this._json(res, 200, t) : this._json(res, 404, { ok: false });
+    }
     m = /^\/api\/text\/([a-z]+)$/.exec(p);
     if (m) {
       const t = this.core.textValue(m[1]);
@@ -255,6 +276,28 @@ class AppServer extends EventEmitter {
         return this._json(res, r.ok ? 200 : 400, r);
       }
       if (m && method === 'DELETE') return this._json(res, 200, this.core.deleteSound(m[1]));
+      if (p === '/api/themes/install' && method === 'POST') {
+        const buf = await this._body(req, false, 60 * 1024 * 1024);
+        const r = this.core.installTheme(buf);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      m = /^\/api\/themes\/([a-z0-9-]+)\/(duplicate|export)$/.exec(p);
+      if (m && m[2] === 'duplicate' && method === 'POST') {
+        const b = await this._body(req, true).catch(() => ({}));
+        const r = await this.core.duplicateTheme(m[1], b.name);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && m[2] === 'export') {
+        try {
+          const z = this.core.themes.exportZip(m[1]);
+          res.writeHead(200, { ...this._headers(MIME['.zip']), 'Content-Disposition': `attachment; filename="${z.name}"` });
+          return res.end(z.data);
+        } catch (e) {
+          return this._json(res, 404, { ok: false, error: e.message });
+        }
+      }
+      m = /^\/api\/themes\/([a-z0-9-]+)$/.exec(p);
+      if (m && method === 'DELETE') return this._json(res, 200, { ok: this.core.removeTheme(m[1]) });
       if (p === '/api/open' && method === 'POST') {
         const b = await this._body(req, true);
         return this._json(res, 200, { ok: await this.core.open(b.target, b.url) });
@@ -308,11 +351,11 @@ class AppServer extends EventEmitter {
     res.end(String(text));
   }
 
-  _page(res, file, vars) {
+  _page(res, file, vars, csp = null) {
     fs.readFile(file, 'utf8', (err, html) => {
       if (err) return this._text(res, 404, 'Page introuvable');
       const out = html.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
-      res.writeHead(200, this._headers(MIME['.html']));
+      res.writeHead(200, { ...this._headers(MIME['.html']), ...(csp ? { 'Content-Security-Policy': csp } : {}) });
       res.end(out);
     });
   }
@@ -324,10 +367,10 @@ class AppServer extends EventEmitter {
     return this._file(res, file);
   }
 
-  _file(res, file) {
+  _file(res, file, extra = {}) {
     fs.readFile(file, (err, buf) => {
       if (err) return this._text(res, 404, 'Introuvable');
-      res.writeHead(200, this._headers(MIME[path.extname(file).toLowerCase()] || 'application/octet-stream'));
+      res.writeHead(200, { ...this._headers(MIME[path.extname(file).toLowerCase()] || 'application/octet-stream'), ...extra });
       res.end(buf);
     });
   }

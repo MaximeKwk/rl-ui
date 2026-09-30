@@ -17,6 +17,7 @@ const { TextExporter, renderTemplate, templateVars } = require('./textExport');
 const { StreamBridge } = require('./streamBridge');
 const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
+const { ThemeManager } = require('./themes');
 const { CATEGORY_LABELS, describePlaylist } = require('./playlists');
 
 const SOUND_EXT = new Set(['mp3', 'wav', 'ogg', 'm4a']);
@@ -33,6 +34,7 @@ class Core extends EventEmitter {
     this.logWatcher = new RlLogWatcher({ documentsDir, logPath });
     this.tracker = new Tracker({ store: this.store, logWatcher: this.logWatcher });
     this.mmr = new MmrTracker(this.store);
+    this.themes = new ThemeManager({ builtinDir: path.join(webDir, 'themes'), userDir: path.join(dataDir, 'themes') });
     this.stats = new StatsApiClient(this._statsOpts({ effective: rlConfig.DEFAULTS }));
     this.text = new TextExporter(path.join(dataDir, 'texte'));
     this.obs = new StreamBridge(() => this.store.settings);
@@ -53,6 +55,11 @@ class Core extends EventEmitter {
     await this._backfillMmr();
     this.stats.start();
     this.logWatcher.start();
+    this.themes.watch();
+    this.themes.on('changed', () => {
+      this.server.broadcast({ type: 'config', config: this.overlayConfig() });
+      this._changed();
+    });
     this.obs.apply();
     const port = await this.server.start();
     if (port !== this.store.settings.port) {
@@ -69,6 +76,7 @@ class Core extends EventEmitter {
     clearInterval(this._rlTimer);
     this.stats.stop();
     this.logWatcher.stop();
+    this.themes.stop();
     this.obs.stop();
     await this.server.stop();
     this.store.flush();
@@ -307,12 +315,38 @@ class Core extends EventEmitter {
     };
   }
 
+  // Thème choisi (DA) : feuille de style, couleurs et sons qu'il apporte
+  _themeInfo() {
+    return this.themeInfo(this.store.settings.overlay.themePack || 'classique');
+  }
+
+  themeInfo(id) {
+    const t = this.themes.get(id) || this.themes.get('classique');
+    if (!t) return null;
+    const v = Math.round(this.themes.stamp(t.id));
+    const sounds = {};
+    for (const [type, rel] of Object.entries(t.sounds)) sounds[type] = `/themes/${t.id}/${rel}?v=${v}`;
+    return { id: t.id, name: t.name, css: t.hasCss ? `/themes/${t.id}/theme.css?v=${v}` : null, sounds, colors: t.colors };
+  }
+
+  _themedOverlay() {
+    const o = { ...this.store.settings.overlay };
+    const t = this.themes.get(o.themePack || 'classique');
+    if (t && o.themeColors !== false) {
+      if (t.colors.win) o.winColor = t.colors.win;
+      if (t.colors.loss) o.lossColor = t.colors.loss;
+      if (t.colors.ot) o.otColor = t.colors.ot;
+    }
+    return o;
+  }
+
   overlayConfig() {
     const s = this.store.settings;
     const custom = {};
     for (const t of ALERT_TYPES) custom[t] = !!this.soundFile(t);
     return {
-      overlay: s.overlay,
+      overlay: this._themedOverlay(),
+      theme: this._themeInfo(),
       alerts: {
         enabled: s.alerts.enabled,
         texts: s.alerts.texts,
@@ -355,6 +389,7 @@ class Core extends EventEmitter {
       categories: CATEGORY_LABELS,
       logs: this.logs.slice(-80),
       hotkeyErrors: this.hotkeyErrors,
+      themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir },
       mmr: {
         summary: this.mmrSummary(),
         known: this.mmr.known(this.logWatcher.account && this.logWatcher.account.id),
@@ -554,6 +589,38 @@ class Core extends EventEmitter {
     }
   }
 
+  // ---------------------------------------------------------------- thèmes
+  installTheme(buf) {
+    try {
+      const r = this.themes.install(buf);
+      this.log(`Thème installé : ${r.name}${r.refused.length ? ` (${r.refused.length} fichier(s) refusé(s) : scripts ou formats non autorisés)` : ''}`);
+      return { ok: true, ...r };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async duplicateTheme(id, name) {
+    try {
+      const r = this.themes.duplicate(id, name);
+      this.store.patchSettings({ overlay: { themePack: r.id } });
+      this.server.broadcast({ type: 'config', config: this.overlayConfig() });
+      this._changed();
+      this.log(`Thème perso créé : ${r.id} (modifie ses fichiers, les overlays se mettent à jour tout seuls)`);
+      if (this.hooks.openPath) await this.hooks.openPath(r.dir);
+      return { ok: true, ...r };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  removeTheme(id) {
+    const ok = this.themes.remove(id);
+    if (ok && this.store.settings.overlay.themePack === id) this.store.patchSettings({ overlay: { themePack: 'classique' } });
+    if (ok) this.log(`Thème supprimé : ${id}`);
+    return ok;
+  }
+
   async obsScenes() {
     try {
       return { ok: true, ...(await this.obs.listScenes()) };
@@ -609,7 +676,13 @@ class Core extends EventEmitter {
       text: this.text.dir(s),
       data: this.dataDir,
       rlconfig: rlConfig.userConfigDir(this.documentsDir),
+      themes: this.themes.userDir,
     };
+    if (typeof target === 'string' && target.startsWith('theme:')) {
+      const t = this.themes.get(target.slice(6));
+      if (t && !t.builtin && this.hooks.openPath) return !!(await this.hooks.openPath(t.dir));
+      return false;
+    }
     if (target in dirs) {
       fs.mkdirSync(dirs[target], { recursive: true });
       if (this.hooks.openPath) return !!(await this.hooks.openPath(dirs[target]));

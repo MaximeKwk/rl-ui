@@ -275,6 +275,11 @@
     $('#previewSound').addEventListener('change', () => setPreviewSrc(true));
     new ResizeObserver(layoutPreviews).observe($('#overlayGrid'));
 
+    // Thèmes
+    $('#themeGrid').addEventListener('click', onThemeClick);
+    $('#themeFolder').addEventListener('click', () => post('/api/open', { target: 'themes' }));
+    $('#themeInstall').addEventListener('click', pickTheme);
+
     // Tests d'alertes
     $('#testRow').innerHTML = TYPES.map(([t, n]) => `<button class="btn t-${t}" data-test="${t}">${esc(n)}</button>`).join('');
     $('#testRow').addEventListener('click', async (e) => {
@@ -661,6 +666,81 @@
     });
   }
 
+  // ------------------------------------------------------------------ thèmes
+  function renderThemes() {
+    const list = (D.themes && D.themes.list) || [];
+    const cur = D.settings.overlay.themePack || 'classique';
+    $('#themeGrid').innerHTML = list
+      .map((t) => {
+        const c = t.colors || {};
+        const sw = [c.win || '#2ef2a0', c.loss || '#ff4d6d', c.ot || '#ffb020'];
+        const thumb = t.hasPreview
+          ? `<img src="/themes/${esc(t.id)}/preview.png" alt="" loading="lazy" />`
+          : `<div class="sw">${sw.map((x) => `<i style="background:${esc(x)}"></i>`).join('')}</div>`;
+        const on = t.id === cur;
+        return `
+        <div class="th${on ? ' on' : ''}" data-theme="${esc(t.id)}">
+          <div class="thumb">${thumb}${on ? '<span class="pill ok">Actif</span>' : ''}</div>
+          <div class="info">
+            <b>${esc(t.name)}</b>
+            <span class="muted small">${t.builtin ? 'Intégré' : 'Perso'}${t.author ? ` · par ${esc(t.author)}` : ''} · v${esc(t.version)}</span>
+            ${t.description ? `<span class="desc">${esc(t.description)}</span>` : ''}
+          </div>
+          <div class="acts">
+            ${on ? '' : '<button class="btn small primary" data-tact="use">Utiliser</button>'}
+            <button class="btn small" data-tact="custom">Personnaliser</button>
+            ${t.builtin ? '' : '<button class="btn small ghost" data-tact="folder">Dossier</button>'}
+            <button class="btn small ghost" data-tact="export">Exporter</button>
+            ${t.builtin ? '' : '<button class="btn small ghost danger" data-tact="del">Supprimer</button>'}
+          </div>
+        </div>`;
+      })
+      .join('');
+  }
+
+  async function onThemeClick(e) {
+    const b = e.target.closest('[data-tact]');
+    if (!b) return;
+    const id = b.closest('[data-theme]').dataset.theme;
+    const t = D.themes.list.find((x) => x.id === id);
+    const act = b.dataset.tact;
+    if (act === 'use') {
+      await post('/api/settings', { overlay: { themePack: id } });
+      toast(`Thème « ${t.name} » appliqué`, 'ok');
+    } else if (act === 'custom') {
+      const r = await post(`/api/themes/${id}/duplicate`, { name: `${t.name} perso` });
+      toast(r.ok ? 'Copie créée : modifie ses fichiers, les overlays suivent en direct' : r.error || 'Échec', r.ok ? 'ok' : 'err');
+    } else if (act === 'folder') {
+      post('/api/open', { target: `theme:${id}` });
+    } else if (act === 'export') {
+      const a = document.createElement('a');
+      a.href = `/api/themes/${id}/export?key=${encodeURIComponent(KEY)}`;
+      a.download = `${id}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else if (act === 'del') {
+      if (!(await confirmBox(`Supprimer le thème « ${t.name} » et ses fichiers ?`, 'Supprimer'))) return;
+      const r = await api(`/api/themes/${id}`, { method: 'DELETE' });
+      toast(r.ok ? 'Thème supprimé' : 'Échec', r.ok ? 'ok' : 'err');
+    }
+  }
+
+  function pickTheme() {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.zip,application/zip';
+    inp.onchange = async () => {
+      const f = inp.files[0];
+      if (!f) return;
+      if (f.size > 60 * 1024 * 1024) return toast('Fichier trop lourd (60 Mo max)', 'err');
+      const r = await api('/api/themes/install', { method: 'POST', body: await f.arrayBuffer() });
+      if (!r.ok) return toast(r.error || 'Thème invalide', 'err');
+      toast(`Thème « ${r.name} » installé${r.refused && r.refused.length ? ` (${r.refused.length} fichier(s) ignoré(s))` : ''}`, 'ok');
+    };
+    inp.click();
+  }
+
   function pickSound(type) {
     const inp = document.createElement('input');
     inp.type = 'file';
@@ -837,6 +917,7 @@
     if (changed('logs', D.logs.length && D.logs[D.logs.length - 1])) renderLogs();
     if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds])) renderStream();
     if (changed('layout', D.settings.overlay.layout)) renderLayout();
+    if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
     renderObs();
     if (changed('settingsView', [D.status.account, D.status.rlConfig, D.status.api.state, D.hotkeyErrors, D.settings, D.textDir, D.lanAddresses, D.port, D.mmr && D.mmr.known])) renderSettings();
     if (historyDirty) loadHistory();

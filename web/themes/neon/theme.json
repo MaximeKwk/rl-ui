@@ -1,0 +1,7 @@
+{
+  "name": "Néon",
+  "author": "Zoxam",
+  "version": "1.0.0",
+  "description": "Contours lumineux cyan et magenta, ambiance arcade.",
+  "colors": { "win": "#39ff88", "loss": "#ff2d95", "ot": "#00e5ff" }
+}

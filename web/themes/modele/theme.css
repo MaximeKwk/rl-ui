@@ -1,0 +1,53 @@
+/* =====================================================================
+   Thème MODÈLE de RL-UI
+   1. Dans RL-UI : Overlays OBS > Thèmes > « Personnaliser » sur ce thème
+      (une copie modifiable s'ouvre dans l'explorateur).
+   2. Remplace les images du dossier images/ par les tiennes
+      (PNG, JPG, WEBP, GIF ou SVG) en gardant le même nom,
+      ou change le nom dans url(...) ci-dessous.
+   3. Enregistre : les overlays dans OBS se mettent à jour tout seuls.
+   Guide complet (tous les éléments modifiables) : docs/THEMES.md
+   ===================================================================== */
+
+/* --- Couleurs : victoire / défaite / overtime -> dans theme.json ("colors") */
+
+/* --- Police perso : mets ton fichier (.woff2, .ttf, .otf) dans fonts/ puis décommente :
+@font-face { font-family: 'MaPolice'; src: url('fonts/ma-police.woff2'); }
+:root { --font: 'MaPolice'; }
+*/
+
+/* --- Sons perso : mets tes fichiers dans sounds/ et déclare-les dans theme.json :
+   "sounds": { "win": "sounds/victoire.mp3", "overtime": "sounds/overtime.mp3" }
+   (types : win, loss, overtime, ot_win, ot_loss, streak) */
+
+/* 1. COMPTEUR : image de fond ------------------------------------------ */
+.ov-counter .w .deco,
+.ov-counter .boost .deco {
+  background: url('images/fond-compteur.svg') center / cover;
+  opacity: 0.95;
+}
+.ov-counter .theme-arena {
+  background: transparent;                 /* on laisse voir l'image */
+  border: 2px solid rgba(53, 224, 255, 0.6);
+}
+.ov-counter .theme-arena::before {         /* liseré du haut */
+  background: linear-gradient(90deg, #35e0ff, #b05cff);
+}
+
+/* 2. ALERTES : ton logo au-dessus du titre ------------------------------- */
+.ov-alerts .al .art {
+  width: calc(170px * var(--s));
+  height: calc(170px * var(--s));
+  top: 0;
+  transform: translate(-50%, -105%);
+  background: url('images/logo.svg') center / contain no-repeat;
+}
+
+/* 3. RÉCAP DE SESSION : même image de fond ------------------------------ */
+.ov-summary .card .deco {
+  background: url('images/fond-compteur.svg') center / cover;
+  opacity: 0.35;
+}
+
+/* 4. DERNIÈRES PARTIES : pastilles arrondies ----------------------------- */
+.ov-history .pill { border-radius: 50%; }
