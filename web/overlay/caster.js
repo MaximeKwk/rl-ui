@@ -187,16 +187,42 @@
     goalTimer = setTimeout(() => g.classList.remove('show'), 5600);
   }
 
+  // Statfeed : une action à la fois (file d'attente), la suivante arrive quand la précédente s'en va
+  const FEED_MS = 3200; // durée d'affichage d'une action
+  const FEED_MAX = 5; // au-delà, on garde les plus récentes pour ne pas prendre de retard sur le jeu
+  const feedQueue = [];
+  let feedBusy = false;
+  let lastFeed = { sig: '', at: 0 };
+
   function showFeed(e) {
     if (!S || !S.options.showFeed || hidden.has('feed')) return;
+    const sig = `${e.event}|${e.main}|${e.secondary || ''}`;
+    if (sig === lastFeed.sig && Date.now() - lastFeed.at < 1500) return; // même action reçue deux fois
+    lastFeed = { sig, at: Date.now() };
+    feedQueue.push(e);
+    if (feedQueue.length > FEED_MAX) feedQueue.splice(0, feedQueue.length - FEED_MAX);
+    if (!feedBusy) nextFeed();
+  }
+
+  function nextFeed() {
+    const e = feedQueue.shift();
+    if (!e) {
+      feedBusy = false;
+      return;
+    }
+    feedBusy = true;
     const box = $('feed');
     const it = document.createElement('div');
     it.className = `it c${e.team}`;
     it.innerHTML = `<em>${esc(e.label)}</em><span class="p${e.team}">${esc(e.main)}</span>${e.secondary ? ` → <span class="p${e.secondaryTeam}">${esc(e.secondary)}</span>` : ''}`;
-    box.appendChild(it);
-    while (box.children.length > 4) box.firstChild.remove();
-    setTimeout(() => it.classList.add('out'), 4200);
-    setTimeout(() => it.remove(), 4700);
+    box.replaceChildren(it);
+    // s'il y a du monde derrière, on raccourcit un peu pour suivre le rythme du match
+    const hold = feedQueue.length > 1 ? FEED_MS * 0.7 : FEED_MS;
+    setTimeout(() => it.classList.add('out'), hold);
+    setTimeout(() => {
+      it.remove();
+      nextFeed();
+    }, hold + 400);
   }
 
   OT.on('config', () => S && render(S));

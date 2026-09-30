@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1
+
+- **Caster mode — statfeed**: plays (demolitions, saves, epic saves, hat tricks…) now show **one at a time** in the bottom-left corner, instead of piling up and disappearing together.
+- Demolitions and saves are also detected from the players' stats when the game doesn't send its own statfeed.
+- Checked against a real recorded Rocket League match.
+
 ## 1.1.0
 
 - **Automatic updates**: the installed version downloads new versions in the background and offers “Restart to install” (the portable version shows a download link).
