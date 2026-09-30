@@ -1,134 +1,234 @@
-# BoostSide
+<p align="center">
+  <img src="docs/images/banner.png" alt="BoostSide — overlay de stream pour Rocket League" width="100%">
+</p>
 
-**Overlay de stream pour Rocket League** — créé par **Zoxam**.
+<p align="center">
+  <a href="https://github.com/MaximeKwk/boostside/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-2f8cff?style=flat-square"></a>
+  <img alt="Plateforme" src="https://img.shields.io/badge/plateforme-Windows%2010%20%7C%2011-0078d4?style=flat-square&logo=windows&logoColor=white">
+  <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-Stats%20API%20officielle-ff8a2a?style=flat-square">
+  <img alt="OBS et Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-302e31?style=flat-square&logo=obsstudio&logoColor=white">
+  <a href="LICENSE"><img alt="Licence" src="https://img.shields.io/badge/licence-tous%20droits%20r%C3%A9serv%C3%A9s-555?style=flat-square"></a>
+</p>
 
-*Stream overlay for Rocket League: automatic win/loss + MMR tracking, animated win / loss / overtime alerts, a counter that sits next to the boost meter. Interface in French.*
+<p align="center">
+  <b>BoostSide</b> compte tout seul tes victoires, défaites et ton MMR sur Rocket League,<br>
+  et fait réagir ton stream quand tu gagnes, quand tu perds et quand la partie part en <b>overtime</b>.
+</p>
 
-Compte tes victoires / défaites et ton MMR tout seul, et affiche sur ton stream des alertes animées :
-**VICTOIRE**, **DÉFAITE**, **OVERTIME** (dès que la prolongation commence), **VICTOIRE / DÉFAITE EN OVERTIME**, **séries**.
+<p align="center">
+  <a href="#démarrage-rapide">Démarrage rapide</a> ·
+  <a href="#aperçu">Aperçu</a> ·
+  <a href="#comment-ça-marche">Comment ça marche</a> ·
+  <a href="#overlays">Overlays</a> ·
+  <a href="#faq">FAQ</a>
+</p>
 
-- 100 % automatique grâce à la **Stats API officielle** de Psyonix : pas de BakkesMod, pas de mod, compatible anti-cheat (EAC).
-- Reconnaît **ton** compte (Steam ou Epic) : marche en solo comme en duo / trio.
-- Mode de jeu (2v2 classé, 3v3…), score, overtime, MVP, abandons, forfaits, **MMR réel** (+x / −x).
-- Compteur **horizontal**, **vertical** ou **collé à la jauge de boost** du jeu.
-- Actions automatiques dans **OBS Studio** ou **Streamlabs Desktop**, URLs **Stream Deck**, raccourcis clavier, fichiers texte.
-- Tout reste sur ton PC : aucune donnée n'est envoyée sur Internet.
+> [!IMPORTANT]
+> BoostSide n'utilise **aucun mod** : ni BakkesMod, ni injection dans le jeu. Il lit uniquement la **Stats API officielle** de Psyonix
+> et le journal local du jeu. Il est donc compatible avec l'anti-cheat (EAC).
+> L'application n'est pas encore signée numériquement : au premier lancement, Windows SmartScreen peut afficher un avertissement
+> (*Informations complémentaires → Exécuter quand même*).
 
-## Prérequis
+## Aperçu
 
-- Windows 10 ou 11 (64 bits).
-- Rocket League sur PC (Steam ou Epic Games).
-- OBS Studio 28+ ou Streamlabs Desktop pour les overlays (n'importe quel logiciel avec une source « Navigateur » fonctionne).
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/alert-win.png" alt="Alerte victoire"></td>
+    <td width="50%"><img src="docs/images/alert-overtime.png" alt="Alerte overtime"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Victoire</b> — confettis, score, série, MMR, MVP</td>
+    <td align="center"><b>Overtime</b> — dès que la prolongation commence</td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/images/alert-ot-win.png" alt="Alerte victoire en overtime"></td>
+    <td width="50%"><img src="docs/images/alert-loss.png" alt="Alerte défaite"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Victoire en overtime</b> — but en or</td>
+    <td align="center"><b>Défaite</b> — effet glitch</td>
+  </tr>
+</table>
 
-## Installation
+<table>
+  <tr>
+    <td><img src="docs/images/counter.png" alt="Compteur horizontal"></td>
+    <td rowspan="2"><img src="docs/images/counter-vertical.png" alt="Compteur vertical" width="160"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/counter-boost.png" alt="Compteur collé à la jauge de boost"></td>
+  </tr>
+  <tr>
+    <td align="center">Compteur horizontal, et mode <b>Boost</b> collé à la jauge du jeu, à la couleur de ton équipe</td>
+    <td align="center">Vertical</td>
+  </tr>
+</table>
 
-Télécharge `BoostSide-Setup-x.y.z.exe` (installation en un clic) ou `BoostSide-Portable-x.y.z.exe` (sans installation)
-depuis les [Releases](https://github.com/MaximeKwk/boostside/releases), ou compile-le (voir *Développement*).
+<p align="center"><img src="docs/images/dashboard.png" alt="Tableau de bord" width="85%"></p>
 
-Windows peut afficher « Windows a protégé votre ordinateur » (application non signée) : *Informations complémentaires → Exécuter quand même*.
-L'app vit dans la zone de notification (icône **B**) : fermer la fenêtre ne l'arrête pas, clic droit sur l'icône → *Quitter*.
+## Comment ça marche
 
-## Mise en route
+```mermaid
+flowchart LR
+    RL["Rocket League<br/>Stats API officielle<br/>(TCP 49123 / WS 49124)"] -->|score, overtime, fin de match| BS
+    LOG["Journal du jeu<br/>Launch.log"] -->|ton compte, ton MMR| BS
+    BS["BoostSide<br/>(tourne en local)"] -->|overlays navigateur| STREAM["OBS / Streamlabs"]
+    BS -->|scènes et sources| ACT["Actions automatiques<br/>OBS WebSocket / Streamlabs API"]
+    BS -->|URLs et raccourcis| DECK["Stream Deck / clavier"]
+```
 
-1. **Stats API de Rocket League** : activée d'office dans les versions récentes du jeu. Si le tableau de bord indique
-   « Stats API : désactivée », clique sur *Réglages → Activer / réparer l'API* puis **redémarre Rocket League**.
-2. **Joue.** Ton compte est lu dans le journal du jeu (`Documents\My Games\Rocket League\TAGame\Logs\Launch.log`), le reste
-   arrive en direct par l'API (TCP `49123`, WebSocket `49124`).
-3. **Ajoute les overlays** dans OBS ou Streamlabs : *Sources → + → Navigateur*, colle l'URL.
+1. Rocket League diffuse en local les événements de la partie : buts, chrono, **overtime**, fin de match et vainqueur.
+2. BoostSide lit le journal du jeu pour savoir **quel joueur est toi** (Steam ou Epic) et récupérer ton **MMR réel**.
+3. Il enregistre chaque partie (victoire, défaite, OT, abandon, MVP…) et met à jour les overlays en direct, en moins d'une seconde.
 
-| Overlay | URL | Taille |
+## Démarrage rapide
+
+**Prérequis :** Windows 10 ou 11 (64 bits), Rocket League sur PC (Steam ou Epic), OBS Studio 28+ ou Streamlabs Desktop.
+
+1. **Installe** `BoostSide-Setup-x.y.z.exe` depuis les [Releases](https://github.com/MaximeKwk/boostside/releases)
+   (ou la version portable, sans installation).
+2. **Lance Rocket League** et joue une partie. La Stats API est activée d'office dans les versions récentes du jeu ; sinon
+   *Réglages → Activer / réparer l'API* puis redémarre le jeu.
+3. **Ajoute les overlays** dans OBS ou Streamlabs : *Sources → + → Navigateur*, colle l'URL (voir ci-dessous).
+
+C'est tout : chaque victoire, défaite et overtime est détecté automatiquement.
+L'app vit dans la zone de notification (icône **B**) ; fermer la fenêtre ne l'arrête pas.
+
+## Overlays
+
+| Overlay | URL | Taille de la source |
 | --- | --- | --- |
-| Compteur (horizontal) | `http://127.0.0.1:5757/overlay/counter` | 1000 × 220 |
-| Compteur (vertical) | `http://127.0.0.1:5757/overlay/counter?layout=vertical` | 340 × 720 |
-| Compteur « Boost » | `http://127.0.0.1:5757/overlay/counter?layout=boost` | plein écran (taille du canevas) |
+| Compteur horizontal | `http://127.0.0.1:5757/overlay/counter` | 1000 × 220 |
+| Compteur vertical | `http://127.0.0.1:5757/overlay/counter?layout=vertical` | 340 × 720 |
+| Compteur « Boost » | `http://127.0.0.1:5757/overlay/counter?layout=boost` | plein écran |
 | Alertes | `http://127.0.0.1:5757/overlay/alerts` | plein écran |
 | Dernières parties | `http://127.0.0.1:5757/overlay/history` | 700 × 90 |
 | Récap de session | `http://127.0.0.1:5757/overlay/summary` | plein écran |
 
-Pour entendre les alertes sur le stream : propriétés de la source → **« Contrôler l'audio via OBS »**.
-Sans paramètre, les overlays suivent les réglages du tableau de bord (disposition, thème, couleurs, textes…) en direct.
+> [!TIP]
+> Pour entendre les alertes sur le stream, coche **« Contrôler l'audio via OBS »** dans les propriétés de la source.
+> Les overlays suivent en direct les réglages du tableau de bord (thème, couleurs, textes, sons).
 
-## Compteur : horizontal, vertical ou « Boost »
+**Mode Boost** — le compteur se cale à gauche de la jauge de boost, son bord suit l'arc de la jauge et il prend la couleur de ton
+équipe. Si ton HUD a une autre taille : *Overlays → Compteur → Afficher le repère*, ajuste la taille et la position jusqu'à ce
+que le repère recouvre ta jauge dans OBS, puis masque-le.
 
-- **Horizontal / vertical** : thèmes *Arena*, *Broadcast* (style RLCS) ou *Minimal*.
-- **Boost** : source en plein écran au-dessus de la capture du jeu. Le compteur se place tout seul **à gauche de la jauge de
-  boost**, son bord droit suit l'arc de la jauge, et il prend **la couleur de ton équipe** (bleu / orange) comme la jauge.
-  Si ton HUD n'a pas la même taille, active *Repère de la jauge* dans *Overlays → Compteur*, ajuste *Taille du HUD* et les
-  décalages jusqu'à ce que le repère recouvre ta jauge dans OBS, puis désactive le repère.
+<details>
+<summary><b>Paramètres d'URL avancés</b></summary>
 
-Paramètres d'URL (optionnels) : `theme=arena|broadcast|minimal`, `layout=horizontal|vertical|boost`, `scale=1.3`,
-`align=left|center|right`, `hide=wr,streak,ot,mmr`, `mmr=session|value|both`, `bscale`, `bx`, `by`, `guide=1`,
-couleurs `win=2ef2a0&loss=ff4d6d&ot=ffb020`. Alertes : `pos=center|top|bottom`, `scale`, `mute=1`, `only=overtime,ot_win`, `mmr=0`.
+| Overlay | Paramètres |
+| --- | --- |
+| Compteur | `theme=arena\|broadcast\|minimal` · `layout=horizontal\|vertical\|boost` · `scale=1.3` · `align=left\|center\|right` · `hide=wr,streak,ot,mmr` · `mmr=session\|value\|both` · `bscale` · `bx` · `by` · `guide=1` |
+| Alertes | `pos=center\|top\|bottom` · `scale` · `mute=1` · `only=overtime,ot_win` · `mmr=0` |
+| Dernières parties | `n=5` · `order=old` · `bare=1` · `title=0` |
+| Tous | couleurs `win=2ef2a0&loss=ff4d6d&ot=ffb020` · aperçu `preview=1` |
 
-## MMR
+</details>
 
-La Stats API ne donne pas le MMR, mais le journal du jeu si : à chaque recherche de partie lancée **depuis ton PC** (seul ou chef
-de groupe), Rocket League y écrit ton MMR pour le mode choisi (`PartyLeaderMMR`, valeur TrueSkill μ ; MMR affiché = μ × 20 + 100).
+## Fonctionnalités
 
-- Ton MMR actuel est connu dès le lancement (lu dans les journaux des sessions précédentes).
-- La variation exacte de chaque match arrive à la recherche suivante ; en attendant, une estimation basée sur tes vraies variations
-  récentes est affichée (marquée « ≈ » dans le tableau de bord), puis remplacée automatiquement.
-- Si c'est ton mate qui lance la recherche, ton jeu n'écrit rien : seule l'estimation est disponible pour ces parties.
-- Affichage : « MMR » avec **+x en vert** ou **−x en rouge** (session), la valeur actuelle, ou les deux. Classé uniquement par défaut.
+| | |
+| --- | --- |
+| **Détection automatique** | Victoire, défaite, overtime, forfait, abandon (défaite en classé), MVP, mode de jeu (2v2 classé, 3v3…) |
+| **MMR réel** | Lu dans le journal du jeu, affiché en **+x** (vert) ou **−x** (rouge) ; estimation immédiate corrigée à la recherche suivante |
+| **Alertes animées** | Victoire, défaite, overtime, victoire / défaite en OT, séries (3, 5, 10…), sons intégrés ou personnalisés |
+| **Compteur** | 3 thèmes (Arena, Broadcast, Minimal), horizontal, vertical ou collé à la jauge de boost, badge OVERTIME en direct |
+| **Sessions et historique** | Nouvelle session automatique après 6 h sans jouer, historique complet par mode, corrections manuelles |
+| **Identification** | Ton compte Steam / Epic est reconnu seul : fonctionne en solo, duo et trio |
 
-## Actions automatiques (OBS Studio ou Streamlabs Desktop)
+## Intégrations
 
-Onglet *Actions stream* : pour chaque événement (overtime, victoire, défaite, OT gagné / perdu, série), **afficher une source**
-pendant N secondes ou **changer de scène** avec retour automatique.
+| Intégration | Ce que ça fait | Mise en place |
+| --- | --- | --- |
+| **OBS Studio** 28+ | Affiche une source ou change de scène sur overtime, victoire, défaite, série | *Outils → Paramètres du serveur WebSocket* → copier le mot de passe |
+| **Streamlabs Desktop** | Les mêmes actions automatiques | *Paramètres → Contrôle à distance* → *Afficher les détails* → copier le jeton |
+| **Stream Deck** | +1 victoire / défaite, annuler, pause, nouvelle session | Action *Site web* + « Accéder en arrière-plan » avec les URL de *Réglages* |
+| **Raccourcis clavier** | `Ctrl+Alt+Shift+↑` / `↓` / `Retour arrière` | Actifs même en jeu, personnalisables |
+| **Fichiers texte** | `wins.txt`, `record.txt`, `mmr-session.txt`… pour une source « Texte (GDI+) » | `%APPDATA%\BoostSide\texte` |
+| **HTTP** | `/api/text/record`, `/api/text/mmrsession`… | Streamer.bot, Touch Portal, etc. |
 
-- **OBS Studio** 28+ : *Outils → Paramètres du serveur WebSocket* → activer, puis copier le mot de passe (port 4455).
-- **Streamlabs Desktop** : *Paramètres → Contrôle à distance* → clic sur le QR code → *Afficher les détails* → copier le jeton de
-  l'API (port 59650).
+## FAQ
 
-## Autres intégrations
+<details>
+<summary><b>Est-ce que je risque un ban ?</b></summary>
 
-- **Stream Deck** : action *Site web* + **« Accéder en arrière-plan »**, avec les URL de *Réglages → Stream Deck · API*
-  (`/api/action/win?key=…`, `&alert=1` pour déclencher l'alerte). Marche aussi avec Streamer.bot, Touch Portal…
-- **Raccourcis globaux** : `Ctrl+Alt+Shift+↑` +1 victoire, `Ctrl+Alt+Shift+↓` +1 défaite, `Ctrl+Alt+Shift+Retour arrière` annuler.
-- **Fichiers texte** (source « Texte (GDI+) ») dans `%APPDATA%\BoostSide\texte` : `wins.txt`, `losses.txt`, `record.txt`,
-  `winrate.txt`, `streak.txt`, `ot.txt`, `last.txt`, `mmr.txt`, `mmr-session.txt`, `custom.txt` (format personnalisable).
-- **Texte par HTTP** : `http://127.0.0.1:5757/api/text/record` (aussi `wins`, `losses`, `winrate`, `streak`, `ot`, `mmr`, `mmrsession`, `summary`).
+BoostSide ne modifie pas le jeu et ne s'y injecte pas : il lit la Stats API officielle, prévue par Psyonix pour les overlays,
+et le fichier journal que le jeu écrit sur ton disque.
+</details>
 
-## Ce qui est compté
+<details>
+<summary><b>D'où vient le MMR ?</b></summary>
 
-Par défaut : classé, occasionnel, modes extra et tournois (pas les parties privées ni le hors-ligne) — réglable.
-Quitter une partie classée compte comme une défaite (réglable). Nouvelle session automatique après 6 h sans partie (réglable).
-Corrections manuelles : boutons **+ / −**, *Annuler la dernière partie*, suppression d'une ligne de l'historique.
+Quand tu lances une recherche de partie (seul ou chef de groupe), Rocket League écrit ton MMR pour le mode choisi dans son journal.
+La variation exacte d'un match est donc connue à la recherche suivante ; en attendant, BoostSide affiche une estimation basée sur
+tes vraies variations récentes. Si c'est ton mate qui lance la recherche, seule l'estimation est disponible.
+</details>
+
+<details>
+<summary><b>Une partie n'a pas été comptée</b></summary>
+
+Regarde le journal du tableau de bord : le mode est peut-être exclu (parties privées, hors-ligne) ou le tracker était en pause.
+Tu peux toujours corriger avec les boutons + / −.
+</details>
+
+<details>
+<summary><b>« Stats API : non joignable » alors que le jeu tourne</b></summary>
+
+*Réglages → Activer / réparer l'API*, puis redémarre complètement Rocket League (nécessaire aussi après certaines mises à jour du jeu).
+</details>
+
+<details>
+<summary><b>J'ai un setup à deux PC</b></summary>
+
+*Réglages → Serveur local → Accessible depuis le réseau local*, puis utilise l'adresse IP du PC de jeu dans les URL des overlays.
+</details>
 
 ## Confidentialité
 
-BoostSide fonctionne entièrement en local : il lit l'API locale du jeu et son journal, et sert les overlays sur `127.0.0.1`.
-Aucune donnée n'est envoyée à un serveur. Données : `%APPDATA%\BoostSide\data.json`.
-
-## Dépannage
-
-- **« Stats API : non joignable » alors que le jeu tourne** : *Réglages → Activer / réparer l'API*, puis redémarrage complet du jeu.
-- **Compte non détecté** : lance le jeu une fois, ou indique ton pseudo dans *Réglages → Qui est « toi »*.
-- **MMR vide ou « ≈ »** : lance une recherche classée toi-même ; la vraie valeur s'affiche à la recherche suivante.
-- **Setup 2 PC** : *Réglages → Serveur local → Accessible depuis le réseau local*, puis utilise l'IP du PC de jeu dans les URL.
+BoostSide fonctionne **entièrement en local**. Il n'envoie aucune donnée sur Internet, ne contient aucune télémétrie et n'a pas
+de compte à créer. Tes parties sont stockées dans `%APPDATA%\BoostSide\data.json`.
 
 ## Développement
 
 ```bash
 npm install
-npm start                 # lance l'app (Electron)
-npm test                  # tests unitaires (tracker, MMR, journal du jeu, OBS / Streamlabs…)
-npm run e2e               # bout en bout : faux jeu -> tracker -> API / overlays / fichiers
-npm run headless          # tracker sans interface (tableau de bord dans le navigateur)
-node tools/simulator.js otwin win loss --speed 10                   # faux Rocket League (TCP 49123 + WebSocket 49124)
-node tools/simulator.js win loss --log <Launch.log> --mmr 1150 --lag  # + journal du jeu avec MMR
-node tools/sniff.js 120 capture.jsonl                                # enregistre le flux brut du vrai jeu
-npm run dist              # installeur + version portable dans dist/
+npm start          # lance l'application (Electron)
+npm test           # tests unitaires : tracker, MMR, journal du jeu, OBS / Streamlabs…
+npm run e2e        # test de bout en bout avec un faux Rocket League
+npm run dist       # installeur + version portable dans dist/
 ```
 
-Publier une version : mettre à jour `version` dans `package.json` et `CHANGELOG.md`, puis `git tag vX.Y.Z && git push --tags`
-(le workflow GitHub teste, compile et attache les `.exe` à la release).
+<details>
+<summary><b>Outils de développement</b></summary>
 
-Structure : `core/` (logique sans Electron), `web/` (tableau de bord + overlays), `electron/` (fenêtre, zone de notification,
-raccourcis), `tools/` (simulateur, tests, captures), `test/` (tests unitaires).
+```bash
+node tools/simulator.js otwin win loss --speed 10                     # faux Rocket League (TCP 49123 + WebSocket 49124)
+node tools/simulator.js win loss --log <Launch.log> --mmr 1150 --lag  # + journal du jeu avec MMR
+node tools/sniff.js 120 capture.jsonl                                 # enregistre le flux brut du vrai jeu
+npm run headless                                                      # tracker sans interface
+```
+
+| Dossier | Contenu |
+| --- | --- |
+| `core/` | Logique sans Electron : client Stats API, tracker, MMR, serveur des overlays, OBS / Streamlabs |
+| `web/` | Tableau de bord et overlays (HTML / CSS / JS, sans framework) |
+| `electron/` | Fenêtre, zone de notification, raccourcis globaux |
+| `tools/` · `test/` | Simulateur, captures, tests |
+
+**Publier une version** : mettre à jour `version` dans `package.json` et le [journal des versions](CHANGELOG.md), puis
+`git tag vX.Y.Z && git push --tags`. Le workflow GitHub teste, compile et joint les `.exe` à la release.
+</details>
+
+## Avertissement
+
+BoostSide est un projet indépendant. Il n'est ni affilié, ni approuvé, ni sponsorisé par **Psyonix LLC** ou **Epic Games, Inc.**
+*Rocket League* est une marque de Psyonix LLC.
 
 ## Licence
 
-© 2026 Zoxam — tous droits réservés (voir [LICENSE](LICENSE)). Police Barlow Condensed : SIL Open Font License.
+© 2026 Zoxam — tous droits réservés. Voir [LICENSE](LICENSE).
+Police [Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) sous SIL Open Font License.
 
-BoostSide n'est ni affilié, ni approuvé, ni sponsorisé par Psyonix LLC ou Epic Games, Inc. Rocket League est une marque de Psyonix LLC.
+## À propos
+
+Créé par **Zoxam**. Une idée, un bug ? Ouvre une [issue](https://github.com/MaximeKwk/boostside/issues).

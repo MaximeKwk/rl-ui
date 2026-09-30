@@ -50,7 +50,9 @@ app.whenReady().then(async () => {
         }
         await new Promise((r) => setTimeout(r, 700));
       }
-      const img = frame || (await win.webContents.capturePage());
+      let img = frame || (await win.webContents.capturePage());
+      if (job.crop) img = img.crop(job.crop);
+      if (job.resize) img = img.resize({ width: job.resize, quality: 'best' });
       const file = delays.length > 1 ? job.out.replace(/\.png$/, `-${d}.png`) : job.out;
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, img.toPNG());
