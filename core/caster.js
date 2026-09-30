@@ -3,6 +3,7 @@
 // Indépendant du tracker V/D : tous les joueurs, boost, stats, joueur suivi, buts et statfeed.
 
 const { EventEmitter } = require('events');
+const { t: tr } = require('./i18n');
 
 const num = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 const color = (c) => (c ? `#${String(c).replace('#', '').slice(0, 6)}` : '');
@@ -42,6 +43,8 @@ class CasterFeed extends EventEmitter {
       updatedAt: 0,
     };
     this.counted = false;
+    this._prev = null; // compteurs de chaque joueur à la mise à jour précédente
+    this._feedSeen = false; // le jeu envoie-t-il lui-même le statfeed dans cette partie ?
   }
 
   handle(event, d) {
@@ -144,6 +147,7 @@ class CasterFeed extends EventEmitter {
       if (w) m.winner = w.num;
     }
     if (Array.isArray(d.Players)) {
+      this._deriveFeed(d.Players, m);
       m.players = d.Players.filter((p) => p && p.Name != null)
         .map((p) => ({
           key: pkey(p),
@@ -165,6 +169,32 @@ class CasterFeed extends EventEmitter {
         .sort((a, b) => a.team - b.team || a.name.localeCompare(b.name));
     }
     this._changed();
+  }
+
+  // Le jeu n'envoie pas toujours de StatfeedEvent : on déduit démolitions et arrêts
+  // de l'évolution des compteurs de chaque joueur (Demos, Saves) et de bDemolished / Attacker.
+  _deriveFeed(players, m) {
+    const next = new Map();
+    for (const p of players) {
+      if (!p || p.Name == null) continue;
+      next.set(pkey(p), { demos: num(p.Demos), saves: num(p.Saves), dead: !!p.bDemolished, attacker: p.Attacker && p.Attacker.Name, name: String(p.Name), team: num(p.TeamNum) });
+    }
+    const prev = this._prev;
+    this._prev = next;
+    if (!prev || m.replay || m.ended || this._feedSeen) return;
+    for (const [k, p] of next) {
+      const before = prev.get(k);
+      if (!before) continue;
+      if (p.demos > before.demos) {
+        // victime : joueur adverse qui vient d'exploser, de préférence avec ce joueur comme attaquant
+        const fresh = [...next.values()].filter((q) => q.team !== p.team && q.dead && !(prev.get(pkey({ Name: q.name, TeamNum: q.team })) || {}).dead);
+        const victim = fresh.find((q) => q.attacker === p.name) || fresh[0] || null;
+        this.emit('event', { kind: 'feed', event: 'Demolish', label: tr('c.demoFeed'), team: p.team, main: p.name, secondary: victim ? victim.name : null, secondaryTeam: victim ? victim.team : null, derived: true });
+      }
+      if (p.saves > before.saves) {
+        this.emit('event', { kind: 'feed', event: 'Save', label: tr('c.save'), team: p.team, main: p.name, secondary: null, secondaryTeam: null, derived: true });
+      }
+    }
   }
 
   _goal(d) {
@@ -190,6 +220,8 @@ class CasterFeed extends EventEmitter {
       this._changed();
     }
     if (!main || QUIET_FEED.has(name)) return;
+    // le jeu envoie le statfeed : on n'utilise plus les événements déduits pour cette partie
+    if (/demolish|save/i.test(name)) this._feedSeen = true;
     const sec = d.SecondaryTarget && d.SecondaryTarget.Name ? d.SecondaryTarget : null;
     this.emit('event', {
       kind: 'feed',

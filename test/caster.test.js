@@ -110,3 +110,19 @@ test('caster : logos et photos (formats, remplacement, inversion des côtés)', 
   assert.ok(new CasterAssets(dir).photoUrl('nova'), "l'index est conservé");
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test('caster : démolitions et arrêts déduits des compteurs quand le jeu n\'envoie pas de statfeed', () => {
+  const feed = new CasterFeed();
+  const ev = [];
+  feed.on('event', (e) => ev.push(e));
+  const P = (name, team, extra = {}) => ({ Name: name, TeamNum: team, Demos: 0, Saves: 0, ...extra });
+  const up = (players) => feed.handle('UpdateState', { Game: { TimeSeconds: 200 }, Players: players });
+  up([P('A', 0), P('B', 1), P('C', 1)]);
+  up([P('A', 0, { Demos: 1 }), P('B', 1, { bDemolished: true, Attacker: { Name: 'A', TeamNum: 0 } }), P('C', 1)]);
+  up([P('A', 0, { Demos: 1 }), P('B', 1), P('C', 1, { Saves: 1 })]);
+  assert.deepStrictEqual(ev.map((e) => [e.event, e.main, e.secondary]), [['Demolish', 'A', 'B'], ['Save', 'C', null]]);
+  // dès que le jeu envoie son propre statfeed, on ne double plus
+  feed.handle('StatfeedEvent', { EventName: 'Save', Type: 'Save', MainTarget: { Name: 'A', TeamNum: 0 } });
+  up([P('A', 0, { Demos: 1, Saves: 1 }), P('B', 1), P('C', 1, { Saves: 1 })]);
+  assert.strictEqual(ev.filter((e) => e.derived).length, 2);
+});
