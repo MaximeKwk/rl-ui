@@ -1,0 +1,47 @@
+name: Build
+
+# Tests + installeur Windows. Lancé seulement pour une nouvelle version (tag vX.Y.Z) ou à la main
+# (onglet Actions > Build > Run workflow), pour ne pas consommer les minutes GitHub Actions à chaque push.
+# Publier une version : git tag v1.2.0 && git push --tags -> les .exe sont joints à la release GitHub.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tests unitaires
+        run: npm test
+
+      - name: Test de bout en bout (simulateur)
+        run: npm run e2e
+
+      - name: Installeur + version portable
+        run: npx electron-builder --win nsis portable --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BoostSide-windows
+          path: dist/*.exe
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/BoostSide-Setup-*.exe
+            dist/BoostSide-Portable-*.exe

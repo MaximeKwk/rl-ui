@@ -1,0 +1,336 @@
+'use strict';
+// Serveur local : tableau de bord, overlays OBS (Browser Source), API HTTP (Stream Deck...) et WebSocket temps réel.
+
+const http = require('http');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { EventEmitter } = require('events');
+const { WebSocketServer } = require('ws');
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.txt': 'text/plain; charset=utf-8',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4',
+};
+
+const OVERLAYS = new Set(['counter', 'alerts', 'history', 'summary']);
+
+function isLoopback(addr) {
+  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1';
+}
+
+class AppServer extends EventEmitter {
+  constructor({ core, webDir }) {
+    super();
+    this.core = core;
+    this.webDir = webDir;
+    this.server = null;
+    this.wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
+    this.clients = new Set();
+    this.port = 0;
+    this.lan = false;
+  }
+
+  get settings() {
+    return this.core.store.settings;
+  }
+
+  // ---------------------------------------------------------------- démarrage
+  async start() {
+    const wanted = Number(this.settings.port) || 5757;
+    this.lan = !!this.settings.lanAccess;
+    const host = this.lan ? '0.0.0.0' : '127.0.0.1';
+    let lastErr;
+    for (let p = wanted; p < wanted + 20; p++) {
+      try {
+        await this._listen(p, host);
+        this.port = p;
+        return p;
+      } catch (e) {
+        lastErr = e;
+        if (e.code !== 'EADDRINUSE' && e.code !== 'EACCES') break;
+      }
+    }
+    throw lastErr;
+  }
+
+  _listen(port, host) {
+    return new Promise((resolve, reject) => {
+      const srv = http.createServer((req, res) => this._handle(req, res));
+      srv.on('upgrade', (req, sock, head) => this._upgrade(req, sock, head));
+      srv.once('error', reject);
+      srv.listen(port, host, () => {
+        srv.removeListener('error', reject);
+        this.server = srv;
+        resolve();
+      });
+    });
+  }
+
+  async restart() {
+    await this.stop();
+    return this.start();
+  }
+
+  stop() {
+    return new Promise((resolve) => {
+      for (const c of this.clients) {
+        try {
+          c.terminate();
+        } catch {}
+      }
+      this.clients.clear();
+      if (!this.server) return resolve();
+      this.server.close(() => resolve());
+      this.server.closeAllConnections?.();
+      this.server = null;
+    });
+  }
+
+  lanAddresses() {
+    const out = [];
+    for (const list of Object.values(os.networkInterfaces())) {
+      for (const a of list || []) if (a.family === 'IPv4' && !a.internal) out.push(a.address);
+    }
+    return out;
+  }
+
+  _hostAllowed(hostHeader) {
+    if (!hostHeader) return false;
+    const host = hostHeader.replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
+    if (!this.lan) return false;
+    return /^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host === os.hostname().toLowerCase();
+  }
+
+  _authorized(req, url) {
+    const key = url.searchParams.get('key') || req.headers['x-boostside-key'];
+    return !!key && key === this.settings.apiKey;
+  }
+
+  // ---------------------------------------------------------------- WebSocket
+  _upgrade(req, sock, head) {
+    const url = new URL(req.url, 'http://x');
+    if (url.pathname !== '/ws' || !this._hostAllowed(req.headers.host)) {
+      sock.destroy();
+      return;
+    }
+    const dashboard = url.searchParams.get('role') === 'dashboard' && this._authorized(req, url);
+    this.wss.handleUpgrade(req, sock, head, (ws) => {
+      ws.isDashboard = dashboard;
+      ws.isAlive = true;
+      this.clients.add(ws);
+      ws.on('pong', () => (ws.isAlive = true));
+      ws.on('close', () => this.clients.delete(ws));
+      ws.on('error', () => {});
+      ws.on('message', (raw) => {
+        // les overlays peuvent signaler qu'ils sont prêts ; rien d'autre n'est accepté
+        try {
+          const m = JSON.parse(raw.toString());
+          if (m.type === 'hello' && typeof m.overlay === 'string') ws.overlay = m.overlay.slice(0, 20);
+        } catch {}
+      });
+      this._send(ws, { type: 'state', state: this.core.publicState() });
+      this._send(ws, { type: 'config', config: this.core.overlayConfig() });
+      if (dashboard) this._send(ws, { type: 'dashboard', data: this.core.dashboardState() });
+    });
+    if (!this._ping) {
+      this._ping = setInterval(() => {
+        for (const c of this.clients) {
+          if (!c.isAlive) {
+            c.terminate();
+            continue;
+          }
+          c.isAlive = false;
+          try {
+            c.ping();
+          } catch {}
+        }
+      }, 20000);
+    }
+  }
+
+  _send(ws, msg) {
+    if (ws.readyState === 1) ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
+  }
+
+  broadcast(msg, { dashboardOnly = false } = {}) {
+    const data = JSON.stringify(msg);
+    for (const c of this.clients) if (!dashboardOnly || c.isDashboard) this._send(c, data);
+  }
+
+  overlayClients() {
+    const out = {};
+    for (const c of this.clients) if (c.overlay) out[c.overlay] = (out[c.overlay] || 0) + 1;
+    return out;
+  }
+
+  // ---------------------------------------------------------------- HTTP
+  _handle(req, res) {
+    const url = new URL(req.url, 'http://x');
+    if (!this._hostAllowed(req.headers.host)) return this._text(res, 403, 'Hôte non autorisé');
+    const p = decodeURIComponent(url.pathname);
+    Promise.resolve()
+      .then(() => this._route(req, res, url, p))
+      .catch((e) => {
+        if (!res.headersSent) this._json(res, 500, { ok: false, error: e.message });
+      });
+  }
+
+  async _route(req, res, url, p) {
+    const method = req.method;
+    if (p === '/' || p === '/index.html') {
+      if (!isLoopback(req.socket.remoteAddress)) return this._text(res, 403, 'Le tableau de bord est accessible uniquement depuis ce PC.');
+      return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey });
+    }
+    if (p === '/favicon.ico') return this._file(res, path.join(this.webDir, 'assets', 'icon.png'));
+    let m = /^\/overlay\/([a-z]+)\/?$/.exec(p);
+    if (m && OVERLAYS.has(m[1])) return this._page(res, path.join(this.webDir, 'overlay', `${m[1]}.html`), {});
+    if (p.startsWith('/static/')) return this._static(res, p.slice('/static/'.length));
+    m = /^\/sounds\/([a-z_]+)$/.exec(p);
+    if (m) {
+      const f = this.core.soundFile(m[1]);
+      return f ? this._file(res, f) : this._text(res, 404, 'Aucun son');
+    }
+
+    // ---- API publique (lecture seule)
+    if (p === '/api/state') return this._json(res, 200, this.core.publicState());
+    m = /^\/api\/text\/([a-z]+)$/.exec(p);
+    if (m) {
+      const t = this.core.textValue(m[1]);
+      return t == null ? this._text(res, 404, 'Champ inconnu') : this._text(res, 200, t);
+    }
+
+    // ---- API protégée par la clé
+    if (p.startsWith('/api/')) {
+      if (!this._authorized(req, url)) return this._json(res, 401, { ok: false, error: 'Clé API manquante ou invalide' });
+      m = /^\/api\/action\/([a-z-]+)$/.exec(p);
+      if (m && (method === 'GET' || method === 'POST')) {
+        const params = Object.fromEntries(url.searchParams);
+        if (method === 'POST') Object.assign(params, await this._body(req, true).catch(() => ({})));
+        const r = await this.core.action(m[1], params);
+        return this._json(res, r && r.ok === false ? 400 : 200, { ok: true, ...r, stats: this.core.publicState().session });
+      }
+      if (p === '/api/dashboard') return this._json(res, 200, this.core.dashboardState());
+      if (p === '/api/settings' && method === 'POST') {
+        const patch = await this._body(req, true);
+        return this._json(res, 200, { ok: true, settings: await this.core.patchSettings(patch) });
+      }
+      if (p === '/api/identity' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, { ok: this.core.setIdentity(b.key) });
+      }
+      if (p === '/api/identity/forget' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, { ok: this.core.forgetId(b.id) });
+      }
+      m = /^\/api\/matches\/([^/]+)$/.exec(p);
+      if (m && (method === 'DELETE' || method === 'POST')) return this._json(res, 200, { ok: this.core.deleteMatch(m[1]) });
+      if (p === '/api/history') {
+        return this._json(res, 200, this.core.history(url.searchParams.get('scope') || 'session', Number(url.searchParams.get('limit')) || 500));
+      }
+      if (p === '/api/statsapi/enable' && method === 'POST') {
+        const b = await this._body(req, true).catch(() => ({}));
+        return this._json(res, 200, await this.core.enableStatsApi(!!b.elevated));
+      }
+      if (p === '/api/statsapi/refresh' && method === 'POST') return this._json(res, 200, await this.core.refreshRlConfig());
+      if (p === '/api/obs/scenes') return this._json(res, 200, await this.core.obsScenes());
+      m = /^\/api\/sounds\/([a-z_]+)$/.exec(p);
+      if (m && method === 'POST') {
+        const buf = await this._body(req, false, 8 * 1024 * 1024);
+        const r = this.core.saveSound(m[1], buf, url.searchParams.get('ext') || 'mp3');
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && method === 'DELETE') return this._json(res, 200, this.core.deleteSound(m[1]));
+      if (p === '/api/open' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, { ok: await this.core.open(b.target, b.url) });
+      }
+      return this._json(res, 404, { ok: false, error: 'Route inconnue' });
+    }
+    return this._text(res, 404, 'Introuvable');
+  }
+
+  _body(req, json, limit = 256 * 1024) {
+    return new Promise((resolve, reject) => {
+      const chunks = [];
+      let size = 0;
+      req.on('data', (c) => {
+        size += c.length;
+        if (size > limit) {
+          reject(new Error('Fichier trop lourd'));
+          req.destroy();
+          return;
+        }
+        chunks.push(c);
+      });
+      req.on('end', () => {
+        const buf = Buffer.concat(chunks);
+        if (!json) return resolve(buf);
+        try {
+          resolve(buf.length ? JSON.parse(buf.toString('utf8')) : {});
+        } catch {
+          reject(new Error('JSON invalide'));
+        }
+      });
+      req.on('error', reject);
+    });
+  }
+
+  _headers(type) {
+    return {
+      'Content-Type': type,
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    };
+  }
+
+  _json(res, code, obj) {
+    res.writeHead(code, this._headers(MIME['.json']));
+    res.end(JSON.stringify(obj));
+  }
+
+  _text(res, code, text) {
+    res.writeHead(code, this._headers(MIME['.txt']));
+    res.end(String(text));
+  }
+
+  _page(res, file, vars) {
+    fs.readFile(file, 'utf8', (err, html) => {
+      if (err) return this._text(res, 404, 'Page introuvable');
+      const out = html.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+      res.writeHead(200, this._headers(MIME['.html']));
+      res.end(out);
+    });
+  }
+
+  _static(res, rel) {
+    const root = path.resolve(this.webDir);
+    const file = path.resolve(root, rel);
+    if (!file.startsWith(root + path.sep)) return this._text(res, 403, 'Interdit');
+    return this._file(res, file);
+  }
+
+  _file(res, file) {
+    fs.readFile(file, (err, buf) => {
+      if (err) return this._text(res, 404, 'Introuvable');
+      res.writeHead(200, this._headers(MIME[path.extname(file).toLowerCase()] || 'application/octet-stream'));
+      res.end(buf);
+    });
+  }
+}
+
+module.exports = { AppServer };

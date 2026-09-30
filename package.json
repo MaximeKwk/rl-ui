@@ -1,0 +1,83 @@
+{
+  "name": "boostside",
+  "productName": "BoostSide",
+  "version": "1.0.0",
+  "description": "Overlay de stream pour Rocket League : victoires / défaites, MMR, alertes victoire / défaite / overtime.",
+  "main": "electron/main.js",
+  "author": "Zoxam",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/MaximeKwk/boostside",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MaximeKwk/boostside.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MaximeKwk/boostside/issues"
+  },
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "headless": "node tools/headless.js",
+    "sim": "node tools/simulator.js",
+    "test": "node --test \"test/*.test.js\"",
+    "e2e": "node tools/e2e.js",
+    "icon": "electron tools/make-icon.js",
+    "shot": "electron tools/shot.js",
+    "dist": "electron-builder --win nsis portable"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@fontsource/barlow-condensed": "^5.2.6",
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.zoxam.boostside",
+    "productName": "BoostSide",
+    "copyright": "© 2026 Zoxam",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "core/**/*",
+      "web/**/*",
+      "package.json",
+      "LICENSE",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "electronLanguages": [
+      "fr",
+      "en-US"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "executableName": "BoostSide"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BoostSide",
+      "runAfterFinish": true,
+      "language": "1036",
+      "artifactName": "BoostSide-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "BoostSide-Portable-${version}.exe"
+    }
+  }
+}

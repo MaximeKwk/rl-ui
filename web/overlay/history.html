@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>BoostSide — Dernières parties</title>
+    <link rel="stylesheet" href="/static/shared/overlay.css" />
+    <style>
+      body { padding: calc(14px * var(--s)); display: flex; }
+      body.align-center { justify-content: center; }
+      body.align-right { justify-content: flex-end; }
+      .bar {
+        display: inline-flex;
+        align-items: center;
+        gap: calc(8px * var(--s));
+        padding: calc(10px * var(--s)) calc(14px * var(--s));
+        border-radius: calc(14px * var(--s));
+        background: rgba(8, 12, 22, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 calc(8px * var(--s)) calc(22px * var(--s)) rgba(0, 0, 0, 0.4);
+      }
+      body.bare .bar { background: none; border: 0; box-shadow: none; padding: 0; }
+      .ttl {
+        font-size: calc(15px * var(--s));
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        opacity: 0.6;
+        margin-right: calc(6px * var(--s));
+        writing-mode: horizontal-tb;
+      }
+      .pill {
+        position: relative;
+        width: calc(46px * var(--s));
+        height: calc(46px * var(--s));
+        border-radius: calc(10px * var(--s));
+        display: grid;
+        place-items: center;
+        font-size: calc(28px * var(--s));
+        font-weight: 900;
+        font-style: italic;
+        color: #07120d;
+        background: linear-gradient(180deg, var(--win-light), var(--win));
+        box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+      }
+      .pill.l { background: linear-gradient(180deg, var(--loss-light), var(--loss)); color: #fff; }
+      .pill.a { opacity: 0.55; }
+      .pill.ot::after {
+        content: 'OT';
+        position: absolute;
+        top: calc(-9px * var(--s));
+        right: calc(-8px * var(--s));
+        font-size: calc(12px * var(--s));
+        font-style: normal;
+        font-weight: 900;
+        padding: calc(1px * var(--s)) calc(4px * var(--s));
+        border-radius: calc(5px * var(--s));
+        background: var(--ot);
+        color: #1a1000;
+        box-shadow: 0 0 calc(8px * var(--s)) var(--ot-glow);
+      }
+      .pill.new { animation: popIn 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.5); }
+      @keyframes popIn { from { transform: scale(0.2) rotate(-20deg); opacity: 0; } }
+      .empty { font-size: calc(22px * var(--s)); font-weight: 700; opacity: 0.55; padding: 0 calc(8px * var(--s)); }
+    </style>
+  </head>
+  <body>
+    <div class="bar" id="bar"><span class="ttl" id="ttl">Dernières</span><span id="pills"></span></div>
+    <script src="/static/shared/client.js"></script>
+    <script>
+      (function () {
+        const P = OT.params;
+        if (P.get('preview')) document.body.classList.add('preview');
+        if (P.get('bare') === '1') document.body.classList.add('bare');
+        document.body.classList.add(`align-${P.get('align') || 'left'}`);
+        const n = OT.num('n', 10);
+        const newestFirst = P.get('order') !== 'old';
+        const pills = document.getElementById('pills');
+        pills.style.display = 'inline-flex';
+        pills.style.gap = 'calc(8px * var(--s))';
+        if (P.get('title') === '0') document.getElementById('ttl').style.display = 'none';
+        let labels = { w: 'V', l: 'D' };
+        let seen = null;
+        function render(st) {
+          const last = ((st && st.session && st.session.last) || []).slice(-n);
+          const list = newestFirst ? [...last].reverse() : last;
+          const ids = new Set(list.map((r) => r.id));
+          if (!list.length) {
+            pills.innerHTML = '<span class="empty">Aucune partie</span>';
+            seen = ids;
+            return;
+          }
+          pills.innerHTML = list
+            .map((r) => {
+              const cls = ['pill', r.result === 'W' ? 'w' : 'l', r.ot ? 'ot' : '', r.abandon ? 'a' : '', seen && !seen.has(r.id) ? 'new' : ''].join(' ');
+              return `<span class="${cls}" title="${OT.esc(r.score)}">${r.result === 'W' ? OT.esc(labels.w) : OT.esc(labels.l)}</span>`;
+            })
+            .join('');
+          seen = ids;
+        }
+        OT.on('config', (c) => {
+          OT.applyColors(c.overlay);
+          labels = { w: c.overlay.labelWin || 'V', l: c.overlay.labelLoss || 'D' };
+          document.documentElement.style.setProperty('--s', OT.num('scale', Number(c.overlay.scale) || 1));
+          render(OT.state);
+        });
+        OT.on('state', render);
+        OT.connect({ overlay: 'history' });
+      })();
+    </script>
+  </body>
+</html>

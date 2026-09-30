@@ -1,0 +1,9 @@
+/* Barlow Condensed (SIL Open Font License) — embarquée pour fonctionner hors-ligne dans OBS */
+@font-face { font-family: 'Barlow Condensed'; font-weight: 500; font-style: normal; font-display: block; src: url('/static/assets/fonts/barlow-condensed-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-style: normal; font-display: block; src: url('/static/assets/fonts/barlow-condensed-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-style: normal; font-display: block; src: url('/static/assets/fonts/barlow-condensed-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 800; font-style: normal; font-display: block; src: url('/static/assets/fonts/barlow-condensed-800-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 900; font-style: normal; font-display: block; src: url('/static/assets/fonts/barlow-condensed-900-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-style: italic; font-display: block; src: url('/static/assets/fonts/barlow-condensed-700-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 800; font-style: italic; font-display: block; src: url('/static/assets/fonts/barlow-condensed-800-italic.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-weight: 900; font-style: italic; font-display: block; src: url('/static/assets/fonts/barlow-condensed-900-italic.woff2') format('woff2'); }

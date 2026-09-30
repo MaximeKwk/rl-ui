@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>BoostSide — Récap de session</title>
+    <link rel="stylesheet" href="/static/shared/overlay.css" />
+    <style>
+      html, body { width: 100vw; height: 100vh; }
+      body { display: flex; align-items: center; justify-content: center; }
+      .card {
+        position: relative;
+        width: calc(1180px * var(--s));
+        padding: calc(46px * var(--s)) calc(56px * var(--s)) calc(40px * var(--s));
+        border-radius: calc(28px * var(--s));
+        background:
+          radial-gradient(calc(700px * var(--s)) calc(300px * var(--s)) at 15% 0%, var(--win-soft), transparent 70%),
+          radial-gradient(calc(700px * var(--s)) calc(300px * var(--s)) at 85% 100%, var(--loss-soft), transparent 70%),
+          linear-gradient(160deg, rgba(17, 23, 40, 0.96), rgba(7, 10, 19, 0.95));
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 calc(30px * var(--s)) calc(80px * var(--s)) rgba(0, 0, 0, 0.55);
+        animation: cardIn 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+      }
+      .card::before {
+        content: '';
+        position: absolute;
+        left: calc(40px * var(--s));
+        right: calc(40px * var(--s));
+        top: -1px;
+        height: calc(4px * var(--s));
+        border-radius: 4px;
+        background: linear-gradient(90deg, var(--win), var(--ot), var(--loss));
+      }
+      @keyframes cardIn { from { opacity: 0; transform: translateY(calc(40px * var(--s))) scale(0.97); } }
+      .head { display: flex; justify-content: space-between; align-items: baseline; }
+      .head h1 { margin: 0; font-size: calc(40px * var(--s)); font-weight: 900; font-style: italic; letter-spacing: 0.08em; text-transform: uppercase; }
+      .head .who { font-size: calc(26px * var(--s)); font-weight: 700; opacity: 0.65; }
+      .main { display: flex; align-items: center; justify-content: space-between; margin: calc(26px * var(--s)) 0 calc(30px * var(--s)); }
+      .rec { display: flex; align-items: center; gap: calc(28px * var(--s)); }
+      .big { text-align: center; }
+      .big b { display: block; font-size: calc(170px * var(--s)); line-height: 0.88; font-weight: 900; font-style: italic; }
+      .big i { display: block; font-style: normal; font-size: calc(22px * var(--s)); letter-spacing: 0.24em; font-weight: 800; opacity: 0.7; text-transform: uppercase; margin-top: calc(8px * var(--s)); }
+      .big.w b { color: var(--win); text-shadow: 0 0 calc(40px * var(--s)) var(--win-glow); }
+      .big.l b { color: var(--loss); text-shadow: 0 0 calc(40px * var(--s)) var(--loss-glow); }
+      .vs { font-size: calc(90px * var(--s)); font-weight: 800; opacity: 0.3; }
+      .ring { position: relative; width: calc(250px * var(--s)); height: calc(250px * var(--s)); }
+      .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+      .ring .val { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+      .ring .val b { font-size: calc(76px * var(--s)); font-weight: 900; line-height: 1; }
+      .ring .val i { display: block; font-style: normal; font-size: calc(18px * var(--s)); letter-spacing: 0.22em; opacity: 0.6; font-weight: 800; }
+      .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(14px * var(--s)); }
+      .tile {
+        padding: calc(16px * var(--s)) calc(18px * var(--s));
+        border-radius: calc(16px * var(--s));
+        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .tile b { display: block; font-size: calc(46px * var(--s)); font-weight: 900; line-height: 1; }
+      .tile i { display: block; font-style: normal; font-size: calc(17px * var(--s)); letter-spacing: 0.16em; font-weight: 800; opacity: 0.55; text-transform: uppercase; margin-top: calc(6px * var(--s)); }
+      .tile.hot b { color: #ffcf5a; }
+      .tile.ot b { color: var(--ot); }
+      .last { display: flex; align-items: center; gap: calc(8px * var(--s)); margin-top: calc(26px * var(--s)); }
+      .last span.t { font-size: calc(18px * var(--s)); font-weight: 800; letter-spacing: 0.18em; opacity: 0.55; text-transform: uppercase; margin-right: calc(8px * var(--s)); }
+      .pill {
+        width: calc(40px * var(--s));
+        height: calc(40px * var(--s));
+        border-radius: calc(9px * var(--s));
+        display: grid;
+        place-items: center;
+        font-size: calc(24px * var(--s));
+        font-weight: 900;
+        font-style: italic;
+        background: var(--win);
+        color: #06130d;
+        position: relative;
+      }
+      .pill.l { background: var(--loss); color: #fff; }
+      .pill.ot { box-shadow: 0 0 0 calc(3px * var(--s)) var(--ot); }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="head"><h1 id="title">Récap de session</h1><span class="who" id="who"></span></div>
+      <div class="main">
+        <div class="rec">
+          <div class="big w"><b id="w">0</b><i id="lw">Victoires</i></div>
+          <div class="vs">–</div>
+          <div class="big l"><b id="l">0</b><i id="ll">Défaites</i></div>
+        </div>
+        <div class="ring">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10" />
+            <circle id="arcL" cx="60" cy="60" r="52" fill="none" stroke="var(--loss)" stroke-width="10" stroke-dasharray="0 999" />
+            <circle id="arcW" cx="60" cy="60" r="52" fill="none" stroke="var(--win)" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 999" />
+          </svg>
+          <div class="val"><div><b id="wr">—</b><i>winrate</i></div></div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="tile hot"><b id="best">0</b><i>Meilleure série</i></div>
+        <div class="tile ot"><b id="ot">0-0</b><i>Overtime</i></div>
+        <div class="tile"><b id="mvp">0</b><i>MVP</i></div>
+        <div class="tile"><b id="time">0 min</b><i>Temps de jeu</i></div>
+        <div class="tile"><b id="goals">0</b><i>Buts</i></div>
+        <div class="tile"><b id="assists">0</b><i>Passes D.</i></div>
+        <div class="tile"><b id="saves">0</b><i>Arrêts</i></div>
+        <div class="tile" id="gdTile"><b id="gd">0</b><i id="gdLbl">Diff. de buts</i></div>
+      </div>
+      <div class="last"><span class="t">Dernières</span><span id="pills" style="display: inline-flex; gap: calc(8px * var(--s))"></span></div>
+    </div>
+    <script src="/static/shared/client.js"></script>
+    <script>
+      (function () {
+        const P = OT.params;
+        if (P.get('preview')) document.body.classList.add('preview');
+        const $ = (id) => document.getElementById(id);
+        const C = 2 * Math.PI * 52;
+        let labels = { w: 'V', l: 'D' };
+        function scale(c) {
+          const vs = Math.min(innerWidth / 1920, innerHeight / 1080) || 1;
+          document.documentElement.style.setProperty('--s', vs * OT.num('scale', 1));
+        }
+        addEventListener('resize', scale);
+        scale();
+        function fmtTime(sec) {
+          const m = Math.round(sec / 60);
+          return m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m} min`;
+        }
+        function render(st) {
+          if (!st) return;
+          const s = st.session;
+          $('w').textContent = s.wins;
+          $('l').textContent = s.losses;
+          $('wr').textContent = s.played ? `${s.winRate}%` : '—';
+          const wl = s.played ? (s.wins / s.played) * C : 0;
+          $('arcW').setAttribute('stroke-dasharray', `${wl} ${C}`);
+          $('arcL').setAttribute('stroke-dasharray', s.played ? `${C} 0` : `0 ${C}`);
+          $('best').textContent = s.bestWinStreak;
+          $('ot').textContent = `${s.otWins}-${s.otLosses}`;
+          $('mvp').textContent = s.mvps;
+          $('time').textContent = fmtTime(s.timePlayedSec);
+          $('goals').textContent = s.myGoals;
+          $('assists').textContent = s.myAssists;
+          $('saves').textContent = s.mySaves;
+          // MMR de la session si connu, sinon différence de buts
+          const mm = s.mmr && s.mmr.primary;
+          if (mm && (mm.games || mm.current != null) && P.get('mmr') !== '0') {
+            const d = Math.round(mm.delta || 0);
+            $('gd').textContent = d > 0 ? `+${d}` : d;
+            $('gd').style.color = d > 0 ? 'var(--win)' : d < 0 ? 'var(--loss)' : '';
+            $('gdLbl').textContent = 'MMR';
+          } else {
+            const gd = s.goalsFor - s.goalsAgainst;
+            $('gd').textContent = gd > 0 ? `+${gd}` : gd;
+            $('gd').style.color = '';
+            $('gdLbl').textContent = 'Diff. de buts';
+          }
+          $('who').textContent = st.status && st.status.account ? st.status.account : '';
+          $('pills').innerHTML = s.last
+            .slice(-12)
+            .map((r) => `<span class="pill ${r.result === 'W' ? 'w' : 'l'} ${r.ot ? 'ot' : ''}">${r.result === 'W' ? OT.esc(labels.w) : OT.esc(labels.l)}</span>`)
+            .join('');
+        }
+        OT.on('config', (c) => {
+          OT.applyColors(c.overlay);
+          labels = { w: c.overlay.labelWin || 'V', l: c.overlay.labelLoss || 'D' };
+          render(OT.state);
+        });
+        OT.on('state', render);
+        OT.connect({ overlay: 'summary' });
+      })();
+    </script>
+  </body>
+</html>

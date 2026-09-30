@@ -1,0 +1,52 @@
+@import url('/static/shared/fonts.css');
+
+:root {
+  --win: #2ef2a0;
+  --loss: #ff4d6d;
+  --ot: #ffb020;
+  --s: 1;
+  --ink: #f4f7fb;
+  --glass: rgba(9, 13, 23, 0.78);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Aperçu (tableau de bord / captures) : faux fond de match */
+body.preview {
+  background:
+    radial-gradient(1200px 600px at 20% 110%, rgba(24, 115, 255, 0.35), transparent 60%),
+    radial-gradient(1200px 600px at 80% 110%, rgba(255, 138, 42, 0.3), transparent 60%),
+    linear-gradient(180deg, #1b2438 0%, #0b1020 55%, #070a12 100%);
+}
+body.preview::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 64px 64px;
+  transform: perspective(700px) rotateX(58deg) translateY(35%) scale(2.2);
+  transform-origin: 50% 100%;
+  pointer-events: none;
+}
+
+.ico {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.12em;
+  fill: currentColor;
+}

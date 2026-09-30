@@ -1,0 +1,17 @@
+BoostSide
+Copyright (c) 2026 Zoxam. Tous droits réservés.
+
+Ce logiciel et son code source sont la propriété de Zoxam. Aucune licence n'est accordée pour copier,
+modifier, redistribuer ou vendre ce logiciel, en tout ou en partie, sans l'autorisation écrite de l'auteur.
+
+All rights reserved. No license is granted to copy, modify, redistribute or sell this software, in whole
+or in part, without the prior written permission of the author.
+
+Composants tiers inclus / Third-party components
+- Electron — licence MIT — https://github.com/electron/electron
+- ws — licence MIT — https://github.com/websockets/ws
+- Barlow Condensed — SIL Open Font License 1.1 — voir web/assets/fonts/OFL-BarlowCondensed.txt
+
+BoostSide n'est ni affilié, ni approuvé, ni sponsorisé par Psyonix LLC ou Epic Games, Inc.
+Rocket League est une marque de Psyonix LLC. BoostSide is not affiliated with, endorsed or sponsored by
+Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC.

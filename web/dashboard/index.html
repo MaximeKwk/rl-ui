@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="ot-key" content="{{KEY}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BoostSide</title>
+    <link rel="icon" href="/static/assets/icon.png" />
+    <link rel="stylesheet" href="/static/shared/fonts.css" />
+    <link rel="stylesheet" href="/static/dashboard/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img src="/static/assets/icon.png" alt="" />
+        <span class="logo">Boost<em>Side</em></span>
+        <span class="brand-sub">par Zoxam</span>
+      </div>
+      <div class="chips" id="statusChips"></div>
+      <button id="pauseBtn" class="btn small ghost nodrag" data-act="toggle-pause">Pause</button>
+    </header>
+
+    <div class="layout">
+      <nav class="side">
+        <button data-tab="session" class="active"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm8 0h8v-9h-8v9zm0-16v5h8V4h-8z" /></svg>Session</button>
+        <button data-tab="stream"><svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 00-2 2v12a2 2 0 002 2h5v2h8v-2h5a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H3V5h18v12zM16 11l-7 4V7z" /></svg>Overlays OBS</button>
+        <button data-tab="history"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.9 3.9L9 12H6a7 7 0 117 7 6.9 6.9 0 01-4.9-2.1l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z" /></svg>Historique</button>
+        <button data-tab="obs"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 3.2a3.3 3.3 0 11-.01 6.61A3.3 3.3 0 0112 5.2zM6.6 16.6a3.3 3.3 0 116.6 0 3.3 3.3 0 01-6.6 0zm7.6-2.1a3.3 3.3 0 116.3-1.3 3.3 3.3 0 01-6.3 1.3z" /></svg>Actions stream</button>
+        <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 000-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 00-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 00-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 000 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 001.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 001.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" transform="translate(-1 0)" /></svg>Réglages</button>
+        <button data-tab="help"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2v2zm2.1-7.7l-.9.9A3.4 3.4 0 0013 15h-2v-.5a4 4 0 011.2-2.8l1.2-1.3A2 2 0 0014 9a2 2 0 00-4 0H8a4 4 0 118 0 3.2 3.2 0 01-.9 2.3z" /></svg>Aide</button>
+        <div class="side-foot">
+          <div id="versionInfo">BoostSide</div>
+          <div id="portInfo" class="muted"></div>
+        </div>
+      </nav>
+
+      <main>
+        <!-- ============================== SESSION ============================== -->
+        <section id="tab-session" class="tab active">
+          <div id="setupCard" class="card setup hidden"></div>
+          <div id="identityCard" class="card identity hidden"></div>
+
+          <div class="grid-main">
+            <div class="card score-card">
+              <div class="card-head">
+                <h2>Session en cours</h2>
+                <span id="sessStart" class="muted"></span>
+              </div>
+              <div class="scoreboard">
+                <div class="count-col win">
+                  <div class="count-label">Victoires</div>
+                  <div class="count" id="cWins">0</div>
+                  <div class="count-btns">
+                    <button class="btn icon" data-act="remove-win" title="Retirer une victoire">−</button>
+                    <button class="btn icon" data-act="win" title="Ajouter une victoire">+</button>
+                  </div>
+                </div>
+                <div class="wr-ring">
+                  <svg viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="50" class="track" />
+                    <circle cx="60" cy="60" r="50" class="arc-l" id="arcL" />
+                    <circle cx="60" cy="60" r="50" class="arc-w" id="arcW" />
+                  </svg>
+                  <div class="wr-val"><b id="cWr">—</b><span>winrate</span></div>
+                </div>
+                <div class="count-col loss">
+                  <div class="count-label">Défaites</div>
+                  <div class="count" id="cLosses">0</div>
+                  <div class="count-btns">
+                    <button class="btn icon" data-act="remove-loss" title="Retirer une défaite">−</button>
+                    <button class="btn icon" data-act="loss" title="Ajouter une défaite">+</button>
+                  </div>
+                </div>
+              </div>
+              <div class="kpis">
+                <div class="kpi"><span>Série</span><b id="kStreak">—</b></div>
+                <div class="kpi"><span>Meilleure série</span><b id="kBest">0</b></div>
+                <div class="kpi ot"><span>Overtime (V-D)</span><b id="kOt">0-0</b></div>
+                <div class="kpi"><span>MVP</span><b id="kMvp">0</b></div>
+                <div class="kpi"><span>Buts · passes · arrêts</span><b id="kGas">0 · 0 · 0</b></div>
+                <div class="kpi" title="Variation de MMR sur la session (valeur réelle lue quand tu lances une recherche, estimée entre-temps)"><span id="kMmrLbl">MMR</span><b id="kMmr">—</b></div>
+              </div>
+              <div class="last-strip" id="lastStrip"></div>
+              <div class="actions">
+                <button class="btn" data-act="undo">Annuler la dernière partie</button>
+                <button class="btn ghost" id="newSessionBtn">Nouvelle session</button>
+              </div>
+            </div>
+
+            <div class="card live-card" id="liveCard"></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head"><h3>Parties de la session</h3><span class="muted" id="sessCount"></span></div>
+              <div id="sessionList" class="match-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3>Journal</h3></div>
+              <div id="logList" class="log-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================== OVERLAYS ============================== -->
+        <section id="tab-stream" class="tab">
+          <div class="card">
+            <div class="card-head">
+              <h2>Overlays pour OBS</h2>
+              <label class="check"><input type="checkbox" id="previewSound" /> Son des aperçus</label>
+            </div>
+            <p class="muted">
+              Dans OBS : <b>Sources → + → Navigateur</b>, colle l'URL et règle la taille indiquée. Pour les alertes, coche
+              <b>« Contrôler l'audio via OBS »</b> pour que le son passe sur le stream. Fonctionne aussi dans Streamlabs.
+            </p>
+            <div class="overlay-grid" id="overlayGrid"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>Tester les alertes</h2><span class="muted">Les compteurs ne bougent pas</span></div>
+            <div class="test-row" id="testRow"></div>
+            <label class="check"><input type="checkbox" id="testObs" /> Déclencher aussi les actions OBS / Streamlabs</label>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <h3>Compteur V/D</h3>
+              <div class="form">
+                <label>Disposition
+                  <select data-set="overlay.layout">
+                    <option value="horizontal">Horizontale (barre)</option>
+                    <option value="vertical">Verticale (colonne)</option>
+                    <option value="boost">Boost : collé à gauche de la jauge de boost</option>
+                  </select>
+                </label>
+                <div id="boostOpts" class="sub-opts hidden">
+                  <div class="muted small">
+                    Source OBS <b>en plein écran</b> (taille du canevas), placée au-dessus de la capture du jeu : le compteur se cale tout seul à
+                    gauche de la jauge et prend la couleur de ton équipe. Si ton HUD est différent, active le repère et ajuste-le sur ta jauge.
+                  </div>
+                  <label class="check"><input type="checkbox" data-set="overlay.boostGuide" /> Afficher le repère de la jauge (calibrage)</label>
+                  <label class="check"><input type="checkbox" data-set="overlay.boostTeamColor" /> Couleur de mon équipe, comme la jauge</label>
+                  <label>Taille du HUD <input type="range" min="0.6" max="1.6" step="0.01" data-set="overlay.boostScale" /></label>
+                  <div class="row2">
+                    <label>Gauche ↔ droite <input type="range" min="-400" max="400" step="1" data-set="overlay.boostX" /></label>
+                    <label>Haut ↕ bas <input type="range" min="-400" max="400" step="1" data-set="overlay.boostY" /></label>
+                  </div>
+                  <div><button class="btn small ghost" id="boostReset">Réinitialiser le calibrage</button></div>
+                </div>
+                <label>Thème
+                  <select data-set="overlay.theme">
+                    <option value="arena">Arena (carte vitrée)</option>
+                    <option value="broadcast">Broadcast (style RLCS)</option>
+                    <option value="minimal">Minimal (texte seul)</option>
+                  </select>
+                </label>
+                <div class="row2">
+                  <label>Lettre victoire <input data-set="overlay.labelWin" maxlength="3" /></label>
+                  <label>Lettre défaite <input data-set="overlay.labelLoss" maxlength="3" /></label>
+                </div>
+                <label class="check"><input type="checkbox" data-set="overlay.showWinrate" /> Afficher le winrate</label>
+                <label class="check"><input type="checkbox" data-set="overlay.showStreak" /> Afficher la série</label>
+                <label class="check"><input type="checkbox" data-set="overlay.showOt" /> Afficher le bilan overtime</label>
+                <label class="check"><input type="checkbox" data-set="overlay.showOtBadge" /> Badge « OVERTIME » pendant les prolongations</label>
+                <label class="check"><input type="checkbox" data-set="overlay.showPlaylist" /> Afficher le mode de jeu en partie</label>
+                <label class="check"><input type="checkbox" data-set="overlay.showMmr" /> Afficher le MMR</label>
+                <label>Affichage du MMR
+                  <select data-set="overlay.mmrMode">
+                    <option value="session">Gain de la session (+45)</option>
+                    <option value="value">MMR actuel (1175)</option>
+                    <option value="both">Les deux (1175 +45)</option>
+                  </select>
+                </label>
+                <div class="row3">
+                  <label>Victoire <input type="color" data-set="overlay.winColor" /></label>
+                  <label>Défaite <input type="color" data-set="overlay.lossColor" /></label>
+                  <label>Overtime <input type="color" data-set="overlay.otColor" /></label>
+                </div>
+                <label>Taille <input type="range" min="0.5" max="2" step="0.05" data-set="overlay.scale" /></label>
+              </div>
+            </div>
+            <div class="card">
+              <h3>Alertes</h3>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="alerts.sound" /> Jouer les sons</label>
+                <label>Volume <input type="range" min="0" max="1" step="0.05" data-set="alerts.volume" /></label>
+                <label>Position
+                  <select data-set="alerts.position">
+                    <option value="center">Centre de l'écran</option>
+                    <option value="top">Haut</option>
+                    <option value="bottom">Bas</option>
+                  </select>
+                </label>
+                <label>Taille <input type="range" min="0.4" max="1.6" step="0.05" data-set="alerts.scale" /></label>
+                <label>Alerte « série » à ces nombres de victoires d'affilée
+                  <input data-set="alerts.streakMilestones" data-type="list-number" placeholder="3, 5, 10" />
+                </label>
+                <label class="check"><input type="checkbox" data-set="alerts.alertOnAbandon" /> Alerte aussi quand je quitte une partie</label>
+                <label class="check"><input type="checkbox" data-set="mmr.showInAlerts" /> Afficher « +15 MMR » dans les alertes de fin de match</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Textes, durées et sons des alertes</h3>
+            <p class="muted">Dans le texte de la série, <code>{n}</code> est remplacé par le nombre de victoires. Sons perso : mp3, wav, ogg (8 Mo max).</p>
+            <div class="alert-table" id="alertTable"></div>
+          </div>
+        </section>
+
+        <!-- ============================== HISTORIQUE ============================== -->
+        <section id="tab-history" class="tab">
+          <div class="card">
+            <div class="card-head">
+              <h2>Historique</h2>
+              <div class="seg" id="histScope">
+                <button data-scope="session" class="on">Session</button>
+                <button data-scope="all">Tout</button>
+              </div>
+            </div>
+            <div id="allTime" class="alltime"></div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>Date</th><th>Résultat</th><th>Score</th><th title="≈ = estimation en attente de la valeur réelle">MMR</th><th>Mode</th><th>Carte</th><th>Durée</th><th title="Buts · passes · arrêts · tirs">Toi</th><th></th></tr>
+                </thead>
+                <tbody id="histBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================== OBS ============================== -->
+        <section id="tab-obs" class="tab">
+          <div class="card">
+            <div class="card-head"><h2>Logiciel de stream</h2><span id="obsState" class="pill"></span></div>
+            <div class="form cols">
+              <label class="check"><input type="checkbox" data-set="obs.enabled" /> Piloter mon logiciel de stream</label>
+              <label>Logiciel
+                <select data-set="obs.software">
+                  <option value="obs">OBS Studio</option>
+                  <option value="streamlabs">Streamlabs Desktop</option>
+                </select>
+              </label>
+            </div>
+            <div id="swObs" class="sw-block">
+              <p class="muted">
+                Dans OBS : <b>Outils → Paramètres du serveur WebSocket</b> → coche « Activer le serveur WebSocket », puis
+                « Afficher les informations de connexion » pour copier le mot de passe.
+              </p>
+              <div class="form cols">
+                <label>Adresse <input data-set="obs.host" /></label>
+                <label>Port <input type="number" data-set="obs.port" /></label>
+                <label>Mot de passe <input type="password" data-set="obs.password" autocomplete="off" /></label>
+              </div>
+            </div>
+            <div id="swStreamlabs" class="sw-block hidden">
+              <p class="muted">
+                Dans Streamlabs Desktop : <b>Paramètres → Contrôle à distance</b> → clique sur le QR code → <b>Afficher les détails</b>,
+                puis copie le <b>jeton de l'API</b> (API Token) ci-dessous. Le port est 59650 par défaut.
+              </p>
+              <div class="form cols">
+                <label>Adresse <input data-set="obs.host" /></label>
+                <label>Port <input type="number" data-set="obs.slPort" /></label>
+                <label>Jeton de l'API <input type="password" data-set="obs.slToken" autocomplete="off" /></label>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2>Actions automatiques</h2>
+              <button class="btn small" id="obsRefresh">Actualiser les scènes</button>
+            </div>
+            <p class="muted">
+              Exemple : afficher une source « Cam hype » pendant 8 s quand il y a overtime, ou basculer sur une scène « Victoire » puis revenir automatiquement.
+            </p>
+            <div class="obs-table" id="obsTable"></div>
+          </div>
+        </section>
+
+        <!-- ============================== RÉGLAGES ============================== -->
+        <section id="tab-settings" class="tab">
+          <div class="grid-2">
+            <div class="card">
+              <h3>Parties comptées</h3>
+              <div class="form" id="countingForm"></div>
+              <div class="form">
+                <label>Si je quitte une partie avant la fin
+                  <select data-set="abandonAsLoss">
+                    <option value="ranked">Défaite seulement en classé</option>
+                    <option value="always">Toujours une défaite</option>
+                    <option value="never">Ne pas compter</option>
+                  </select>
+                </label>
+                <label>Nouvelle session automatique
+                  <select data-set="session.autoResetHours" data-type="number">
+                    <option value="0">Jamais (manuel)</option>
+                    <option value="3">Après 3 h sans partie</option>
+                    <option value="6">Après 6 h sans partie</option>
+                    <option value="12">Après 12 h sans partie</option>
+                    <option value="24">Après 24 h sans partie</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Qui est « toi » ?</h3>
+              <div id="identityInfo" class="info-box"></div>
+              <div class="form">
+                <label>Pseudos à reconnaître (séparés par des virgules, optionnel)
+                  <input data-set="identity.names" data-type="list" placeholder="Zoxam, MonSmurf" />
+                </label>
+                <label class="check"><input type="checkbox" data-set="identity.useCameraTarget" /> Si le compte n'est pas reconnu, utiliser la voiture suivie par la caméra</label>
+              </div>
+              <div id="knownIds" class="known-ids"></div>
+            </div>
+
+            <div class="card">
+              <h3>MMR</h3>
+              <p class="muted">
+                Le vrai MMR est lu dans le journal du jeu à chaque fois que <b>tu</b> lances une recherche de partie (seul ou chef de groupe).
+                En fin de match, la variation est d'abord estimée d'après tes vraies variations récentes, puis corrigée dès que le jeu donne la valeur réelle.
+              </p>
+              <div id="mmrInfo" class="info-box"></div>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="mmr.enabled" /> Suivre le MMR</label>
+                <label class="check"><input type="checkbox" data-set="mmr.includeCasual" /> Inclure le MMR caché des parties occasionnelles</label>
+                <label>Variation estimée par défaut (avant d'avoir des vraies valeurs)
+                  <input type="number" min="1" max="50" data-set="mmr.defaultDelta" />
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Rocket League · Stats API</h3>
+              <div id="rlInfo" class="info-box"></div>
+              <div class="actions">
+                <button class="btn primary" id="enableApiBtn">Activer / réparer l'API</button>
+                <button class="btn ghost" id="openRlCfg">Ouvrir le dossier de config</button>
+              </div>
+              <details class="adv">
+                <summary>Avancé</summary>
+                <div class="form">
+                  <label>Connexion
+                    <select data-set="stats.transport">
+                      <option value="auto">Automatique (TCP + WebSocket)</option>
+                      <option value="tcp">TCP seulement</option>
+                      <option value="ws">WebSocket seulement</option>
+                    </select>
+                  </label>
+                  <div class="row2">
+                    <label>Port TCP (0 = auto) <input type="number" data-set="stats.tcpPort" /></label>
+                    <label>Port WebSocket (0 = auto) <input type="number" data-set="stats.webPort" /></label>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <div class="card">
+              <h3>Raccourcis clavier globaux</h3>
+              <p class="muted">Fonctionnent même en jeu. Clique dans un champ puis appuie sur la combinaison (Suppr pour effacer).</p>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="hotkeys.enabled" /> Activer les raccourcis</label>
+                <label>+1 victoire <input class="hotkey" data-set="hotkeys.win" readonly /></label>
+                <label>+1 défaite <input class="hotkey" data-set="hotkeys.loss" readonly /></label>
+                <label>Annuler la dernière partie <input class="hotkey" data-set="hotkeys.undo" readonly /></label>
+              </div>
+              <div id="hotkeyErrors" class="warn-text"></div>
+            </div>
+
+            <div class="card">
+              <h3>Stream Deck · API</h3>
+              <p class="muted">
+                Stream Deck : action <b>Site web</b>, colle l'URL et coche <b>« Accéder en arrière-plan »</b>. Marche aussi avec Streamer.bot, Touch Portal, etc.
+              </p>
+              <div id="apiUrls" class="url-list"></div>
+              <div class="actions"><button class="btn ghost small" id="regenKey">Régénérer la clé</button></div>
+            </div>
+
+            <div class="card">
+              <h3>Fichiers texte</h3>
+              <p class="muted">Pour une source OBS « Texte (GDI+) » → « Lire à partir d'un fichier » (wins.txt, losses.txt, record.txt, streak.txt, winrate.txt, ot.txt, last.txt, mmr.txt, mmr-session.txt, custom.txt).</p>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="text.enabled" /> Écrire les fichiers texte</label>
+                <label>Format de custom.txt <input data-set="text.template" /></label>
+                <div class="muted small">Variables : {w} {l} {wr} {streak} {best} {otw} {otl} {mvp} {goals} {played} {lw} {ll} {mmr} {mmrd}</div>
+                <label>Dossier (vide = par défaut) <input data-set="text.dir" placeholder="" /></label>
+              </div>
+              <div class="actions"><button class="btn ghost small" id="openTextDir">Ouvrir le dossier</button><span class="muted small" id="textDir"></span></div>
+            </div>
+
+            <div class="card">
+              <h3>Serveur local</h3>
+              <div class="form">
+                <label>Port des overlays <input type="number" data-set="port" /></label>
+                <label class="check"><input type="checkbox" data-set="lanAccess" /> Accessible depuis le réseau local (setup 2 PC)</label>
+              </div>
+              <div id="lanInfo" class="muted small"></div>
+            </div>
+
+            <div class="card" id="appCard">
+              <h3>Application</h3>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="app.minimizeToTray" /> Fermer = réduire dans la barre des tâches (le tracking continue)</label>
+                <label class="check"><input type="checkbox" data-set="app.startWithWindows" /> Lancer avec Windows</label>
+                <label class="check"><input type="checkbox" data-set="app.startMinimized" /> Démarrer réduit</label>
+              </div>
+              <div class="actions"><button class="btn ghost small" id="openDataDir">Ouvrir le dossier des données</button></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================== AIDE ============================== -->
+        <section id="tab-help" class="tab">
+          <div class="card help">
+            <h2>Démarrage en 3 étapes</h2>
+            <ol class="steps">
+              <li>
+                <b>Stats API de Rocket League.</b> Elle est activée d'office dans les versions récentes du jeu. Sinon : Réglages →
+                « Activer / réparer l'API », puis relance Rocket League. Aucun mod, pas de BakkesMod, compatible EAC.
+              </li>
+              <li>
+                <b>Joue.</b> L'app reconnaît ton compte grâce au journal du jeu, puis compte chaque victoire / défaite, les overtimes, le
+                mode (2v2 classé, 3v3…), le MVP et les abandons.
+              </li>
+              <li>
+                <b>Ajoute les overlays dans OBS ou Streamlabs</b> (onglet Overlays OBS) : le compteur (horizontal, vertical ou collé à la jauge de
+                boost), les alertes plein écran, les dernières parties et le récap de fin de stream.
+              </li>
+            </ol>
+            <h2>Questions fréquentes</h2>
+            <details><summary>Une partie n'a pas été comptée</summary><p>Vérifie le journal (onglet Session) : la partie est peut-être d'un mode exclu (partie privée, hors-ligne…) ou le tracker était en pause. Tu peux toujours corriger avec les boutons + / −.</p></details>
+            <details><summary>« Stats API : fermé » alors que le jeu est lancé</summary><p>Le jeu n'ouvre l'API qu'une fois lancé avec PacketSendRate &gt; 0. Clique sur « Activer / réparer l'API » dans les Réglages puis redémarre complètement Rocket League (après une mise à jour du jeu aussi).</p></details>
+            <details><summary>Les alertes ne font pas de son sur le stream</summary><p>Dans les propriétés de la source navigateur OBS, coche « Contrôler l'audio via OBS », puis règle le volume de la source dans le mélangeur audio.</p></details>
+            <details><summary>Le compteur « Boost » n'est pas bien aligné sur ma jauge</summary><p>Overlays OBS → Compteur : active « Afficher le repère de la jauge », puis règle la taille du HUD et les décalages jusqu'à ce que le repère recouvre ta jauge dans l'aperçu d'OBS. Désactive ensuite le repère. La source doit faire la taille de ton canevas (ex. 1920 × 1080).</p></details>
+            <details><summary>Actions automatiques avec Streamlabs</summary><p>Onglet Actions stream → Logiciel : Streamlabs Desktop. Dans Streamlabs : Paramètres → Contrôle à distance → clic sur le QR code → Afficher les détails → copie le jeton de l'API.</p></details>
+            <details><summary>Setup avec 2 PC</summary><p>Active « Accessible depuis le réseau local » (Réglages → Serveur local) et utilise l'adresse IP du PC de jeu dans les URL des overlays sur le PC de stream. Autorise l'app dans le pare-feu Windows si demandé.</p></details>
+            <details><summary>Je joue en duo, ça compte bien pour moi ?</summary><p>Oui : l'app suit ton compte à toi (l'ID Steam/Epic lu dans le journal du jeu), pas celui de ton mate.</p></details>
+            <details><summary>D'où vient le MMR ?</summary><p>Du journal du jeu : quand tu lances une recherche de partie (seul ou chef de groupe), Rocket League y écrit ton MMR pour ce mode. La variation d'un match est donc connue à la recherche suivante ; en attendant, l'app affiche une estimation basée sur tes vraies variations récentes (marquée ≈ dans le tableau de bord). Si c'est ton mate qui lance la recherche, seule l'estimation est disponible.</p></details>
+            <p class="legal">BoostSide — créé par Zoxam. Non affilié à Psyonix LLC ni à Epic Games, Inc. Rocket League est une marque de Psyonix LLC. Tout fonctionne en local : aucune donnée n'est envoyée sur Internet.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="modal" class="modal hidden"><div class="modal-box"><p id="modalText"></p><div class="actions"><button class="btn ghost" id="modalNo">Annuler</button><button class="btn primary" id="modalYes">Confirmer</button></div></div></div>
+    <div id="toasts"></div>
+
+    <script src="/static/shared/client.js"></script>
+    <script src="/static/dashboard/app.js"></script>
+  </body>
+</html>
