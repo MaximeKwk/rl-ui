@@ -9,7 +9,7 @@ const WebSocket = require('ws');
 
 // Identifiant PUBLIC de l'application Twitch « RL-UI » (dev.twitch.tv/console/apps, type « Public »).
 // Vide = commandes du chat indisponibles. Peut être remplacé par RLUI_TWITCH_CLIENT_ID pour les tests.
-const TWITCH_CLIENT_ID = '';
+const TWITCH_CLIENT_ID = 'tr82baux8w08dbceriq6q0ilyn47zw';
 const SCOPES = 'chat:read chat:edit';
 const IRC_URL = 'wss://irc-ws.chat.twitch.tv:443';
 

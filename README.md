@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-2f8cff?style=flat-square"></a>
+  <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.1.0-2f8cff?style=flat-square"></a>
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078d4?style=flat-square&logo=windows&logoColor=white">
   <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-official%20Stats%20API-ff8a2a?style=flat-square">
   <img alt="OBS and Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-302e31?style=flat-square&logo=obsstudio&logoColor=white">
