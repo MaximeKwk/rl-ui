@@ -1,18 +1,18 @@
 {
-  "name": "boostside",
-  "productName": "BoostSide",
+  "name": "rl-ui",
+  "productName": "RL-UI",
   "version": "1.0.0",
   "description": "Overlay de stream pour Rocket League : victoires / défaites, MMR, alertes victoire / défaite / overtime.",
   "main": "electron/main.js",
   "author": "Zoxam",
   "license": "SEE LICENSE IN LICENSE",
-  "homepage": "https://github.com/MaximeKwk/boostside",
+  "homepage": "https://github.com/MaximeKwk/rl-ui",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MaximeKwk/boostside.git"
+    "url": "https://github.com/MaximeKwk/rl-ui.git"
   },
   "bugs": {
-    "url": "https://github.com/MaximeKwk/boostside/issues"
+    "url": "https://github.com/MaximeKwk/rl-ui/issues"
   },
   "private": true,
   "scripts": {
@@ -34,8 +34,8 @@
     "electron-builder": "26.15.3"
   },
   "build": {
-    "appId": "com.zoxam.boostside",
-    "productName": "BoostSide",
+    "appId": "com.zoxam.rlui",
+    "productName": "RL-UI",
     "copyright": "© 2026 Zoxam",
     "directories": {
       "output": "dist",
@@ -64,20 +64,20 @@
         }
       ],
       "icon": "build/icon.png",
-      "executableName": "BoostSide"
+      "executableName": "RL-UI"
     },
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "BoostSide",
+      "shortcutName": "RL-UI",
       "runAfterFinish": true,
       "language": "1036",
-      "artifactName": "BoostSide-Setup-${version}.${ext}"
+      "artifactName": "RL-UI-Setup-${version}.${ext}"
     },
     "portable": {
-      "artifactName": "BoostSide-Portable-${version}.exe"
+      "artifactName": "RL-UI-Portable-${version}.exe"
     }
   }
 }

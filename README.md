@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="BoostSide — overlay de stream pour Rocket League" width="100%">
+  <img src="docs/images/banner.png" alt="RL-UI — overlay de stream pour Rocket League" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/MaximeKwk/boostside/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-2f8cff?style=flat-square"></a>
+  <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.0.0-2f8cff?style=flat-square"></a>
   <img alt="Plateforme" src="https://img.shields.io/badge/plateforme-Windows%2010%20%7C%2011-0078d4?style=flat-square&logo=windows&logoColor=white">
   <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-Stats%20API%20officielle-ff8a2a?style=flat-square">
   <img alt="OBS et Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-302e31?style=flat-square&logo=obsstudio&logoColor=white">
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <b>BoostSide</b> compte tout seul tes victoires, défaites et ton MMR sur Rocket League,<br>
+  <b>RL-UI</b> compte tout seul tes victoires, défaites et ton MMR sur Rocket League,<br>
   et fait réagir ton stream quand tu gagnes, quand tu perds et quand la partie part en <b>overtime</b>.
 </p>
 
@@ -24,7 +24,7 @@
 </p>
 
 > [!IMPORTANT]
-> BoostSide n'utilise **aucun mod** : ni BakkesMod, ni injection dans le jeu. Il lit uniquement la **Stats API officielle** de Psyonix
+> RL-UI n'utilise **aucun mod** : ni BakkesMod, ni injection dans le jeu. Il lit uniquement la **Stats API officielle** de Psyonix
 > et le journal local du jeu. Il est donc compatible avec l'anti-cheat (EAC).
 > L'application n'est pas encore signée numériquement : au premier lancement, Windows SmartScreen peut afficher un avertissement
 > (*Informations complémentaires → Exécuter quand même*).
@@ -72,27 +72,27 @@
 flowchart LR
     RL["Rocket League<br/>Stats API officielle<br/>(TCP 49123 / WS 49124)"] -->|score, overtime, fin de match| BS
     LOG["Journal du jeu<br/>Launch.log"] -->|ton compte, ton MMR| BS
-    BS["BoostSide<br/>(tourne en local)"] -->|overlays navigateur| STREAM["OBS / Streamlabs"]
+    BS["RL-UI<br/>(tourne en local)"] -->|overlays navigateur| STREAM["OBS / Streamlabs"]
     BS -->|scènes et sources| ACT["Actions automatiques<br/>OBS WebSocket / Streamlabs API"]
     BS -->|URLs et raccourcis| DECK["Stream Deck / clavier"]
 ```
 
 1. Rocket League diffuse en local les événements de la partie : buts, chrono, **overtime**, fin de match et vainqueur.
-2. BoostSide lit le journal du jeu pour savoir **quel joueur est toi** (Steam ou Epic) et récupérer ton **MMR réel**.
+2. RL-UI lit le journal du jeu pour savoir **quel joueur est toi** (Steam ou Epic) et récupérer ton **MMR réel**.
 3. Il enregistre chaque partie (victoire, défaite, OT, abandon, MVP…) et met à jour les overlays en direct, en moins d'une seconde.
 
 ## Démarrage rapide
 
 **Prérequis :** Windows 10 ou 11 (64 bits), Rocket League sur PC (Steam ou Epic), OBS Studio 28+ ou Streamlabs Desktop.
 
-1. **Installe** `BoostSide-Setup-x.y.z.exe` depuis les [Releases](https://github.com/MaximeKwk/boostside/releases)
+1. **Installe** `RL-UI-Setup-x.y.z.exe` depuis les [Releases](https://github.com/MaximeKwk/rl-ui/releases)
    (ou la version portable, sans installation).
 2. **Lance Rocket League** et joue une partie. La Stats API est activée d'office dans les versions récentes du jeu ; sinon
    *Réglages → Activer / réparer l'API* puis redémarre le jeu.
 3. **Ajoute les overlays** dans OBS ou Streamlabs : *Sources → + → Navigateur*, colle l'URL (voir ci-dessous).
 
 C'est tout : chaque victoire, défaite et overtime est détecté automatiquement.
-L'app vit dans la zone de notification (icône **B**) ; fermer la fenêtre ne l'arrête pas.
+L'app vit dans la zone de notification (icône **RL**) ; fermer la fenêtre ne l'arrête pas.
 
 ## Overlays
 
@@ -144,7 +144,7 @@ que le repère recouvre ta jauge dans OBS, puis masque-le.
 | **Streamlabs Desktop** | Les mêmes actions automatiques | *Paramètres → Contrôle à distance* → *Afficher les détails* → copier le jeton |
 | **Stream Deck** | +1 victoire / défaite, annuler, pause, nouvelle session | Action *Site web* + « Accéder en arrière-plan » avec les URL de *Réglages* |
 | **Raccourcis clavier** | `Ctrl+Alt+Shift+↑` / `↓` / `Retour arrière` | Actifs même en jeu, personnalisables |
-| **Fichiers texte** | `wins.txt`, `record.txt`, `mmr-session.txt`… pour une source « Texte (GDI+) » | `%APPDATA%\BoostSide\texte` |
+| **Fichiers texte** | `wins.txt`, `record.txt`, `mmr-session.txt`… pour une source « Texte (GDI+) » | `%APPDATA%\RL-UI\texte` |
 | **HTTP** | `/api/text/record`, `/api/text/mmrsession`… | Streamer.bot, Touch Portal, etc. |
 
 ## FAQ
@@ -152,7 +152,7 @@ que le repère recouvre ta jauge dans OBS, puis masque-le.
 <details>
 <summary><b>Est-ce que je risque un ban ?</b></summary>
 
-BoostSide ne modifie pas le jeu et ne s'y injecte pas : il lit la Stats API officielle, prévue par Psyonix pour les overlays,
+RL-UI ne modifie pas le jeu et ne s'y injecte pas : il lit la Stats API officielle, prévue par Psyonix pour les overlays,
 et le fichier journal que le jeu écrit sur ton disque.
 </details>
 
@@ -160,7 +160,7 @@ et le fichier journal que le jeu écrit sur ton disque.
 <summary><b>D'où vient le MMR ?</b></summary>
 
 Quand tu lances une recherche de partie (seul ou chef de groupe), Rocket League écrit ton MMR pour le mode choisi dans son journal.
-La variation exacte d'un match est donc connue à la recherche suivante ; en attendant, BoostSide affiche une estimation basée sur
+La variation exacte d'un match est donc connue à la recherche suivante ; en attendant, RL-UI affiche une estimation basée sur
 tes vraies variations récentes. Si c'est ton mate qui lance la recherche, seule l'estimation est disponible.
 </details>
 
@@ -185,8 +185,8 @@ Tu peux toujours corriger avec les boutons + / −.
 
 ## Confidentialité
 
-BoostSide fonctionne **entièrement en local**. Il n'envoie aucune donnée sur Internet, ne contient aucune télémétrie et n'a pas
-de compte à créer. Tes parties sont stockées dans `%APPDATA%\BoostSide\data.json`.
+RL-UI fonctionne **entièrement en local**. Il n'envoie aucune donnée sur Internet, ne contient aucune télémétrie et n'a pas
+de compte à créer. Tes parties sont stockées dans `%APPDATA%\RL-UI\data.json`.
 
 ## Développement
 
@@ -221,7 +221,7 @@ npm run headless                                                      # tracker 
 
 ## Avertissement
 
-BoostSide est un projet indépendant. Il n'est ni affilié, ni approuvé, ni sponsorisé par **Psyonix LLC** ou **Epic Games, Inc.**
+RL-UI est un projet indépendant. Il n'est ni affilié, ni approuvé, ni sponsorisé par **Psyonix LLC** ou **Epic Games, Inc.**
 *Rocket League* est une marque de Psyonix LLC.
 
 ## Licence
@@ -231,4 +231,4 @@ Police [Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) sous SIL Ope
 
 ## À propos
 
-Créé par **Zoxam**. Une idée, un bug ? Ouvre une [issue](https://github.com/MaximeKwk/boostside/issues).
+Créé par **Zoxam**. Une idée, un bug ? Ouvre une [issue](https://github.com/MaximeKwk/rl-ui/issues).

@@ -2,7 +2,7 @@
 'use strict';
 // Lance le tracker sans Electron (tests, ou PC de stream sans interface).
 //   node tools/headless.js
-// Variables : BOOSTSIDE_DATA (dossier des données), BOOSTSIDE_DOCS (dossier Documents), BOOSTSIDE_LOG (chemin de Launch.log)
+// Variables : RLUI_DATA (dossier des données), RLUI_DOCS (dossier Documents), RLUI_LOG (chemin de Launch.log)
 
 const os = require('os');
 const path = require('path');
@@ -10,13 +10,13 @@ const { execFile } = require('child_process');
 const { Core } = require('../core');
 const pkg = require('../package.json');
 
-const dataDir = process.env.BOOSTSIDE_DATA || path.join(process.env.APPDATA || os.homedir(), 'BoostSide');
-const documentsDir = process.env.BOOSTSIDE_DOCS || path.join(os.homedir(), 'Documents');
+const dataDir = process.env.RLUI_DATA || path.join(process.env.APPDATA || os.homedir(), 'RL-UI');
+const documentsDir = process.env.RLUI_DOCS || path.join(os.homedir(), 'Documents');
 
 const core = new Core({
   dataDir,
   documentsDir,
-  logPath: process.env.BOOSTSIDE_LOG || undefined,
+  logPath: process.env.RLUI_LOG || undefined,
   webDir: path.join(__dirname, '..', 'web'),
   version: pkg.version,
   hooks: {
@@ -28,7 +28,7 @@ const core = new Core({
 core
   .start()
   .then((port) => {
-    console.log(`BoostSide (sans interface) — tableau de bord : http://127.0.0.1:${port}/`);
+    console.log(`RL-UI (sans interface) — tableau de bord : http://127.0.0.1:${port}/`);
     console.log(`Données : ${dataDir}`);
   })
   .catch((e) => {

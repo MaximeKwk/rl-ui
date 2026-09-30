@@ -1,5 +1,5 @@
 'use strict';
-// Reprise des données de l'ancienne version (nom de code "Overtime Tracker") au premier lancement de BoostSide.
+// Reprise des données de l'ancienne version (nom de code "Overtime Tracker") au premier lancement de RL-UI.
 const fs = require('fs');
 const path = require('path');
 

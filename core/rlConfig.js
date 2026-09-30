@@ -189,7 +189,7 @@ function writeStatsValues(file, rate) {
 // Écriture avec élévation (UAC) si le dossier du jeu est protégé
 function writeElevated(file, text) {
   return new Promise((resolve) => {
-    const tmp = path.join(os.tmpdir(), `boostside-statsapi-${Date.now()}.ini`);
+    const tmp = path.join(os.tmpdir(), `rl-ui-statsapi-${Date.now()}.ini`);
     fs.writeFileSync(tmp, text, 'latin1');
     const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
     const inner = `Copy-Item -LiteralPath ${q(tmp)} -Destination ${q(file)} -Force`;

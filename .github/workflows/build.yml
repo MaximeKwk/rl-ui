@@ -35,7 +35,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: BoostSide-windows
+          name: RL-UI-windows
           path: dist/*.exe
 
       - name: Release
@@ -43,5 +43,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/BoostSide-Setup-*.exe
-            dist/BoostSide-Portable-*.exe
+            dist/RL-UI-Setup-*.exe
+            dist/RL-UI-Portable-*.exe

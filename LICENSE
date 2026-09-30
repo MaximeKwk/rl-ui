@@ -1,4 +1,4 @@
-BoostSide
+RL-UI
 Copyright (c) 2026 Zoxam. Tous droits réservés.
 
 Ce logiciel et son code source sont la propriété de Zoxam. Aucune licence n'est accordée pour copier,
@@ -12,6 +12,6 @@ Composants tiers inclus / Third-party components
 - ws — licence MIT — https://github.com/websockets/ws
 - Barlow Condensed — SIL Open Font License 1.1 — voir web/assets/fonts/OFL-BarlowCondensed.txt
 
-BoostSide n'est ni affilié, ni approuvé, ni sponsorisé par Psyonix LLC ou Epic Games, Inc.
-Rocket League est une marque de Psyonix LLC. BoostSide is not affiliated with, endorsed or sponsored by
+RL-UI n'est ni affilié, ni approuvé, ni sponsorisé par Psyonix LLC ou Epic Games, Inc.
+Rocket League est une marque de Psyonix LLC. RL-UI is not affiliated with, endorsed or sponsored by
 Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC.

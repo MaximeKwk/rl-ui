@@ -24,8 +24,8 @@ const svg = `
     <polygon points="330,0 374,0 182,512 138,512" fill="#0a0f1d"/>
     <rect width="512" height="512" fill="url(#t)" opacity="0.06"/>
   </g>
-  <text x="266" y="372" text-anchor="middle" font-family="BC" font-weight="900" font-style="italic" font-size="340"
-        fill="url(#t)" stroke="#0a0f1d" stroke-width="18" paint-order="stroke" letter-spacing="0">B</text>
+  <text x="262" y="352" text-anchor="middle" font-family="BC" font-weight="900" font-style="italic" font-size="300"
+        fill="url(#t)" stroke="#0a0f1d" stroke-width="18" paint-order="stroke" letter-spacing="-4">RL</text>
 </svg>`;
 
 const html = `<!doctype html><html><head><style>
@@ -36,7 +36,7 @@ svg { display: block; }
 
 app.disableHardwareAcceleration();
 app.whenReady().then(async () => {
-  const tmp = path.join(os.tmpdir(), `boostside-icon-${Date.now()}.html`);
+  const tmp = path.join(os.tmpdir(), `rl-ui-icon-${Date.now()}.html`);
   fs.writeFileSync(tmp, html);
   const win = new BrowserWindow({ width: 512, height: 512, show: false, transparent: true, frame: false, useContentSize: true, webPreferences: { offscreen: true } });
   let frame = null;

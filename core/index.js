@@ -61,7 +61,7 @@ class Core extends EventEmitter {
     this._checkRunning();
     this._rlTimer = setInterval(() => this._checkRunning(), 5000);
     this._writeText();
-    this.log(`BoostSide prêt — http://127.0.0.1:${port}`);
+    this.log(`RL-UI prêt — http://127.0.0.1:${port}`);
     return port;
   }
 
@@ -235,7 +235,7 @@ class Core extends EventEmitter {
   log(msg, level = 'info') {
     this.logs.push({ at: Date.now(), msg, level });
     if (this.logs.length > 200) this.logs.splice(0, this.logs.length - 200);
-    if (process.env.BOOSTSIDE_DEBUG) console.log(`[${level}] ${msg}`);
+    if (process.env.RLUI_DEBUG) console.log(`[${level}] ${msg}`);
     this._changed();
   }
 
@@ -291,7 +291,7 @@ class Core extends EventEmitter {
     const strip = (e) => e && { playlist: e.playlist, name: e.name, short: e.short, current: e.current, delta: e.delta, games: e.games, approx: e.approx };
     const mmr = this.mmrSummary(live);
     return {
-      app: { name: 'BoostSide', version: this.version },
+      app: { name: 'RL-UI', version: this.version },
       session: {
         id: this.store.session.id,
         startedAt: this.store.session.startedAt,

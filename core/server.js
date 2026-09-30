@@ -117,7 +117,7 @@ class AppServer extends EventEmitter {
   }
 
   _authorized(req, url) {
-    const key = url.searchParams.get('key') || req.headers['x-boostside-key'];
+    const key = url.searchParams.get('key') || req.headers['x-rl-ui-key'];
     return !!key && key === this.settings.apiKey;
   }
 

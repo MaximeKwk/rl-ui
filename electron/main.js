@@ -8,12 +8,12 @@ const { Core } = require('../core');
 const { migrateLegacyData } = require('./migrate');
 const pkg = require('../package.json');
 
-// Dossier de données alternatif (tests) : BOOSTSIDE_DATA=C:\chemin
-if (process.env.BOOSTSIDE_DATA) app.setPath('userData', process.env.BOOSTSIDE_DATA);
+// Dossier de données alternatif (tests) : RLUI_DATA=C:\chemin
+if (process.env.RLUI_DATA) app.setPath('userData', process.env.RLUI_DATA);
 
 // Reprise des données de l'ancienne version (nom de code "Overtime Tracker")
 function migrateLegacy() {
-  if (process.env.BOOSTSIDE_DATA) return false;
+  if (process.env.RLUI_DATA) return false;
   return migrateLegacyData(path.join(app.getPath('appData'), 'Overtime Tracker'), app.getPath('userData'));
 }
 
@@ -21,7 +21,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
 }
-app.setAppUserModelId('com.zoxam.boostside');
+app.setAppUserModelId('com.zoxam.rlui');
 
 const ICON = path.join(__dirname, '..', 'web', 'assets', 'icon.png');
 const isDev = !app.isPackaged;
@@ -39,7 +39,7 @@ function createWindow(show = true) {
     minWidth: 980,
     minHeight: 640,
     show: false,
-    title: 'BoostSide',
+    title: 'RL-UI',
     icon: ICON,
     backgroundColor: '#070a12',
     titleBarStyle: 'hidden',
@@ -72,7 +72,7 @@ function createWindow(show = true) {
     if (!core.store.settings.app.trayHintShown && tray) {
       tray.displayBalloon({
         iconType: 'info',
-        title: 'BoostSide tourne toujours',
+        title: 'RL-UI tourne toujours',
         content: 'Le tracking continue en arrière-plan. Clic droit sur l\'icône pour quitter.',
       });
       core.store.patchSettings({ app: { trayHintShown: true } });
@@ -94,7 +94,7 @@ function updateTray() {
   if (!tray) return;
   const st = core.sessionStats();
   const s = core.store.settings;
-  tray.setToolTip(`BoostSide — ${st.wins}V - ${st.losses}D${s.paused ? ' (pause)' : ''}`);
+  tray.setToolTip(`RL-UI — ${st.wins}V - ${st.losses}D${s.paused ? ' (pause)' : ''}`);
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: `Session : ${st.wins}V - ${st.losses}D${st.played ? ` (${st.winRate}%)` : ''}`, enabled: false },
@@ -165,7 +165,7 @@ app.whenReady().then(async () => {
   try {
     await core.start();
   } catch (e) {
-    dialog.showErrorBox('BoostSide', `Impossible de démarrer le serveur local des overlays :\n${e.message}`);
+    dialog.showErrorBox('RL-UI', `Impossible de démarrer le serveur local des overlays :\n${e.message}`);
     quitting = true;
     app.quit();
     return;

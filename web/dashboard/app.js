@@ -1,4 +1,4 @@
-// Tableau de bord BoostSide
+// Tableau de bord RL-UI
 (function () {
   const KEY = document.querySelector('meta[name="ot-key"]').content;
   const $ = (s, r = document) => r.querySelector(s);
@@ -136,7 +136,7 @@
     $$('.side button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach((t) => t.classList.toggle('active', t.id === `tab-${name}`));
     try {
-      localStorage.setItem('bs-tab', name);
+      localStorage.setItem('rlui-tab', name);
     } catch {}
     if (name === 'history') loadHistory();
     if (name === 'stream') layoutPreviews();
@@ -387,7 +387,7 @@
 
     let tab = 'session';
     try {
-      tab = localStorage.getItem('bs-tab') || 'session';
+      tab = localStorage.getItem('rlui-tab') || 'session';
     } catch {}
     if (!$(`#tab-${tab}`)) tab = 'session';
     showTab(tab);
@@ -428,7 +428,7 @@
     if (D.live && D.live.inMatch && D.live.overtime) out.push('<span class="chip ot"><b>OVERTIME</b></span>');
     $('#statusChips').innerHTML = out.join('');
     $('#pauseBtn').textContent = D.settings.paused ? 'Reprendre' : 'Pause';
-    $('#versionInfo').textContent = `BoostSide ${D.version} · par Zoxam`;
+    $('#versionInfo').textContent = `RL-UI ${D.version} · par Zoxam`;
     $('#portInfo').textContent = `Serveur : port ${D.port}`;
   }
 

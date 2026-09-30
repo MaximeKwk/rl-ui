@@ -15,7 +15,7 @@ const args = process.argv.slice(2);
 const transport = args.includes('--transport') ? args[args.indexOf('--transport') + 1] : 'auto';
 const asObject = args.includes('--object');
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'boostside-e2e-'));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rl-ui-e2e-'));
 const docs = path.join(tmp, 'docs');
 const cfgDir = path.join(docs, 'My Games', 'Rocket League', 'TAGame', 'Config');
 const logDir = path.join(docs, 'My Games', 'Rocket League', 'TAGame', 'Logs');
@@ -44,7 +44,7 @@ const fail = (msg) => {
 };
 const ok = (cond, msg) => (cond ? console.log(`✔ ${msg}`) : fail(msg));
 
-const env = { ...process.env, BOOSTSIDE_DATA: dataDir, BOOSTSIDE_DOCS: docs };
+const env = { ...process.env, RLUI_DATA: dataDir, RLUI_DOCS: docs };
 const app = spawn(process.execPath, [path.join(root, 'tools', 'headless.js')], { env, stdio: ['ignore', 'pipe', 'pipe'] });
 let appOut = '';
 app.stdout.on('data', (d) => (appOut += d));
