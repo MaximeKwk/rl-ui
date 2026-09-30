@@ -96,6 +96,8 @@ flowchart LR
    *Settings → Enable / repair the API*, then restart the game.
 3. **Add the overlays** in OBS or Streamlabs: *Sources → + → Browser*, paste the URL (see below).
 
+A short guided setup opens on first launch (you can reopen it from *Help*).
+
 That's it: every win, loss and overtime is detected automatically.
 The app lives in the system tray (**RL** icon); closing the window doesn't stop it.
 The interface is in English by default; French is available in *Settings → Language · Langue*.
@@ -163,6 +165,7 @@ To cast a match as a **spectator** (tournament, scrim, private match): a full br
 | --- | --- |
 | **Scorebug** | Team names (the game's or your own), score, clock, overtime, replay, event title |
 | **Series** | Bo1, Bo3, Bo5, Bo7: the winner is counted automatically at the end of each game, + / − and “Swap sides” buttons (also from a Stream Deck) |
+| **Logos and photos** | Team logos in the scorebug and final scoreboard, player photos on the spectated player card |
 | **Players** | Everyone's boost, demolitions, spectated player card (boost, score, goals, assists, saves, shots, demos) |
 | **Plays** | Goal banner (scorer, assist, speed in km/h or mph), statfeed (demolitions, epic saves…) |
 | **End of match** | Stats of every player, MVP, winner of the game or of the series |
@@ -182,6 +185,8 @@ OBS source: `http://127.0.0.1:5757/overlay/caster` in **full screen**. To split 
 | **Themes** | Ready-made or custom looks (images, font, colors, sounds), installable and shareable as .zip |
 | **Counter** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical or next to the boost gauge, live OVERTIME badge |
 | **Sessions and history** | New session automatically after 6 h without playing, full history per mode, manual corrections |
+| **Chat commands** | `!wl`, `!mmr`, `!last`, `!streak`… answered in your Twitch chat, plus your own commands |
+| **Automatic updates** | New versions download in the background; one click to install |
 | **Languages** | English by default, French available (interface, overlays, alerts, mode names) |
 | **Identification** | Your Steam / Epic account is recognized on its own: works in solo, duos and trios |
 

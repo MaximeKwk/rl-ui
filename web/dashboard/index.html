@@ -563,7 +563,7 @@
         <!-- ============================== HELP ============================== -->
         <section id="tab-help" class="tab">
           <div class="card help">
-            <h2 data-i18n="h.help.start">Get started in 3 steps</h2>
+            <div class="card-head"><h2 data-i18n="h.help.start">Get started in 3 steps</h2><button class="btn small primary" id="onbReopen" data-i18n="h.help.guide">Open the guided setup</button></div>
             <ol class="steps">
               <li data-i18n="h.help.s1">
                 <b>Rocket League Stats API.</b> It is enabled by default in recent versions of the game. Otherwise: Settings →
@@ -595,6 +595,7 @@
 
     <div id="modal" class="modal hidden"><div class="modal-box"><p id="modalText"></p><div class="actions"><button class="btn ghost" id="modalNo" data-i18n="h.cancel">Cancel</button><button class="btn primary" id="modalYes">Confirm</button></div></div></div>
     <div id="toasts"></div>
+    <div id="onb" class="onb hidden"><div class="onb-box"><div class="onb-dots" id="onbDots"></div><div class="onb-body" id="onbBody"></div><div class="onb-nav"><button class="btn ghost" id="onbSkip"></button><div class="grow"></div><button class="btn ghost" id="onbBack"></button><button class="btn primary" id="onbNext"></button></div></div></div>
 
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>

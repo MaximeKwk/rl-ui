@@ -97,6 +97,8 @@ flowchart LR
 
 L'application est en anglais par défaut : passe-la en français dans *Settings → Language · Langue*.
 
+Un petit assistant s'ouvre au premier lancement (tu peux le rouvrir depuis *Help*).
+
 C'est tout : chaque victoire, défaite et overtime est détecté automatiquement.
 L'app vit dans la zone de notification (icône **RL**) ; fermer la fenêtre ne l'arrête pas.
 
@@ -162,6 +164,7 @@ Pour caster un match en **spectateur** (tournoi, scrim, match privé) : un overl
 | --- | --- |
 | **Tableau des scores** | Noms d'équipe (ceux du jeu ou les tiens), score, chrono, overtime, replay, titre de l'événement |
 | **Série** | BO1, BO3, BO5, BO7 : victoire comptée automatiquement à la fin de chaque match, boutons + / − et « Inverser les côtés » (aussi depuis un Stream Deck) |
+| **Logos et photos** | Logos des équipes dans le tableau des scores et le tableau final, photos des joueurs sur la carte du joueur suivi |
 | **Joueurs** | Boost de chacun, démolitions, carte du joueur suivi (boost, score, buts, passes, arrêts, tirs, démos) |
 | **Actions** | Bannière de but (buteur, passe, vitesse en km/h ou mph), statfeed (démolitions, arrêts épiques…) |
 | **Fin de match** | Tableau des stats de tous les joueurs, MVP, vainqueur du match ou de la série |
@@ -181,6 +184,8 @@ Source OBS : `http://127.0.0.1:5757/overlay/caster` en **plein écran**. Pour s�
 | **Thèmes** | DA toute faite ou perso (images, police, couleurs, sons), installables et partageables en .zip |
 | **Compteur** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical ou collé à la jauge de boost, badge OVERTIME en direct |
 | **Sessions et historique** | Nouvelle session automatique après 6 h sans jouer, historique complet par mode, corrections manuelles |
+| **Commandes du chat** | `!wl`, `!mmr`, `!last`, `!streak`… avec réponse dans ton chat Twitch, et tes propres commandes |
+| **Mises à jour automatiques** | Les nouvelles versions se téléchargent en arrière-plan ; un clic pour installer |
 | **Langues** | Anglais par défaut, français en option (interface, overlays, alertes, noms des modes) |
 | **Identification** | Ton compte Steam / Epic est reconnu seul : fonctionne en solo, duo et trio |
 

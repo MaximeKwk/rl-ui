@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0
+
+- **Automatic updates**: the installed version downloads new versions in the background and offers “Restart to install” (the portable version shows a download link).
+- **Twitch chat commands**: `!wl`, `!mmr`, `!last`, `!streak`, `!ot` and your own commands, answered in your chat with live stats. Login with a code on twitch.tv/activate, no bot to install.
+- **Caster mode**: team logos and player photos (scorebug, spectated player card, final scoreboard).
+- **Guided setup** on first launch: language, Rocket League connection, overlays in OBS, look (reopen it from Help).
+- **Microsoft Store** package (signed by Microsoft once published), privacy policy.
+- Installer in English and French.
+
 ## 1.0.0 — first public release
 
 - **Automatic tracking** of wins, losses, overtimes, early leaves and forfeits through Rocket League's official Stats API (no mods, EAC-compatible).

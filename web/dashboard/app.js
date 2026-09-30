@@ -433,6 +433,39 @@
       location.reload();
     });
     if (!isApp) $('#appCard').classList.add('hidden');
+    // Assistant de démarrage
+    $('#onbNext').addEventListener('click', () => onbGo(1));
+    $('#onbBack').addEventListener('click', () => onbGo(-1));
+    $('#onbSkip').addEventListener('click', () => onbClose(true));
+    $('#onbReopen').addEventListener('click', () => onbOpen(0));
+    $('#onb').addEventListener('click', async (e) => {
+      const c = e.target.closest('[data-onbcopy]');
+      if (c) copy(c.dataset.onbcopy);
+      const l = e.target.closest('[data-onblang]');
+      if (l && l.dataset.onblang !== D.settings.language) {
+        try {
+          localStorage.setItem('rlui-onb', '1'); // après le rechargement, on reprend à l'étape suivante
+        } catch {}
+        await post('/api/settings', { language: l.dataset.onblang });
+      } else if (l) onbGo(1);
+      const th = e.target.closest('[data-onbtheme]');
+      if (th) await post('/api/settings', { overlay: { themePack: th.dataset.onbtheme } });
+      const ly = e.target.closest('[data-onblayout]');
+      if (ly) await post('/api/settings', { overlay: { layout: ly.dataset.onblayout } });
+      const tb = e.target.closest('[data-onbtab]');
+      if (tb) {
+        onbClose(true);
+        showTab(tb.dataset.onbtab);
+      }
+    });
+    {
+      let resume = null;
+      try {
+        resume = localStorage.getItem('rlui-onb');
+      } catch {}
+      if (resume != null) onbOpen(Number(resume) || 0);
+      else if (!D.settings.app.onboarded) onbOpen(0);
+    }
     document.addEventListener('click', async (e) => {
       const u = e.target.closest('[data-upd]');
       if (!u) return;
@@ -856,6 +889,91 @@
     $(`#dl-src-${type}`).innerHTML = srcs.map((s) => `<option value="${esc(s)}"></option>`).join('');
   }
 
+  // ------------------------------------------------------------------ assistant de démarrage
+  const ONB_STEPS = 5;
+  let onbStep = -1; // -1 = fermé
+  function onbOpen(step = 0) {
+    onbStep = step;
+    try {
+      localStorage.setItem('rlui-onb', String(step));
+    } catch {}
+    $('#onb').classList.remove('hidden');
+    renderOnb();
+  }
+  function onbClose(done) {
+    onbStep = -1;
+    $('#onb').classList.add('hidden');
+    try {
+      localStorage.removeItem('rlui-onb');
+    } catch {}
+    if (done && !D.settings.app.onboarded) post('/api/settings', { app: { onboarded: true } });
+  }
+  function onbGo(d) {
+    const n = onbStep + d;
+    if (n >= ONB_STEPS) return onbClose(true);
+    onbOpen(Math.max(0, n));
+  }
+
+  function renderOnb() {
+    if (onbStep < 0 || !D) return;
+    const st = D.status;
+    const cfg = st.rlConfig;
+    const ok = (v, yes, no) => `<div class="onb-check ${v ? 'ok' : 'todo'}"><i>${v ? '✓' : '•'}</i><span>${yes && v ? yes : no}</span></div>`;
+    const url = (id, extra = '') => `${baseUrl()}/overlay/${id}${extra}`;
+    const urlRow = (label, u, size) => `<div class="onb-url"><b>${esc(label)}</b><span class="muted small">${esc(size)}</span><input readonly value="${esc(u)}" /><button class="btn small" data-onbcopy="${esc(u)}">${esc(t('d.copy'))}</button></div>`;
+    let html = '';
+    switch (onbStep) {
+      case 0:
+        html = `<h2>${esc(t('o.welcome'))}</h2><p>${esc(t('o.welcomeText'))}</p>
+          <div class="onb-langs">${['en', 'fr'].map((l) => `<button class="btn ${D.settings.language === l ? 'primary' : ''}" data-onblang="${l}">${l === 'en' ? 'English' : 'Français'}</button>`).join('')}</div>`;
+        break;
+      case 1: {
+        const apiOk = cfg && cfg.enabled;
+        const live = st.api.state === 'live' || st.api.state === 'waiting';
+        html = `<h2>${esc(t('o.rlTitle'))}</h2><p>${esc(t('o.rlText'))}</p>
+          ${ok(apiOk, t('o.apiOn'), cfg && cfg.known ? t('o.apiOff') : t('o.apiUnknown'))}
+          ${ok(!!st.account, st.account ? t('o.acctOk', { n: st.account.name }) : '', t('o.acctTodo'))}
+          ${ok(live, t('o.connOk'), t('o.connTodo'))}
+          ${apiOk ? '' : `<div class="actions"><button class="btn primary small" id="onbApi">${esc(t('o.enableApi'))}</button></div>`}
+          <p class="muted small">${esc(t('o.rlNote'))}</p>`;
+        break;
+      }
+      case 2:
+        html = `<h2>${esc(t('o.obsTitle'))}</h2><p>${t('o.obsText')}</p>
+          ${urlRow(t('o.counter'), url('counter'), '1000 × 220')}
+          ${urlRow(t('o.alerts'), url('alerts'), '1920 × 1080')}
+          <p class="muted small">${t('o.obsAudio')}</p>`;
+        break;
+      case 3: {
+        const cur = D.settings.overlay.themePack || 'classique';
+        const layout = D.settings.overlay.layout || 'horizontal';
+        html = `<h2>${esc(t('o.lookTitle'))}</h2><p>${esc(t('o.lookText'))}</p>
+          <div class="onb-themes">${((D.themes && D.themes.list) || [])
+            .filter((x) => x.builtin && x.hasPreview)
+            .map((x) => `<button class="onb-th${x.id === cur ? ' on' : ''}" data-onbtheme="${esc(x.id)}"><img src="/themes/${esc(x.id)}/preview.png" alt="" /><span>${esc(x.name)}</span></button>`)
+            .join('')}</div>
+          <div class="onb-layouts">${['horizontal', 'vertical', 'boost'].map((l) => `<button class="btn small ${layout === l ? 'primary' : ''}" data-onblayout="${l}">${esc(t(`o.layout.${l}`))}</button>`).join('')}</div>`;
+        break;
+      }
+      case 4:
+        html = `<h2>${esc(t('o.doneTitle'))}</h2><p>${esc(t('o.doneText'))}</p>
+          <div class="onb-more">
+            <button class="onb-card" data-onbtab="caster"><b>${esc(t('o.moreCaster'))}</b><span>${esc(t('o.moreCasterText'))}</span></button>
+            <button class="onb-card" data-onbtab="obs"><b>${esc(t('o.moreChat'))}</b><span>${esc(t('o.moreChatText'))}</span></button>
+            <button class="onb-card" data-onbtab="settings"><b>${esc(t('o.moreDeck'))}</b><span>${esc(t('o.moreDeckText'))}</span></button>
+          </div>`;
+        break;
+    }
+    $('#onbBody').innerHTML = html;
+    $('#onbDots').innerHTML = Array.from({ length: ONB_STEPS }, (_, i) => `<i class="${i === onbStep ? 'on' : i < onbStep ? 'done' : ''}"></i>`).join('');
+    $('#onbSkip').textContent = t('o.skip');
+    $('#onbBack').textContent = t('o.back');
+    $('#onbBack').classList.toggle('hidden', onbStep === 0);
+    $('#onbNext').textContent = t(onbStep === ONB_STEPS - 1 ? 'o.finish' : 'o.next');
+    const b = $('#onbApi');
+    if (b) b.onclick = enableApi;
+  }
+
   // ------------------------------------------------------------------ commandes du chat
   const BUILTIN_CMDS = ['wl', 'mmr', 'last', 'streak', 'ot'];
   function renderChat() {
@@ -1179,6 +1297,7 @@
     renderObs();
     if (changed('update', [D.update, D.version])) renderUpdate();
     if (changed('chat', D.chat)) renderChat();
+    if (onbStep >= 0 && changed('onb', [D.status, D.settings.overlay, D.settings.language, D.themes])) renderOnb();
     if (changed('chatCmds', [D.settings.chat.commands, D.sessionMatches.length, D.settings.language])) renderChatTable();
     if (changed('caster', [D.port, D.status.overlays, D.settings.caster, D.status.rlConfig, D.settings.apiKey])) renderCasterStatic();
     if (changed('settingsView', [D.status.account, D.status.rlConfig, D.status.api.state, D.hotkeyErrors, D.settings, D.textDir, D.lanAddresses, D.port, D.mmr && D.mmr.known])) renderSettings();

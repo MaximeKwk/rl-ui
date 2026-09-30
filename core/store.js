@@ -96,7 +96,7 @@ function defaultSettings() {
       loss: 'Ctrl+Alt+Shift+Down',
       undo: 'Ctrl+Alt+Shift+Backspace',
     },
-    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true },
+    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true, onboarded: false },
     // Commandes du chat Twitch (texte vide = réponse par défaut dans la langue choisie)
     chat: {
       enabled: true,
