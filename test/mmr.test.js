@@ -91,12 +91,13 @@ test('une partie entre deux files : variation exacte', () => {
 
 test('mise à jour en retard : cumul réparti sur les deux parties', () => {
   const { sample, match, store } = setup();
-  sample(1000, 1000);
-  const a = match('W', 2000);
-  sample(1000, 2500); // relance trop rapide : pas encore mis à jour
+  const M = 60e3; // durées réalistes : une partie dure plusieurs minutes
+  sample(1000, 0);
+  const a = match('W', 6 * M);
+  sample(1000, 6.5 * M); // relance trop rapide : pas encore mis à jour
   assert.strictEqual(store.getMatch(a.id).mmr.status, 'estimated');
-  const b = match('L', 3000);
-  sample(1001, 4000); // +15 puis -14
+  const b = match('L', 13 * M);
+  sample(1001, 13.5 * M); // +15 puis -14
   const ma = store.getMatch(a.id).mmr;
   const mb = store.getMatch(b.id).mmr;
   assert.strictEqual(ma.status, 'grouped');
@@ -188,4 +189,44 @@ test('journaux du jeu présents sur ce PC : MMR cohérents et datés', { skip: !
     assert.ok(Number.isFinite(s.at) && s.at > Date.UTC(2015, 0, 1) && s.at < Date.now() + 60e3, `date ${s.at}`);
   }
   assert.ok(samples.every((s, i) => i === 0 || s.at >= samples[i - 1].at), 'ordre chronologique');
+});
+
+test('cas réel : grosse variation sans rapport avec les parties suivies, puis défaite bien attribuée', () => {
+  const { store, match, sample } = setup();
+  const T = Date.UTC(2026, 9, 1, 0, 0, 0);
+  sample(1201.7, T - 30 * 3600e3); // la veille
+  const w = match('W', T - 3600e3); // victoire
+  const l1 = match('L', T - 3000e3); // défaite
+  sample(1257.2, T); // +55.5 : des parties ont été jouées sans RL-UI entre-temps
+  const l2 = match('L', T + 390e3); // défaite, et nouvelle file 20 s après
+  sample(1248, T + 410e3);
+  assert.strictEqual(store.getMatch(l2.id).mmr.delta, -9.2);
+  assert.strictEqual(store.getMatch(l2.id).mmr.status, 'exact');
+  assert.strictEqual(store.getMatch(w.id).mmr.status, 'unknown', 'les +55.5 ne sont pas mis sur une seule victoire');
+  assert.ok(store.getMatch(l1.id).mmr.delta < 0, 'une défaite reste négative');
+});
+
+test('file relancée tout de suite : la variation arrive à la file suivante et va à la bonne partie', () => {
+  const { store, match, sample } = setup();
+  const T = Date.UTC(2026, 8, 29, 19, 0, 0);
+  sample(1209.8, T);
+  const a = match('L', T + 330e3); // défaite, file relancée 30 s après : le serveur n'a pas encore compté
+  sample(1209.8, T + 360e3); // inchangé
+  const b = match('L', T + 800e3); // 2e défaite
+  sample(1190.8, T + 840e3); // -19 : les deux défaites d'un coup
+  const da = store.getMatch(a.id).mmr;
+  const db = store.getMatch(b.id).mmr;
+  assert.ok(da.delta < 0 && db.delta < 0, `${da.delta} / ${db.delta}`);
+  assert.strictEqual(Math.round((da.delta + db.delta) * 10) / 10, -19);
+});
+
+test('partie finie depuis longtemps : toujours comptée dans la valeur suivante', () => {
+  const { store, match, sample } = setup();
+  const T = Date.UTC(2026, 8, 29, 18, 0, 0);
+  sample(1184.5, T);
+  const a = match('L', T + 400e3);
+  const b = match('L', T + 900e3);
+  sample(1162.7, T + 3600e3); // une heure plus tard : -21.8 pour les deux défaites
+  assert.strictEqual(store.getMatch(a.id).mmr.status, 'grouped');
+  assert.strictEqual(store.getMatch(b.id).mmr.status, 'grouped');
 });

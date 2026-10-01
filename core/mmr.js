@@ -12,6 +12,10 @@ const { describePlaylist } = require('./playlists');
 const { t: tr } = require('./i18n');
 
 const round1 = (n) => Math.round(n * 10) / 10;
+// Une partie finie depuis plus longtemps que ça avant la recherche est forcément comptée dans la valeur lue.
+// En dessous, le serveur n'a peut-être pas encore mis le MMR à jour (la variation arrive à la recherche suivante).
+const LAG_MS = 3 * 60 * 1000;
+const ALGO = 2; // version de l'attribution (recalcul de l'historique quand elle change)
 const accountOf = (key) => String(key).slice(0, String(key).lastIndexOf('|'));
 
 class MmrTracker extends EventEmitter {
@@ -24,6 +28,39 @@ class MmrTracker extends EventEmitter {
     if (!Array.isArray(this.d.samples)) this.d.samples = [];
     if (!this.d.last || typeof this.d.last !== 'object') this.d.last = {};
     if (!this.d.pending || typeof this.d.pending !== 'object') this.d.pending = {};
+    this._learn = null;
+    if (this.d.algo !== ALGO) {
+      this.rebuild();
+      this.d.algo = ALGO;
+      store.save();
+    }
+  }
+
+  // Recalcule toutes les variations à partir des valeurs réelles enregistrées (dans l'ordre chronologique)
+  rebuild() {
+    const matches = this.store.data.matches.filter((m) => m.mmr && m.mmr.key);
+    for (const m of matches) m.mmr = { key: m.mmr.key, playlist: m.mmr.playlist, before: null, after: null, delta: m.mmr.delta, status: 'estimated' };
+    this._learn = null;
+    const keys = new Set([...matches.map((m) => m.mmr.key), ...this.d.samples.map((x) => x.key)]);
+    this.d.pending = {};
+    for (const k of keys) {
+      const ev = [
+        ...matches.filter((m) => m.mmr.key === k).map((m) => ({ t: m.endedAt, m })),
+        ...this.d.samples.filter((x) => x.key === k).map((x) => ({ t: x.at, x })),
+      ].sort((a, b) => a.t - b.t || (a.m ? -1 : 1));
+      this.d.pending[k] = [];
+      let last = null;
+      for (const e of ev) {
+        if (e.m) {
+          e.m.mmr.delta = this.estimate(e.m, k);
+          this.d.pending[k].push(e.m.id);
+          continue;
+        }
+        if (!last) this._dropOlderPending(k, e.x.at);
+        else if (Math.abs(e.x.mmr - last.mmr) >= 0.05) this._assign(k, e.x.mmr - last.mmr, last.mmr, e.x.at, true);
+        last = e.x;
+      }
+    }
     this._learn = null;
   }
 
@@ -70,38 +107,54 @@ class MmrTracker extends EventEmitter {
     this.d.pending[k] = keep;
   }
 
-  _assign(k, delta, before, at) {
+  _assign(k, delta, before, at, quiet = false) {
     const pend = (this.d.pending[k] || []).map((id) => this.store.getMatch(id)).filter((m) => m && m.mmr);
     const covered = pend.filter((m) => m.endedAt <= at + 2000).sort((a, b) => a.endedAt - b.endedAt);
     const later = pend.filter((m) => m.endedAt > at + 2000);
     if (!covered.length) {
-      this.emit('log', tr('s.mmrNoMatch'));
+      if (!quiet) this.emit('log', tr('s.mmrNoMatch'));
       return [];
     }
-    // Le plus court préfixe qui explique la variation (une mise à jour peut arriver en retard)
-    let best = 1;
-    let bestErr = Infinity;
-    let sum = 0;
-    covered.forEach((m, i) => {
-      sum += this.estimate(m, k);
+    // parties finies bien avant la recherche : forcément dans cette valeur ; les dernières peuvent manquer (retard du serveur)
+    const required = covered.filter((m) => m.endedAt < at - LAG_MS).length;
+    const est = covered.map((m) => this.estimate(m, k));
+    let best = required;
+    let sum = est.slice(0, required).reduce((a, b) => a + b, 0);
+    let bestErr = Math.abs(delta - sum);
+    for (let i = required; i < covered.length; i++) {
+      sum += est[i];
       const err = Math.abs(delta - sum);
       if (err < bestErr - 0.5) {
         bestErr = err;
         best = i + 1;
       }
-    });
+    }
+    if (best === 0) {
+      // variation sans partie suivie (joué hors de l'app ?) ; les parties récentes seront expliquées à la recherche suivante
+      if (!quiet) this.emit('log', tr('s.mmrNoMatch'));
+      return [];
+    }
     const group = covered.slice(0, best);
-    const est = group.map((m) => this.estimate(m, k));
-    const adj = (delta - est.reduce((a, b) => a + b, 0)) / group.length;
+    const gEst = est.slice(0, best);
+    const residual = delta - gEst.reduce((a, b) => a + b, 0);
+    const single = group.length === 1;
+    const signOk = !single || Math.abs(delta) < 3 || (group[0].result === 'W') === delta > 0;
+    this.d.pending[k] = [...covered.slice(best), ...later].map((m) => m.id);
+    this._learn = null;
+    // trop d'écart avec les parties suivies : des parties ont été jouées sans RL-UI, on garde les estimations
+    if (Math.abs(residual) > 15 + 6 * group.length || !signOk) {
+      for (const m of group) m.mmr = { ...m.mmr, status: 'unknown' };
+      if (!quiet) this.emit('log', tr('s.mmrGap', { d: `${delta > 0 ? '+' : ''}${round1(delta)}` }));
+      return [];
+    }
+    const adj = residual / group.length;
     let cur = before;
     for (let i = 0; i < group.length; i++) {
       const m = group[i];
-      const dv = group.length === 1 ? delta : est[i] + adj;
-      m.mmr = { key: k, playlist: m.mmr.playlist, before: round1(cur), after: round1(cur + dv), delta: round1(dv), status: group.length === 1 ? 'exact' : 'grouped' };
+      const dv = single ? delta : gEst[i] + adj;
+      m.mmr = { key: k, playlist: m.mmr.playlist, before: round1(cur), after: round1(cur + dv), delta: round1(dv), status: single ? 'exact' : 'grouped' };
       cur += dv;
     }
-    this.d.pending[k] = [...covered.slice(best), ...later].map((m) => m.id);
-    this._learn = null;
     return group.map((m) => m.id);
   }
 
@@ -194,7 +247,7 @@ class MmrTracker extends EventEmitter {
       const e = entry(m.mmr.key, m.mmr.playlist);
       e.delta += m.mmr.delta || 0;
       e.games++;
-      if (m.mmr.status === 'estimated') e.approx = true;
+      if (m.mmr.status !== 'exact' && m.mmr.status !== 'grouped') e.approx = true;
       e.lastAt = Math.max(e.lastAt, m.endedAt || 0);
     }
     if (liveKey && this.d.last[liveKey]) {
@@ -235,4 +288,4 @@ class MmrTracker extends EventEmitter {
   }
 }
 
-module.exports = { MmrTracker, round1 };
+module.exports = { MmrTracker, round1, LAG_MS };

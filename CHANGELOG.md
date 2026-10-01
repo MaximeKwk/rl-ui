@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2
+
+- **MMR**: the real change after a match is now given to the right match. A match that ended more than 3 minutes before you queue again is always counted in the new value; only the one that just ended can still be missing (server delay).
+- When your MMR moved much more than your tracked matches explain (matches played without RL-UI), RL-UI no longer puts the whole difference on one match: those matches keep their estimate (≈).
+- Your existing history is recalculated with these rules on first launch.
+
 ## 1.1.1
 
 - **Caster mode — statfeed**: plays (demolitions, saves, epic saves, hat tricks…) now show **one at a time** in the bottom-left corner, instead of piling up and disappearing together.
