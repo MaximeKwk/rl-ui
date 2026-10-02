@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><style>
+/* Vidéo promo RL-UI (1920×1080, 21 s). Toutes les animations sont pilotées par le temps : render.js fige
+   chaque image (setTime(t)) et l'envoie à ffmpeg. Même langage que l'app : graphite, plaques à coins coupés. */
+@font-face { font-family: 'Archivo'; font-weight: 100 900; font-stretch: 62% 125%; src: url('../../web/assets/fonts/archivo-latin-standard-normal.woff2') format('woff2-variations'); }
+@font-face { font-family: 'BC'; font-weight: 800; src: url('../../web/assets/fonts/barlow-condensed-800-normal.woff2'); }
+@font-face { font-family: 'BC'; font-weight: 700; src: url('../../web/assets/fonts/barlow-condensed-700-normal.woff2'); }
+:root { --desk:#121417; --panel:#1b1d22; --plate:rgba(19,21,25,.94); --pl:rgba(255,255,255,.12); --text:#e7e4de; --muted:#9297a1;
+  --win:#2ef2a0; --loss:#ff4d6d; --ot:#ffb020; --blue:#4c8df6; --orange:#f08a3c; --ease:cubic-bezier(.2,.8,.2,1); }
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:var(--desk);color:var(--text);font-family:Archivo,sans-serif}
+.scene{position:absolute;inset:0;display:none}
+.scene.on{display:block}
+@keyframes up{from{opacity:0;transform:translateY(60px)}}
+@keyframes left{from{opacity:0;transform:translateX(-80px)}}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{0%{opacity:0;transform:scale(.6)}70%{transform:scale(1.04)}100%{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleX(0)}}
+@keyframes wipeOpen{from{clip-path:polygon(0 0,0 0,0 100%,0 100%)}to{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}}
+
+/* ---------- 1. intro */
+.intro{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:56px}
+.intro img{width:260px;height:260px;animation:pop .6s var(--ease) .15s both}
+.intro h1{margin:0;white-space:nowrap;font-weight:800;font-stretch:120%;font-size:210px;line-height:.9;letter-spacing:-.02em;animation:left .6s var(--ease) .45s both}
+.bar{display:flex;transform-origin:0 50%}
+.bar i{flex:1;background:var(--blue)}.bar i+i{background:var(--orange)}
+.intro .bar{position:absolute;left:0;right:0;bottom:-70px;height:14px;animation:grow .7s var(--ease) .8s both}
+.intro p{position:absolute;left:0;bottom:-160px;margin:0;font-size:46px;color:var(--muted);white-space:nowrap;animation:fade .5s ease 1.2s both}
+
+/* ---------- 2. texte cinétique */
+.kin{position:absolute;left:160px;top:50%;transform:translateY(-50%)}
+.kin div{font-weight:800;font-stretch:118%;font-size:150px;line-height:1.02;letter-spacing:-.02em;animation:up .45s var(--ease) both}
+.kin .w{color:var(--win)}.kin .l{color:var(--loss)}.kin .o{color:var(--ot)}
+.kin small{display:block;margin-top:34px;font-size:48px;font-weight:500;color:var(--muted);letter-spacing:0;animation:fade .5s ease both}
+
+/* ---------- 3. en stream : terrain stylisé + overlays */
+.pitch{position:absolute;inset:0;background:#0d1520;overflow:hidden}
+.pitch svg{position:absolute;left:50%;top:58%;width:2600px;transform:translate(-50%,-50%) perspective(1400px) rotateX(52deg);animation:drift 9s linear 5s both}
+@keyframes drift{from{transform:translate(-50%,-50%) perspective(1400px) rotateX(52deg) scale(1)}to{transform:translate(-50%,-50%) perspective(1400px) rotateX(52deg) scale(1.12)}}
+.pitch::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0b0f15 0%,rgba(11,15,21,0) 45%)}
+.caption{position:absolute;left:80px;bottom:76px;font-weight:700;font-stretch:112%;font-size:46px;z-index:3}
+.caption span{display:inline-block;background:var(--text);color:var(--desk);padding:10px 22px 12px;animation:wipeOpen .5s var(--ease) both}
+
+.counter{position:absolute;left:70px;top:70px;display:flex;align-items:stretch;height:150px;padding:0 14px;isolation:isolate;font-family:BC;animation:left .6s var(--ease) 5.25s both;z-index:2}
+.counter::after{content:'';position:absolute;inset:0;z-index:-1;background:var(--plate);clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,26px 100%,0 calc(100% - 26px))}
+.cell{position:relative;display:flex;align-items:baseline;justify-content:center;gap:8px;padding:0 26px;align-self:center}
+.cell+.cell{box-shadow:inset 1px 0 0 var(--pl)}
+.cell b{font-weight:800;font-size:110px;line-height:1}
+.cell .u{font-weight:700;font-size:40px}
+.cell.stat{flex-direction:column;align-items:center;gap:0}
+.cell.stat b{font-size:72px}
+.cell.stat em{font-style:normal;font-weight:700;font-size:26px;color:rgba(255,255,255,.6);margin-top:-4px}
+.g{color:var(--win)}.r{color:var(--loss)}.y{color:var(--ot)}
+.flash{position:absolute;inset:-20px 4px;background:currentColor;opacity:0;mix-blend-mode:screen}
+.otb{position:absolute;right:0;top:-30px;background:var(--ot);color:#141414;font-weight:800;font-size:30px;padding:2px 14px;opacity:0}
+
+.al{--c1:var(--win);--bar:var(--win);--cut2:30px;position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);isolation:isolate;flex-direction:column;align-items:flex-start;min-width:940px;padding:30px 66px 30px 70px;font-family:BC;display:none}
+.al.on{display:flex}
+.al.ot{--c1:var(--ot);--bar:var(--ot)}.al.otw{--c1:var(--win);--bar:var(--ot)}
+.al::after{content:'';position:absolute;inset:0;z-index:-2;background:var(--plate);clip-path:polygon(var(--cut2) 0,100% 0,100% calc(100% - var(--cut2)),calc(100% - var(--cut2)) 100%,0 100%,0 var(--cut2));animation:open .5s var(--ease) var(--d) both,close .4s ease-in var(--o) forwards}
+.al::before{content:'';position:absolute;left:0;top:var(--cut2);bottom:0;width:18px;z-index:-1;background:var(--bar);transform-origin:50% 100%;animation:rise .35s ease-out calc(var(--d) + .15s) both,gone .25s ease-in var(--o) forwards}
+.al > *{animation:slide .45s ease-out calc(var(--d) + .16s) both,gone .25s ease-in var(--o) forwards}
+.al > .subs{animation:fade .4s ease-out calc(var(--d) + .4s) both,gone .25s ease-in var(--o) forwards}
+@keyframes open{from{clip-path:polygon(0 0,0 0,0 calc(100% - var(--cut2)),0 100%,0 100%,0 var(--cut2))}}
+@keyframes close{to{clip-path:polygon(100% 0,100% 0,100% calc(100% - var(--cut2)),100% 100%,100% 100%,100% var(--cut2))}}
+@keyframes rise{from{transform:scaleY(0)}}
+@keyframes slide{from{opacity:0;transform:translateX(-28px)}}
+@keyframes gone{to{opacity:0}}
+.kicker{font-size:32px;font-weight:700;color:rgba(255,255,255,.62)}
+.tx{font-weight:800;font-size:230px;line-height:.9;color:var(--c1);white-space:nowrap}
+.subs{display:flex;align-self:stretch;margin-top:20px;padding-top:18px;border-top:1px solid var(--pl)}
+.chip{padding:0 32px;border-left:1px solid var(--pl);font-size:40px;font-weight:700;color:#fff;white-space:nowrap}
+.chip:first-child{padding-left:0;border-left:0}
+.chip.sc{font-size:48px;font-weight:800}.chip.sc b{color:var(--c1)}.chip.sc i{font-style:normal;opacity:.4}
+.chip.up{color:var(--win);font-weight:800}.chip.hl{color:var(--ot)}
+
+/* ---------- 5. fonctionnalités */
+.feat{position:absolute;left:160px;top:50%;transform:translateY(-50%);width:1600px}
+.feat h2{margin:0 0 30px;font-weight:700;font-stretch:112%;font-size:52px;color:var(--muted);animation:fade .4s ease 14.15s both}
+.feat div{display:flex;align-items:baseline;gap:40px;padding:22px 0;border-top:2px solid #2a2e35;font-weight:800;font-stretch:112%;font-size:76px;animation:left .45s var(--ease) both}
+.feat div span{font-weight:400;font-stretch:100%;font-size:38px;color:var(--muted)}
+
+/* ---------- 6. fin */
+.end{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:44px}
+.end img{width:200px;height:200px;animation:pop .55s var(--ease) 17.6s both}
+.end h1{margin:0;white-space:nowrap;font-weight:800;font-stretch:120%;font-size:170px;line-height:.9;letter-spacing:-.02em;animation:left .55s var(--ease) 17.8s both}
+.cta{position:absolute;left:0;right:0;top:61%;text-align:center}
+.cta b{display:inline-block;background:var(--text);color:var(--desk);font-weight:800;font-stretch:112%;font-size:58px;padding:16px 44px 20px;clip-path:polygon(0 0,calc(100% - 24px) 0,100% 24px,100% 100%,24px 100%,0 calc(100% - 24px));animation:pop .5s var(--ease) 18.3s both}
+.cta p{margin:30px 0 0;font-size:44px;color:var(--muted);animation:fade .5s ease 18.7s both}
+.endbar{position:absolute;left:0;right:0;bottom:0;height:16px;animation:grow .8s var(--ease) 17.7s both}
+
+/* ---------- transitions : plaques aux couleurs des équipes qui balaient l'écran */
+.sweep{position:absolute;inset:0;z-index:50;pointer-events:none;overflow:hidden}
+.sweep i{position:absolute;top:-10%;bottom:-10%;left:-15%;width:130%;transform:translateX(-120%) skewX(-14deg)}
+.sweep i:nth-child(1){background:var(--blue);animation:sweep .62s cubic-bezier(.7,0,.3,1) var(--t) both}
+.sweep i:nth-child(2){background:var(--orange);animation:sweep .62s cubic-bezier(.7,0,.3,1) calc(var(--t) + .07s) both}
+.sweep i:nth-child(3){background:var(--desk);animation:sweep .62s cubic-bezier(.7,0,.3,1) calc(var(--t) + .14s) both}
+@keyframes sweep{from{transform:translateX(-120%) skewX(-14deg)}to{transform:translateX(120%) skewX(-14deg)}}
+</style></head><body>
+
+<section class="scene" data-in="0" data-out="2.5">
+  <div class="intro"><img src="../../build/icon.png" alt=""><h1>RL-UI</h1><div class="bar"><i></i><i></i></div><p>Stream overlay for Rocket League</p></div>
+</section>
+
+<section class="scene" data-in="2.5" data-out="5">
+  <div class="kin">
+    <div class="w" style="animation-delay:2.7s">Every win.</div>
+    <div class="l" style="animation-delay:3.2s">Every loss.</div>
+    <div class="o" style="animation-delay:3.7s">Every overtime.</div>
+    <small style="animation-delay:4.15s">Counted for you, live on stream.</small>
+  </div>
+</section>
+
+<section class="scene" data-in="5" data-out="14">
+  <div class="pitch">
+    <svg viewBox="0 0 2600 1500" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="7">
+      <rect x="100" y="100" width="2400" height="1300" rx="160" fill="rgba(255,255,255,.025)"/>
+      <line x1="1300" y1="100" x2="1300" y2="1400"/>
+      <circle cx="1300" cy="750" r="190"/>
+      <rect x="100" y="520" width="200" height="460" fill="rgba(76,141,246,.16)" stroke="rgba(76,141,246,.5)"/>
+      <rect x="2300" y="520" width="200" height="460" fill="rgba(240,138,60,.16)" stroke="rgba(240,138,60,.5)"/>
+      <circle cx="1300" cy="750" r="34" fill="rgba(255,255,255,.5)" stroke="none"/>
+    </svg>
+  </div>
+  <div class="counter">
+    <div class="cell g"><b id="cW">7</b><span class="u">W</span><i class="flash" id="fW"></i></div>
+    <div class="cell r"><b id="cL">3</b><span class="u">L</span></div>
+    <div class="cell stat"><b id="cWr">70%</b><em>winrate</em></div>
+    <div class="cell stat"><b id="cSt" class="y">3</b><em>streak</em></div>
+    <div class="cell stat g"><b id="cM">+27</b><em>MMR</em><i class="flash" id="fM"></i></div>
+    <span class="otb" id="otb">OVERTIME</span>
+  </div>
+
+  <div class="al" style="--d:5.6s;--o:8.0s" data-in="5.6" data-out="8.45">
+    <div class="kicker">2v2 Ranked</div><div class="tx">VICTORY</div>
+    <div class="subs"><span class="chip sc"><b>3</b> <i>-</i> 2</span><span class="chip up">+9 MMR</span><span class="chip hl">4 in a row</span><span class="chip">MVP</span></div>
+  </div>
+  <div class="al ot" style="--d:8.5s;--o:10.5s" data-in="8.5" data-out="10.95">
+    <div class="kicker">Sudden death</div><div class="tx">OVERTIME</div>
+    <div class="subs"><span class="chip sc"><b>2</b> <i>-</i> 2</span><span class="chip hl">Next goal wins</span></div>
+  </div>
+  <div class="al otw" style="--d:11.0s;--o:13.3s" data-in="11" data-out="13.75">
+    <div class="kicker">Overtime</div><div class="tx">OT WIN</div>
+    <div class="subs"><span class="chip sc"><b>3</b> <i>-</i> 2</span><span class="chip up">+11 MMR</span><span class="chip hl">5 in a row</span></div>
+  </div>
+
+  <div class="caption"><span style="animation-delay:5.5s">Your stream reacts on its own</span></div>
+</section>
+
+<section class="scene" data-in="14" data-out="17.5">
+  <div class="feat">
+    <h2>Also in the box</h2>
+    <div style="animation-delay:14.35s">Real MMR <span>read from the game</span></div>
+    <div style="animation-delay:14.75s">OBS and Streamlabs <span>scenes switch by themselves</span></div>
+    <div style="animation-delay:15.15s">Caster mode <span>for tournaments and scrims</span></div>
+    <div style="animation-delay:15.55s">Twitch commands <span>!wl  !mmr  !streak</span></div>
+    <div style="animation-delay:15.95s">No mods <span>safe with the anti-cheat</span></div>
+  </div>
+</section>
+
+<section class="scene" data-in="17.5" data-out="99">
+  <div class="end"><img src="../../build/icon.png" alt=""><h1>RL-UI</h1></div>
+  <div class="cta"><b>Free for Windows</b><p>maximekwk.github.io/rl-ui</p></div>
+  <div class="endbar bar"><i></i><i></i></div>
+</section>
+
+<div class="sweep" style="--t:2.2s"><i></i><i></i><i></i></div>
+<div class="sweep" style="--t:4.7s"><i></i><i></i><i></i></div>
+<div class="sweep" style="--t:13.7s"><i></i><i></i><i></i></div>
+<div class="sweep" style="--t:17.2s"><i></i><i></i><i></i></div>
+
+<script>
+// états du compteur pendant la vidéo
+const steps = [
+  { t: 0, W: 7, L: 3, wr: '70%', st: '3', m: '+27' },
+  { t: 6.2, W: 8, L: 3, wr: '73%', st: '4', m: '+36' },
+  { t: 11.6, W: 9, L: 3, wr: '75%', st: '5', m: '+47' },
+];
+const $ = (id) => document.getElementById(id);
+window.setTime = (t) => {
+  for (const s of document.querySelectorAll('[data-in]')) s.classList.toggle('on', t >= +s.dataset.in && t < +s.dataset.out);
+  const cur = steps.filter((s) => t >= s.t).pop();
+  $('cW').textContent = cur.W; $('cL').textContent = cur.L; $('cWr').textContent = cur.wr; $('cSt').textContent = cur.st; $('cM').textContent = cur.m;
+  const f = cur.t > 0 ? Math.max(0, 0.6 - (t - cur.t)) * 0.7 : 0;
+  $('fW').style.opacity = $('fM').style.opacity = f;
+  $('otb').style.opacity = t >= 8.7 && t < 11.6 ? 1 : 0;
+  for (const a of document.getAnimations()) { a.pause(); a.currentTime = t * 1000; }
+};
+window.setTime(0);
+</script>
+</body></html>
