@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.2
+
+- **New default alert sounds**, in a modern video game style: riser, impact and big synth chords. Shorter (1–2 s) and balanced with each other (the win streak sound is now clearly audible). Your own sounds and theme sounds still replace them.
+
 ## 1.2.1
 
 - **New logo**: a TV-graphics plate with cut corners, upright “RL” and the two team colors, matching the new design (app icon, taskbar, Microsoft Store tiles).
