@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- **New dashboard design**: a broadcast control-desk look (matte surfaces, readouts for numbers, status lights), a clearer settings page, Archivo font for the interface.
+- **New stream overlays**: TV-style graphics (opaque plates with 45° cut corners, upright numbers, solid colors). Alerts are now a broadcast banner, with no more glows, rays, glitch or confetti. Built-in themes updated; new theme variables `--plate`, `--plate-line`, `--cut`.
+- **Security**: passwords (OBS, Streamlabs) and the Twitch login are encrypted with Windows data protection, and websites open in your browser can no longer read RL-UI's live feed. See SECURITY.md.
+- Switching tabs now starts at the top of the page.
+
 ## 1.1.2
 
 - **MMR**: the real change after a match is now given to the right match. A match that ended more than 3 minutes before you queue again is always counted in the new value; only the one that just ended can still be missing (server delay).

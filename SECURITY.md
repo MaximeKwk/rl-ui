@@ -18,10 +18,10 @@ Only the latest release receives security fixes. The installed version updates i
 - **Websites can't read your data.** The live feed only accepts RL-UI's own pages (overlays and dashboard); a website open in your browser is refused, and requests with an unexpected `Host` are rejected (DNS rebinding).
 - **Themes can't run code.** Only images, fonts, sounds and CSS are accepted from a theme `.zip`; files are served with a strict Content Security Policy and can't load anything from the Internet.
 - **No mods, no telemetry.** RL-UI only reads Rocket League's official Stats API and the game's local log file. Nothing is sent over the Internet except the update check (GitHub) and the chat services you connect yourself (Twitch).
+- **Secrets are encrypted.** OBS / Streamlabs passwords and the Twitch login are encrypted with Windows data protection (DPAPI): only your Windows account on this PC can read them.
 - **Desktop app hardening.** The window runs with context isolation and sandboxing; external links open in your browser, and only a short list of sites can be opened from the app.
 
 ## Known limitations
 
 - The `.exe` is not code-signed yet (Windows SmartScreen may warn on first launch). The Microsoft Store version will be signed by Microsoft.
-- OBS / Streamlabs passwords and the Twitch login are stored in RL-UI's data folder (`%APPDATA%\RL-UI`) in plain text, readable by programs running under your Windows account.
 - In *Reachable from the local network* mode, overlays and API calls use plain HTTP on your network.

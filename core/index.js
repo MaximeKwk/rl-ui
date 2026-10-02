@@ -21,6 +21,7 @@ const { ThemeManager } = require('./themes');
 const { CasterFeed } = require('./caster');
 const { TwitchChat } = require('./twitch');
 const { CasterAssets } = require('./casterAssets');
+const { makeVault } = require('./vault');
 const { categoryLabels, describePlaylist, playlistLabel } = require('./playlists');
 const i18n = require('./i18n');
 
@@ -35,14 +36,16 @@ class Core extends EventEmitter {
     this.documentsDir = documentsDir;
     this.version = version;
     this.hooks = hooks;
-    this.store = new Store(dataDir);
+    // secrets chiffrés par Windows quand l'application Electron fournit le chiffrement (hooks.vault)
+    this.vault = makeVault(hooks.vault || null);
+    this.store = new Store(dataDir, { vault: this.vault });
     i18n.setLang(this.store.settings.language);
     this.soundsDir = path.join(dataDir, 'sounds');
     this.logWatcher = new RlLogWatcher({ documentsDir, logPath });
     this.tracker = new Tracker({ store: this.store, logWatcher: this.logWatcher });
     this.caster = new CasterFeed();
     this.casterAssets = new CasterAssets(path.join(dataDir, 'caster'));
-    this.chat = new TwitchChat({ dataDir, getSettings: () => this.store.settings, render: (cmd) => this.chatResponse(cmd) });
+    this.chat = new TwitchChat({ dataDir, getSettings: () => this.store.settings, render: (cmd) => this.chatResponse(cmd), vault: this.vault });
     this._casterTimer = null;
     this._casterSentAt = 0;
     this.mmr = new MmrTracker(this.store);

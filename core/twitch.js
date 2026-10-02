@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { EventEmitter } = require('events');
 const WebSocket = require('ws');
+const { makeVault } = require('./vault');
 
 // Identifiant PUBLIC de l'application Twitch « RL-UI » (dev.twitch.tv/console/apps, type « Public »).
 // Vide = commandes du chat indisponibles. Peut être remplacé par RLUI_TWITCH_CLIENT_ID pour les tests.
@@ -53,7 +54,7 @@ function matchCommand(text, commands) {
 const chatSafe = (s) => String(s || '').replace(/[\r\n]+/g, ' ').trim().slice(0, 480);
 
 class TwitchChat extends EventEmitter {
-  constructor({ dataDir, getSettings, render, fetchImpl = globalThis.fetch, ircUrl = IRC_URL, pollMs = null, clientId = process.env.RLUI_TWITCH_CLIENT_ID || TWITCH_CLIENT_ID }) {
+  constructor({ dataDir, getSettings, render, fetchImpl = globalThis.fetch, ircUrl = IRC_URL, pollMs = null, vault = makeVault(null), clientId = process.env.RLUI_TWITCH_CLIENT_ID || TWITCH_CLIENT_ID }) {
     super();
     this.file = path.join(dataDir, 'twitch-auth.json');
     this.getSettings = getSettings;
@@ -62,6 +63,7 @@ class TwitchChat extends EventEmitter {
     this.ircUrl = ircUrl;
     this.pollMs = pollMs; // tests : délai entre deux vérifications du code
     this.clientId = clientId;
+    this.vault = vault;
     this.auth = this._loadAuth();
     this.ws = null;
     this.state = 'off'; // off | code | connecting | connected | error
@@ -94,13 +96,23 @@ class TwitchChat extends EventEmitter {
     return c || (this.auth ? this.auth.login : '');
   }
 
+  // le fichier contient { enc: "enc:v1:…" } (connexion chiffrée par Windows) ou, sans chiffrement, la connexion en clair
   _loadAuth() {
     try {
-      const a = JSON.parse(fs.readFileSync(this.file, 'utf8'));
-      return a && a.access_token ? a : null;
+      const raw = JSON.parse(fs.readFileSync(this.file, 'utf8'));
+      const a = raw && raw.enc ? JSON.parse(this.vault.open(raw.enc) || 'null') : raw;
+      if (!a || !a.access_token) return null;
+      if (!raw.enc && this.vault.available) this._write(a); // ancienne version en clair : on chiffre
+      return a;
     } catch {
       return null;
     }
+  }
+
+  _write(a) {
+    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    const body = this.vault.available ? { enc: this.vault.seal(JSON.stringify(a)) } : a;
+    fs.writeFileSync(this.file, JSON.stringify(body));
   }
 
   _saveAuth(a) {
@@ -111,8 +123,7 @@ class TwitchChat extends EventEmitter {
       } catch {}
       return;
     }
-    fs.mkdirSync(path.dirname(this.file), { recursive: true });
-    fs.writeFileSync(this.file, JSON.stringify(a));
+    this._write(a);
   }
 
   async _post(url, form) {

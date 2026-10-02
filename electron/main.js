@@ -2,7 +2,7 @@
 // Processus principal Electron : fenêtre du tableau de bord, icône dans la zone de notification,
 // raccourcis clavier globaux et démarrage avec Windows. Toute la logique est dans ../core.
 
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, globalShortcut, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, globalShortcut, dialog, safeStorage } = require('electron');
 const path = require('path');
 const { Core } = require('../core');
 const { migrateLegacyData } = require('./migrate');
@@ -156,6 +156,10 @@ app.whenReady().then(async () => {
     webDir: path.join(__dirname, '..', 'web'),
     version: pkg.version,
     hooks: {
+      // mots de passe OBS / Streamlabs et connexion Twitch chiffrés par Windows (DPAPI)
+      vault: safeStorage.isEncryptionAvailable()
+        ? { encrypt: (s) => safeStorage.encryptString(s).toString('base64'), decrypt: (b) => safeStorage.decryptString(Buffer.from(b, 'base64')) }
+        : null,
       openPath: async (p) => !(await shell.openPath(p)),
       openExternal: (url) => shell.openExternal(url),
       onSettingsChanged: (s, prev) => {

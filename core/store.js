@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { makeVault, SECRET_SETTINGS } = require('./vault');
 
 const ALERT_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
 
@@ -153,12 +154,36 @@ function deepMerge(target, src, strict = false) {
 }
 
 class Store {
-  constructor(dataDir) {
+  // vault : chiffrement des secrets dans data.json (voir vault.js) ; sans, ils restent en clair
+  constructor(dataDir, { vault = makeVault(null) } = {}) {
     this.dir = dataDir;
     this.file = path.join(dataDir, 'data.json');
+    this.vault = vault;
     fs.mkdirSync(dataDir, { recursive: true });
+    this._plainSecrets = false;
     this.data = this._load();
     this._timer = null;
+    // secrets encore en clair d'une version précédente : on les chiffre tout de suite
+    if (this._plainSecrets && vault.available) this._write();
+  }
+
+  // en mémoire les secrets sont en clair ; sur le disque ils sont chiffrés
+  _openSecrets(settings) {
+    for (const [sec, key] of SECRET_SETTINGS) {
+      const v = settings[sec] && settings[sec][key];
+      if (typeof v !== 'string' || !v) continue;
+      if (this.vault.isSealed(v)) settings[sec][key] = this.vault.open(v);
+      else this._plainSecrets = true;
+    }
+  }
+
+  _sealedData() {
+    if (!this.vault.available) return this.data;
+    const settings = { ...this.data.settings };
+    for (const [sec, key] of SECRET_SETTINGS) {
+      if (settings[sec] && settings[sec][key]) settings[sec] = { ...settings[sec], [key]: this.vault.seal(settings[sec][key]) };
+    }
+    return { ...this.data, settings };
   }
 
   _load() {
@@ -170,6 +195,7 @@ class Store {
         const data = { ...base, ...raw };
         data.settings = deepMerge(defaultSettings(), raw.settings || {});
         migrateDefaults(data.settings);
+        this._openSecrets(data.settings);
         if (!Array.isArray(data.matches)) data.matches = [];
         if (!Array.isArray(data.sessions)) data.sessions = [];
         if (!data.currentSessionId) this._newSession(data);
@@ -204,7 +230,7 @@ class Store {
     this._timer = null;
     try {
       const tmp = this.file + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify(this.data));
+      fs.writeFileSync(tmp, JSON.stringify(this._sealedData()));
       if (fs.existsSync(this.file)) {
         try {
           fs.copyFileSync(this.file, this.file + '.bak');
