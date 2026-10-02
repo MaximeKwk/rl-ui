@@ -1,7 +1,7 @@
 {
   "name": "rl-ui",
   "productName": "RL-UI",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Stream overlay for Rocket League: wins / losses, MMR, victory / defeat / overtime alerts, caster mode.",
   "main": "electron/main.js",
   "author": "Zoxam",
@@ -99,7 +99,7 @@
       "publisher": "CN=00000000-0000-0000-0000-000000000000",
       "publisherDisplayName": "Zoxam",
       "displayName": "RL-UI",
-      "backgroundColor": "#0b1020",
+      "backgroundColor": "#121417",
       "languages": [
         "en-US",
         "fr-FR"

@@ -7,29 +7,20 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 const root = path.join(__dirname, '..');
-const font = pathToFileURL(path.join(root, 'web', 'assets', 'fonts', 'barlow-condensed-900-italic.woff2')).href;
+const font = pathToFileURL(path.join(root, 'web', 'assets', 'fonts', 'barlow-condensed-800-normal.woff2')).href;
 
+// Logo : une plaque d'habillage télé (coins coupés à 45°, comme les overlays), « RL » en chiffres droits
+// et la barre des deux équipes (bleu | orange). Couleurs pleines, sans dégradé ni lueur, lisible en 16 px.
 const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4aa0ff"/><stop offset="1" stop-color="#1747c9"/></linearGradient>
-    <linearGradient id="o" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffc04d"/><stop offset="1" stop-color="#ff5f14"/></linearGradient>
-    <linearGradient id="t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#dfe9ff"/></linearGradient>
-    <clipPath id="r"><rect width="512" height="512" rx="116"/></clipPath>
-  </defs>
-  <g clip-path="url(#r)">
-    <rect width="512" height="512" fill="#0a0f1d"/>
-    <polygon points="0,0 352,0 160,512 0,512" fill="url(#b)"/>
-    <polygon points="352,0 512,0 512,512 160,512" fill="url(#o)"/>
-    <polygon points="330,0 374,0 182,512 138,512" fill="#0a0f1d"/>
-    <rect width="512" height="512" fill="url(#t)" opacity="0.06"/>
-  </g>
-  <text x="262" y="352" text-anchor="middle" font-family="BC" font-weight="900" font-style="italic" font-size="300"
-        fill="url(#t)" stroke="#0a0f1d" stroke-width="18" paint-order="stroke" letter-spacing="-4">RL</text>
+  <polygon points="96,0 512,0 512,416 416,512 0,512 0,96" fill="#1b1d22"/>
+  <text x="256" y="336" text-anchor="middle" font-family="BC" font-weight="800" font-size="330" fill="#e7e4de" letter-spacing="-4">RL</text>
+  <rect x="80" y="388" width="170" height="44" fill="#4c8df6"/>
+  <rect x="262" y="388" width="170" height="44" fill="#f08a3c"/>
 </svg>`;
 
 const html = `<!doctype html><html><head><style>
-@font-face { font-family: 'BC'; src: url('${font}') format('woff2'); font-weight: 900; font-style: italic; }
+@font-face { font-family: 'BC'; src: url('${font}') format('woff2'); font-weight: 800; font-style: normal; }
 html, body { margin: 0; background: transparent; overflow: hidden; }
 svg { display: block; }
 </style></head><body>${svg}</body></html>`;

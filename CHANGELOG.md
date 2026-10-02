@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+
+- **New logo**: a TV-graphics plate with cut corners, upright “RL” and the two team colors, matching the new design (app icon, taskbar, Microsoft Store tiles).
+- New GitHub banner.
+
 ## 1.2.0
 
 - **New dashboard design**: a broadcast control-desk look (matte surfaces, readouts for numbers, status lights), a clearer settings page, Archivo font for the interface.

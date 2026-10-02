@@ -1,26 +1,51 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><style>
-@font-face { font-family: 'BC'; src: url('../web/assets/fonts/barlow-condensed-900-italic.woff2'); font-weight: 900; font-style: italic; }
-@font-face { font-family: 'BC'; src: url('../web/assets/fonts/barlow-condensed-700-normal.woff2'); font-weight: 700; }
-@font-face { font-family: 'BC'; src: url('../web/assets/fonts/barlow-condensed-800-italic.woff2'); font-weight: 800; font-style: italic; }
-html,body{margin:0;width:1280px;height:400px;overflow:hidden;font-family:BC,sans-serif;color:#fff}
-body{background:radial-gradient(700px 400px at 0% 100%,rgba(47,140,255,.45),transparent 60%),radial-gradient(700px 400px at 100% 100%,rgba(255,138,42,.4),transparent 60%),linear-gradient(180deg,#141c30,#070a12);position:relative}
-body::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:48px 48px;transform:perspective(600px) rotateX(60deg) translateY(40%) scale(2.4);transform-origin:50% 100%}
-.l{position:absolute;left:80px;top:78px;display:flex;align-items:center;gap:30px}
-.l img{width:150px;height:150px;filter:drop-shadow(0 10px 30px rgba(0,0,0,.6))}
-h1{margin:0;font-weight:900;font-style:italic;font-size:118px;line-height:.9;letter-spacing:.01em}
-h1 span{background:linear-gradient(90deg,#9fd0ff,#ff9a45);-webkit-background-clip:text;color:transparent;padding-right:.08em}
-p{margin:14px 0 0;font-weight:700;font-size:30px;color:#c9d4e6;letter-spacing:.02em}
-.tags{position:absolute;left:80px;bottom:54px;display:flex;gap:12px}
-.tags b{font-weight:800;font-style:italic;font-size:22px;padding:6px 16px;border-radius:999px;background:rgba(8,11,20,.75);border:2px solid rgba(255,255,255,.15)}
-.tags .w{color:#2ef2a0;border-color:rgba(46,242,160,.5)}.tags .ot{color:#ffb020;border-color:rgba(255,176,32,.5)}.tags .l2{color:#ff4d6d;border-color:rgba(255,77,109,.5)}
-.card{position:absolute;right:80px;top:120px;display:flex;align-items:center;height:110px;padding:0 18px;border-radius:22px;background:linear-gradient(135deg,rgba(16,22,38,.95),rgba(7,10,19,.92));border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 50px rgba(0,0,0,.5)}
-.card::before{content:'';position:absolute;left:20px;right:20px;top:-1px;height:4px;border-radius:4px;background:linear-gradient(90deg,#2ef2a0,#ffb020,#ff4d6d)}
-.n{font-weight:900;font-style:italic;font-size:80px;padding:0 10px}.n small{font-size:28px}
-.g{color:#2ef2a0;text-shadow:0 0 24px rgba(46,242,160,.5)}.r{color:#ff4d6d;text-shadow:0 0 24px rgba(255,77,109,.5)}
-.s{border-left:1px solid rgba(255,255,255,.1);padding:0 20px;text-align:center}.s b{display:block;font-weight:800;font-style:italic;font-size:42px}.s i{font-style:normal;font-weight:700;font-size:14px;letter-spacing:.14em;opacity:.6}
+/* Bannière GitHub (1280×400) : même langage que l'app — graphite mat, plaques d'habillage télé à coins coupés,
+   couleurs réservées au sens (victoire, défaite, équipes). Rendu : tools/shot.js → docs/images/banner.png */
+@font-face { font-family: 'Archivo'; font-weight: 100 900; font-stretch: 62% 125%; src: url('../web/assets/fonts/archivo-latin-standard-normal.woff2') format('woff2-variations'); }
+@font-face { font-family: 'BC'; font-weight: 800; src: url('../web/assets/fonts/barlow-condensed-800-normal.woff2'); }
+@font-face { font-family: 'BC'; font-weight: 600; src: url('../web/assets/fonts/barlow-condensed-600-normal.woff2'); }
+:root { --desk:#121417; --plate:#202329; --line:#353941; --text:#e7e4de; --muted:#9297a1; --faint:#6b707a;
+  --win:#4cc38a; --loss:#e5534b; --blue:#4c8df6; --orange:#f08a3c; }
+html,body{margin:0;width:1280px;height:400px;overflow:hidden;background:var(--desk);color:var(--text);font-family:Archivo,sans-serif}
+body{position:relative}
+/* barre des deux équipes, comme sous le logo */
+.teams{position:absolute;left:0;right:0;bottom:0;height:8px;display:flex}
+.teams i{flex:1;background:var(--blue)}.teams i+i{background:var(--orange)}
+
+.id{position:absolute;left:80px;top:92px;display:flex;align-items:center;gap:34px}
+.id img{width:136px;height:136px;display:block}
+h1{margin:0;font-weight:800;font-stretch:118%;font-size:92px;line-height:.92;letter-spacing:-.01em}
+.id p{margin:14px 0 0;font-weight:420;font-size:25px;color:var(--muted);max-width:400px;line-height:1.3}
+.facts{position:absolute;left:80px;bottom:58px;display:flex;font-size:17px;font-weight:520;color:var(--faint)}
+.facts span{padding:0 18px;border-left:1px solid var(--line)}.facts span:first-child{padding-left:0;border:0}
+
+/* le compteur tel qu'il apparaît en stream */
+.ov{position:absolute;right:80px;top:118px}
+.tag{display:inline-block;background:var(--text);color:var(--plate);font-weight:700;font-stretch:110%;font-size:14px;padding:5px 12px 4px}
+.plate{position:relative;display:flex;align-items:stretch;height:118px;padding:0 10px;isolation:isolate}
+.plate::after{content:'';position:absolute;inset:0;z-index:-1;background:var(--plate);
+  clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px))}
+.c{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;min-width:72px}
+.c+.c{box-shadow:inset 1px 0 0 var(--line)}
+.c b{font-family:BC;font-weight:800;font-size:66px;line-height:.9}
+.c small{margin-top:6px;font-size:14px;font-weight:560;color:var(--muted)}
+.c .w{color:var(--win)}.c .l{color:var(--loss)}
+.c .m{font-size:48px;line-height:1.1}
 </style></head><body>
-<div class="l"><img src="../web/assets/icon.png"><div><h1>RL<span>-UI</span></h1><p>Stream overlay for Rocket League</p></div></div>
-<div class="tags"><b class="w">VICTORY</b><b class="l2">DEFEAT</b><b class="ot">OVERTIME</b><b>MMR +x / −x</b><b>OBS · Streamlabs</b></div>
-<div class="card"><span class="n g">12<small>W</small></span><span class="n" style="opacity:.3">/</span><span class="n r">5<small>L</small></span><div class="s"><b>71%</b><i>WINRATE</i></div><div class="s"><b class="g">+37</b><i>MMR</i></div></div>
+<div class="id">
+  <img src="../build/icon.png" alt="">
+  <div><h1>RL-UI</h1><p>Win and loss tracker with stream overlays for Rocket League</p></div>
+</div>
+<div class="facts"><span>Real MMR</span><span>OBS and Streamlabs</span><span>Caster mode</span><span>No mods</span></div>
+<div class="ov">
+  <span class="tag">Session</span>
+  <div class="plate">
+    <div class="c"><b class="w">12</b><small>Wins</small></div>
+    <div class="c"><b class="l">5</b><small>Losses</small></div>
+    <div class="c"><b class="m">71%</b><small>Winrate</small></div>
+    <div class="c"><b class="m w">+37</b><small>MMR</small></div>
+  </div>
+</div>
+<div class="teams"><i></i><i></i></div>
 </body></html>
