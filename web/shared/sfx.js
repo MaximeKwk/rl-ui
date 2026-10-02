@@ -1,4 +1,5 @@
 // Sons des alertes, synthétisés en Web Audio (aucun fichier, aucun droit d'auteur).
+// Style jeu vidéo moderne : montée, impact, gros accords synthé (supersaw) et sub, courts (1 à 2 s).
 // Un fichier perso (mp3/wav/ogg) peut remplacer chaque son depuis le tableau de bord.
 (function () {
   let ctx = null;
@@ -18,15 +19,15 @@
       comp.connect(ctx.destination);
       // réverbe synthétique (bruit décroissant)
       const rev = ctx.createConvolver();
-      const len = Math.floor(ctx.sampleRate * 2.4);
+      const len = Math.floor(ctx.sampleRate * 1.1);
       const buf = ctx.createBuffer(2, len, ctx.sampleRate);
       for (let ch = 0; ch < 2; ch++) {
         const d = buf.getChannelData(ch);
-        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
       }
       rev.buffer = buf;
       wet = ctx.createGain();
-      wet.gain.value = 0.28;
+      wet.gain.value = 0.22;
       wet.connect(rev);
       rev.connect(master);
     }
@@ -106,67 +107,66 @@
 
   const N = (n) => 440 * Math.pow(2, (n - 69) / 12); // note MIDI -> Hz
 
-  function brass(note, t, dur, gain = 0.07) {
-    tone(N(note), t, dur, { type: 'sawtooth', gain, attack: 0.03, release: 0.3, lowpass: 900, lowpassTo: 2600, detune: -6 });
-    tone(N(note), t, dur, { type: 'sawtooth', gain, attack: 0.03, release: 0.3, lowpass: 900, lowpassTo: 2600, detune: 7 });
-    tone(N(note + 12), t, dur, { type: 'triangle', gain: gain * 0.6, attack: 0.02, release: 0.3 });
+  // JEU MODERNE : montée, impact, gros accords synthé (supersaw), sub
+  function saw(note, t, dur, gain, o = {}) {
+    [-14, -5, 0, 6, 15].forEach((d) => tone(N(note), t, dur, { type: 'sawtooth', gain: gain / 3, attack: o.attack ?? 0.01, release: o.release ?? dur * 0.6, detune: d, lowpass: o.lp ?? 3200, lowpassTo: o.lpTo ?? 900, slideTo: o.slideTo ? N(note) * o.slideTo : undefined, slideTime: dur }));
   }
-
-  function thump(t, gain = 0.5) {
-    tone(110, t, 0.22, { type: 'sine', gain, attack: 0.004, release: 0.18, slideTo: 42, slideTime: 0.2, reverb: false });
+  function chord(notes, t, dur, gain = 0.05, o) {
+    notes.forEach((n) => saw(n, t, dur, gain, o));
   }
-
-  function heartbeat(t, gain = 0.55) {
-    thump(t, gain);
-    thump(t + 0.2, gain * 0.7);
+  function riser(t, dur, gain = 0.09) {
+    noise(t, dur, { filter: 'highpass', freq: 300, freqTo: 7000, gain, attack: dur * 0.95 });
+    tone(N(48), t, dur, { type: 'sawtooth', gain: 0.03, attack: dur * 0.9, release: 0.02, slideTo: N(72), slideTime: dur, lowpass: 600, lowpassTo: 3000 });
   }
-
-  function sparkle(t, notes, step = 0.06) {
-    notes.forEach((n, i) => tone(N(n), t + i * step, 0.5, { type: 'sine', gain: 0.05, attack: 0.005, release: 0.45 }));
+  function impact(t, gain = 0.6) {
+    tone(70, t, 0.6, { type: 'sine', gain, attack: 0.003, release: 0.55, slideTo: 32, slideTime: 0.5, reverb: false });
+    noise(t, 0.35, { filter: 'lowpass', freq: 4000, freqTo: 300, gain: 0.16, attack: 0.002 });
+  }
+  function shimmer(t, notes) {
+    notes.forEach((n, i) => tone(N(n), t + i * 0.05, 0.6, { type: 'triangle', gain: 0.035, attack: 0.004, release: 0.55 }));
+  }
+  function boom(t, gain = 0.5) {
+    tone(60, t, 0.3, { type: 'sine', gain, attack: 0.003, release: 0.27, slideTo: 38, slideTime: 0.25, reverb: false });
   }
 
   const SOUNDS = {
     win(t) {
-      [67, 72, 76, 79].forEach((n, i) => brass(n, t + i * 0.09, 0.22));
-      thump(t + 0.38, 0.35);
-      [72, 76, 79, 84].forEach((n) => brass(n, t + 0.38, 1.1, 0.055));
-      noise(t + 0.38, 0.9, { freq: 6000, gain: 0.05 });
-      sparkle(t + 0.55, [96, 100, 103, 108]);
+      riser(t, 0.4);
+      impact(t + 0.4);
+      chord([60, 64, 67, 72], t + 0.4, 1.3, 0.05);
+      shimmer(t + 0.5, [84, 88, 91, 96]);
     },
     loss(t) {
-      thump(t, 0.6);
-      noise(t, 0.5, { filter: 'lowpass', freq: 600, freqTo: 120, gain: 0.12 });
-      [75, 72, 68].forEach((n, i) => tone(N(n), t + 0.12 + i * 0.2, 0.55, { type: 'square', gain: 0.045, lowpass: 1400, lowpassTo: 500, release: 0.4 }));
-      tone(N(56), t + 0.72, 1.0, { type: 'sawtooth', gain: 0.05, lowpass: 700, lowpassTo: 200, attack: 0.05, release: 0.8, vibrato: 5 });
+      impact(t, 0.55);
+      chord([57, 60, 64], t, 1.3, 0.045, { lp: 1800, lpTo: 250, slideTo: 0.84 });
+      tone(N(45), t, 1.2, { type: 'sawtooth', gain: 0.04, attack: 0.01, release: 0.9, lowpass: 700, lowpassTo: 120, slideTo: N(33), slideTime: 1.2 });
     },
     overtime(t) {
-      brass(57, t, 0.28, 0.09);
-      brass(64, t, 0.28, 0.06);
-      brass(57, t + 0.36, 0.75, 0.09);
-      brass(64, t + 0.36, 0.75, 0.06);
-      brass(69, t + 0.36, 0.75, 0.04);
-      heartbeat(t + 1.2);
-      heartbeat(t + 1.85, 0.45);
+      boom(t);
+      boom(t + 0.45, 0.45);
+      riser(t + 0.2, 0.75, 0.08);
+      impact(t + 0.95);
+      chord([57, 62, 64, 69], t + 0.95, 1.2, 0.05);
     },
     ot_win(t) {
-      heartbeat(t, 0.5);
-      heartbeat(t + 0.45, 0.6);
-      const s = t + 0.9;
-      [67, 72, 76, 79, 84].forEach((n, i) => brass(n, s + i * 0.07, 0.22, 0.075));
-      thump(s + 0.36, 0.55);
-      noise(s + 0.36, 1.6, { freq: 4500, gain: 0.09 });
-      [72, 76, 79, 84, 88].forEach((n) => brass(n, s + 0.36, 1.5, 0.05));
-      sparkle(s + 0.5, [96, 100, 103, 108, 103, 108, 112], 0.07);
+      boom(t, 0.4);
+      riser(t, 0.55, 0.11);
+      impact(t + 0.55, 0.7);
+      chord([60, 64, 67, 72], t + 0.55, 0.3, 0.05, { release: 0.1 });
+      impact(t + 0.85, 0.5);
+      chord([64, 67, 72, 76], t + 0.85, 1.5, 0.055);
+      shimmer(t + 0.95, [88, 91, 96, 100, 103]);
     },
     ot_loss(t) {
-      heartbeat(t, 0.5);
-      heartbeat(t + 0.45, 0.35);
-      SOUNDS.loss(t + 0.95);
+      boom(t, 0.4);
+      riser(t, 0.45, 0.07);
+      SOUNDS.loss(t + 0.45);
     },
     streak(t) {
-      noise(t, 0.7, { filter: 'bandpass', freq: 300, freqTo: 5000, q: 1.2, gain: 0.12 });
-      sparkle(t + 0.55, [88, 92, 95, 100], 0.07);
-      tone(N(100), t + 0.83, 0.9, { type: 'triangle', gain: 0.05, release: 0.8 });
+      noise(t, 0.45, { filter: 'bandpass', freq: 400, freqTo: 6000, q: 1.3, gain: 0.1, attack: 0.4 });
+      [67, 71, 74, 79].forEach((n, i) => saw(n, t + 0.3 + i * 0.07, 0.18, 0.04, { release: 0.12 }));
+      impact(t + 0.58, 0.45);
+      chord([67, 71, 74, 79], t + 0.58, 1.0, 0.045);
     },
   };
 
