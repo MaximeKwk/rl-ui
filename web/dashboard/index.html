@@ -48,32 +48,34 @@
                 <h2 data-i18n="h.sess.title">Current session</h2>
                 <span id="sessStart" class="muted"></span>
               </div>
-              <div class="scoreboard">
+              <div class="readout">
                 <div class="count-col win">
-                  <div class="count-label" data-i18n="h.wins">Wins</div>
                   <div class="count" id="cWins">0</div>
-                  <div class="count-btns">
-                    <button class="btn icon" data-act="remove-win" title="Remove a win" data-i18n-title="h.removeWin">−</button>
-                    <button class="btn icon" data-act="win" title="Add a win" data-i18n-title="h.addWin">+</button>
+                  <div class="count-foot">
+                    <span class="count-label" data-i18n="h.wins">Wins</span>
+                    <span class="count-btns">
+                      <button class="btn icon" data-act="remove-win" title="Remove a win" data-i18n-title="h.removeWin">−</button>
+                      <button class="btn icon" data-act="win" title="Add a win" data-i18n-title="h.addWin">+</button>
+                    </span>
                   </div>
                 </div>
-                <div class="wr-ring">
-                  <svg viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r="50" class="track" />
-                    <circle cx="60" cy="60" r="50" class="arc-l" id="arcL" />
-                    <circle cx="60" cy="60" r="50" class="arc-w" id="arcW" />
-                  </svg>
-                  <div class="wr-val"><b id="cWr">—</b><span>winrate</span></div>
-                </div>
+                <div class="count-sep" aria-hidden="true"></div>
                 <div class="count-col loss">
-                  <div class="count-label" data-i18n="h.losses">Losses</div>
                   <div class="count" id="cLosses">0</div>
-                  <div class="count-btns">
-                    <button class="btn icon" data-act="remove-loss" title="Remove a loss" data-i18n-title="h.removeLoss">−</button>
-                    <button class="btn icon" data-act="loss" title="Add a loss" data-i18n-title="h.addLoss">+</button>
+                  <div class="count-foot">
+                    <span class="count-label" data-i18n="h.losses">Losses</span>
+                    <span class="count-btns">
+                      <button class="btn icon" data-act="remove-loss" title="Remove a loss" data-i18n-title="h.removeLoss">−</button>
+                      <button class="btn icon" data-act="loss" title="Add a loss" data-i18n-title="h.addLoss">+</button>
+                    </span>
                   </div>
                 </div>
               </div>
+              <div class="ratio">
+                <div class="ratio-bar"><i class="w" id="barW"></i><i class="l" id="barL"></i></div>
+                <div class="ratio-val"><b id="cWr">—</b> winrate</div>
+              </div>
+              <div class="last-strip" id="lastStrip"></div>
               <div class="kpis">
                 <div class="kpi"><span data-i18n="h.streak">Streak</span><b id="kStreak">—</b></div>
                 <div class="kpi"><span data-i18n="h.best">Best streak</span><b id="kBest">0</b></div>
@@ -82,7 +84,6 @@
                 <div class="kpi"><span data-i18n="h.gas">Goals · assists · saves</span><b id="kGas">0 · 0 · 0</b></div>
                 <div class="kpi" title="Session MMR change (real value read when you queue, estimated in between)" data-i18n-title="h.mmrTip"><span id="kMmrLbl">MMR</span><b id="kMmr">—</b></div>
               </div>
-              <div class="last-strip" id="lastStrip"></div>
               <div class="actions">
                 <button class="btn" data-act="undo" data-i18n="h.undo">Undo last match</button>
                 <button class="btn ghost" id="newSessionBtn" data-i18n="h.newSession">New session</button>
@@ -303,7 +304,7 @@
 
           <div class="card" id="chatCard">
             <div class="card-head">
-              <h2 data-i18n="h.tw.title">Chat commands · Twitch</h2>
+              <h2 data-i18n="h.tw.title">Twitch chat commands</h2>
               <span id="chatState" class="pill"></span>
             </div>
             <p class="muted" data-i18n="h.tw.intro">
@@ -417,7 +418,7 @@
         <section id="tab-settings" class="tab">
           <div class="grid-2">
             <div class="card lang-card">
-              <h3>Language · Langue</h3>
+              <h3>Language (langue)</h3>
               <div class="form">
                 <label><span data-i18n="h.set.lang">Interface and overlays language</span>
                   <select data-set="language">
@@ -480,7 +481,7 @@
             </div>
 
             <div class="card">
-              <h3>Rocket League · Stats API</h3>
+              <h3>Rocket League Stats API</h3>
               <div id="rlInfo" class="info-box"></div>
               <div class="actions">
                 <button class="btn primary" id="enableApiBtn" data-i18n="h.set.enableApi">Enable / repair the API</button>
@@ -517,7 +518,7 @@
             </div>
 
             <div class="card">
-              <h3>Stream Deck · API</h3>
+              <h3>Stream Deck and other tools</h3>
               <p class="muted" data-i18n="h.set.deckHelp">
                 Stream Deck: <b>Website</b> action, paste the URL and tick <b>“GET request in background”</b>. Also works with Streamer.bot, Touch Portal, etc.
               </p>

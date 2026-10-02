@@ -487,7 +487,7 @@
 
   // ------------------------------------------------------------------ rendu
   function chip(cls, label, value) {
-    return `<span class="chip ${cls}">${esc(label)} : <b>${esc(value)}</b></span>`;
+    return `<span class="chip ${cls}"><span class="k">${esc(label)}</span> <b>${esc(value)}</b></span>`;
   }
 
   function renderChips() {
@@ -542,12 +542,12 @@
     setCount('#cLosses', s.losses);
     prevCounts = { w: s.wins, l: s.losses };
     $('#cWr').textContent = s.played ? `${s.winRate}%` : '—';
-    const C = 2 * Math.PI * 50;
-    $('#arcW').setAttribute('stroke-dasharray', s.played ? `${(C * s.wins) / s.played} ${C}` : `0 ${C}`);
-    $('#arcL').setAttribute('stroke-dasharray', s.played && s.losses ? `${C} 0` : `0 ${C}`);
+    // barre victoires / défaites proportionnelle (vide tant qu'aucune partie n'est jouée)
+    $('#barW').style.flexGrow = s.played ? s.wins : 0;
+    $('#barL').style.flexGrow = s.played ? s.losses : 0;
     const k = $('#kStreak');
     k.className = s.streak > 0 ? 'hot' : s.streak < 0 ? 'cold' : '';
-    k.textContent = s.streak > 0 ? `🔥 ${tn('d.nWins', s.streak)}` : s.streak < 0 ? tn('d.nLosses', -s.streak) : '—';
+    k.textContent = s.streak > 0 ? tn('d.nWins', s.streak) : s.streak < 0 ? tn('d.nLosses', -s.streak) : '—';
     $('#kBest').textContent = s.bestWinStreak;
     $('#kOt').textContent = `${s.otWins}-${s.otLosses}`;
     $('#kMvp').textContent = s.mvps;
@@ -556,7 +556,9 @@
     const km = $('#kMmr');
     if (mm) {
       const d = Math.round(mm.delta || 0);
-      km.innerHTML = `${mm.current != null ? `${mm.current} ` : ''}<span class="mmr-d ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${mm.approx ? '≈' : ''}${d > 0 ? '+' : ''}${d}</span>`;
+      // variation nulle : on n'affiche que la valeur (sinon « 1204 0 » se lit mal)
+      const dTxt = d !== 0 || mm.current == null ? `<span class="mmr-d ${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${mm.approx ? '≈' : ''}${d > 0 ? '+' : ''}${d}</span>` : '';
+      km.innerHTML = `${mm.current != null ? `${mm.current} ` : ''}${dTxt}`;
       $('#kMmrLbl').textContent = 'MMR';
       $('#kMmrLbl').parentElement.title = t('d.mmrTip', { name: mm.name });
     } else {
@@ -656,7 +658,6 @@
     if (m.overtime) tags.push('<span class="tag ot">OT</span>');
     if (m.mvp) tags.push('<span class="tag mvp">MVP</span>');
     if (m.abandon) tags.push(`<span class="tag">${esc(t('d.tagAbandon'))}</span>`);
-    if (m.manual) tags.push(`<span class="tag">${esc(t('d.tagManual'))}</span>`);
     const score = Number.isFinite(m.scoreFor) && !m.manual ? `${m.scoreFor}-${m.scoreAgainst}` : '';
     return `<div class="m-row">
       ${resPill(m)}
@@ -1192,7 +1193,7 @@
       <div class="kpi"><span>${esc(t('d.best'))}</span><b>${a.bestWinStreak}</b></div>
       <div class="bypl">${a.byPlaylist.map((p) => `<span class="pl-chip"><b>${esc(p.name)}</b> ${p.wins}${esc(LW())}-${p.losses}${esc(LL())} · ${p.winRate}%</span>`).join('')}</div>`;
     const rows = (h.matches || []).map((m) => {
-      const tags = `${m.overtime ? '<span class="tag ot">OT</span>' : ''}${m.mvp ? '<span class="tag mvp">MVP</span>' : ''}${m.abandon ? `<span class="tag">${esc(t('d.tagAbandon'))}</span>` : ''}${m.manual ? `<span class="tag">${esc(t('d.tagManual'))}</span>` : ''}`;
+      const tags = `${m.overtime ? '<span class="tag ot">OT</span>' : ''}${m.mvp ? '<span class="tag mvp">MVP</span>' : ''}${m.abandon ? `<span class="tag">${esc(t('d.tagAbandon'))}</span>` : ''}`;
       const me = m.me ? `${m.me.goals} · ${m.me.assists} · ${m.me.saves} · ${m.me.shots}` : '';
       return `<tr>
         <td>${fmtDate(m.endedAt)}</td>
