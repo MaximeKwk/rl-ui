@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://maximekwk.github.io/rl-ui/sitemap.xml
