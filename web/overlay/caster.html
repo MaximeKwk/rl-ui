@@ -38,7 +38,7 @@
         align-items: center;
         gap: calc(14px * var(--s));
         padding: 0 calc(20px * var(--s));
-        background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 92%, white 8%), color-mix(in srgb, var(--tc) 70%, black 30%));
+        background: var(--tc);
         position: relative;
         overflow: hidden;
       }
@@ -48,7 +48,7 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.16) 45%, transparent 60%);
+        background: none;
         pointer-events: none;
       }
       .bug .tname {
@@ -59,7 +59,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        text-shadow: none;
         min-width: 0;
       }
       .bug .score {
@@ -69,12 +69,12 @@
         background: var(--panel);
         font-size: calc(60px * var(--s));
         font-weight: 900;
-        font-style: italic;
+        font-style: normal;
         line-height: 1;
         border-bottom: calc(4px * var(--s)) solid var(--tc);
       }
       .bug .score.pop { animation: pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
-      @keyframes pop { 0% { transform: scale(1); } 35% { transform: scale(1.35); color: #fff; text-shadow: 0 0 24px var(--tc); } 100% { transform: scale(1); } }
+      @keyframes pop { 35% { transform: translateY(-8%); } 100% { transform: none; } }
       .bug .clock {
         width: calc(150px * var(--s));
         display: flex;
@@ -119,7 +119,7 @@
         background: rgba(255, 255, 255, 0.14);
         transform: skewX(-20deg);
       }
-      .pips i.on { background: var(--tc); box-shadow: 0 0 calc(10px * var(--s)) var(--tc); }
+      .pips i.on { background: var(--tc); }
       .sub .mid { white-space: nowrap; }
       .sub .ttl { color: #fff; }
 
@@ -153,18 +153,18 @@
       .pl .top { display: flex; align-items: baseline; justify-content: space-between; gap: calc(10px * var(--s)); }
       .boosts.c1 .pl .top { flex-direction: row-reverse; }
       .pl .nm { font-size: calc(22px * var(--s)); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .pl .bv { font-size: calc(24px * var(--s)); font-weight: 900; font-style: italic; font-variant-numeric: tabular-nums; }
+      .pl .bv { font-size: calc(24px * var(--s)); font-weight: 900; font-variant-numeric: tabular-nums; }
       .pl .dm { font-size: calc(13px * var(--s)); font-weight: 900; letter-spacing: 0.12em; color: #ff5a6a; }
       .pl .bar { margin-top: calc(5px * var(--s)); height: calc(8px * var(--s)); border-radius: calc(4px * var(--s)); background: rgba(255, 255, 255, 0.1); overflow: hidden; }
       .pl .bar i {
         display: block;
         height: 100%;
         width: 0;
-        background: linear-gradient(90deg, color-mix(in srgb, var(--tc) 80%, white 20%), var(--tc));
+        background: var(--tc);
         transition: width 0.2s linear;
       }
-      .boosts.c1 .pl .bar i { margin-left: auto; background: linear-gradient(270deg, color-mix(in srgb, var(--tc) 80%, white 20%), var(--tc)); }
-      .pl.ss .bar i { box-shadow: 0 0 calc(12px * var(--s)) #fff; }
+      .boosts.c1 .pl .bar i { margin-left: auto; background: var(--tc); }
+      .pl.ss .bar i { background: color-mix(in srgb, var(--tc) 55%, white 45%); }
 
       /* ---------------- Joueur suivi ---------------- */
       .target {
@@ -187,7 +187,7 @@
       .target .ring circle { fill: none; stroke-width: 9; }
       .target .ring .bg { stroke: rgba(255, 255, 255, 0.1); }
       .target .ring .fg { stroke: var(--tc); stroke-linecap: round; transition: stroke-dasharray 0.2s linear; }
-      .target .ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(30px * var(--s)); font-weight: 900; font-style: italic; }
+      .target .ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(30px * var(--s)); font-weight: 900; }
       .target .who { display: flex; flex-direction: column; min-width: calc(180px * var(--s)); }
       .target .who b { font-size: calc(34px * var(--s)); font-weight: 900; line-height: 1.05; white-space: nowrap; }
       .target .who span { font-size: calc(15px * var(--s)); font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: color-mix(in srgb, var(--tc) 60%, white 40%); }
@@ -232,14 +232,14 @@
         background: var(--tc);
         font-size: calc(46px * var(--s));
         font-weight: 900;
-        font-style: italic;
+        font-style: normal;
         letter-spacing: 0.04em;
         line-height: 1;
-        box-shadow: 0 0 calc(30px * var(--s)) var(--tc);
+        box-shadow: none;
       }
       .goal .info b { display: block; font-size: calc(34px * var(--s)); font-weight: 900; line-height: 1.05; }
       .goal .info span { font-size: calc(18px * var(--s)); font-weight: 700; color: rgba(255, 255, 255, 0.7); }
-      .goal .spd { font-size: calc(38px * var(--s)); font-weight: 900; font-style: italic; }
+      .goal .spd { font-size: calc(38px * var(--s)); font-weight: 900; }
       .goal .spd small { font-size: 0.45em; margin-left: 0.2em; color: rgba(255, 255, 255, 0.6); }
 
       /* ---------------- Statfeed ---------------- */
@@ -285,13 +285,13 @@
       }
       .post.show .card { transform: none; }
       .post .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
-      .post .head .tm { padding: calc(22px * var(--s)) calc(30px * var(--s)); background: linear-gradient(180deg, var(--tc), color-mix(in srgb, var(--tc) 60%, black 40%)); }
+      .post .head .tm { padding: calc(22px * var(--s)) calc(30px * var(--s)); background: var(--tc); }
       .post .head .tm.c1 { text-align: right; }
       .post .head .tm b { display: block; font-size: calc(40px * var(--s)); font-weight: 900; text-transform: uppercase; }
       .post .head .tm .pips { margin-top: calc(8px * var(--s)); }
       .post .head .tm.c1 .pips { justify-content: flex-end; }
       .post .head .fs { padding: 0 calc(34px * var(--s)); text-align: center; }
-      .post .head .fs b { font-size: calc(76px * var(--s)); font-weight: 900; font-style: italic; line-height: 1; }
+      .post .head .fs b { font-size: calc(76px * var(--s)); font-weight: 900; line-height: 1; }
       .post .head .fs i { display: block; font-style: normal; font-size: calc(15px * var(--s)); font-weight: 800; letter-spacing: 0.2em; color: rgba(255, 255, 255, 0.6); }
       .post .win {
         text-align: center;

@@ -14,54 +14,37 @@
         display: inline-flex;
         align-items: center;
         gap: calc(8px * var(--s));
-        padding: calc(10px * var(--s)) calc(14px * var(--s));
-        border-radius: calc(14px * var(--s));
-        background: rgba(8, 12, 22, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 calc(8px * var(--s)) calc(22px * var(--s)) rgba(0, 0, 0, 0.4);
+        gap: calc(5px * var(--s));
+        padding: calc(10px * var(--s)) calc(16px * var(--s)) calc(10px * var(--s)) calc(18px * var(--s));
+        background: var(--plate);
+        clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
       }
-      body.bare .bar { background: none; border: 0; box-shadow: none; padding: 0; }
+      body.bare .bar { background: none; clip-path: none; padding: 0; }
       .ttl {
-        font-size: calc(15px * var(--s));
-        font-weight: 800;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
-        opacity: 0.6;
-        margin-right: calc(6px * var(--s));
+        font-size: calc(18px * var(--s));
+        font-weight: 700;
+        opacity: 0.55;
+        margin-right: calc(10px * var(--s));
         writing-mode: horizontal-tb;
       }
+      /* une rangée de voyants : plein = victoire / défaite, barre ambre = overtime */
       .pill {
         position: relative;
-        width: calc(46px * var(--s));
+        width: calc(34px * var(--s));
         height: calc(46px * var(--s));
-        border-radius: calc(10px * var(--s));
+        border-radius: calc(3px * var(--s));
         display: grid;
         place-items: center;
-        font-size: calc(28px * var(--s));
-        font-weight: 900;
-        font-style: italic;
+        font-size: calc(24px * var(--s));
+        font-weight: 800;
         color: #07120d;
-        background: linear-gradient(180deg, var(--win-light), var(--win));
-        box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+        background: var(--win);
       }
-      .pill.l { background: linear-gradient(180deg, var(--loss-light), var(--loss)); color: #fff; }
-      .pill.a { opacity: 0.55; }
-      .pill.ot::after {
-        content: 'OT';
-        position: absolute;
-        top: calc(-9px * var(--s));
-        right: calc(-8px * var(--s));
-        font-size: calc(12px * var(--s));
-        font-style: normal;
-        font-weight: 900;
-        padding: calc(1px * var(--s)) calc(4px * var(--s));
-        border-radius: calc(5px * var(--s));
-        background: var(--ot);
-        color: #1a1000;
-        box-shadow: 0 0 calc(8px * var(--s)) var(--ot-glow);
-      }
-      .pill.new { animation: popIn 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.5); }
-      @keyframes popIn { from { transform: scale(0.2) rotate(-20deg); opacity: 0; } }
+      .pill.l { background: var(--loss); color: #fff; }
+      .pill.a { opacity: 0.5; }
+      .pill.ot { box-shadow: inset 0 calc(5px * var(--s)) 0 var(--ot); }
+      .pill.new { animation: popIn 0.4s ease-out; }
+      @keyframes popIn { from { transform: translateY(calc(-10px * var(--s))); opacity: 0; } }
       .empty { font-size: calc(22px * var(--s)); font-weight: 700; opacity: 0.55; padding: 0 calc(8px * var(--s)); }
     </style>
   </head>

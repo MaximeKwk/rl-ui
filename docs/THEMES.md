@@ -50,6 +50,7 @@ Custom themes live in RL-UI's data folder (`%APPDATA%\RL-UI\themes`, **Open them
 | --- | --- |
 | `--win`, `--loss`, `--ot` | Colors (already filled from `theme.json`) |
 | `--font` | Overlay font |
+| `--plate`, `--plate-line`, `--cut` | Overlay plates: background color, thin rules between cells, size of the 45° cut corners |
 | `--s` | Scale (size set in RL-UI): `calc(40px * var(--s))` |
 
 ```css

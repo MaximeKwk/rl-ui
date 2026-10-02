@@ -123,6 +123,9 @@
 
   // ------------------------------------------------------------------ onglets
   function showTab(name) {
+    // tous les onglets partagent la même zone de défilement : on repart du haut en changeant d'onglet
+    const cur = $('.tab.active');
+    if (!cur || cur.id !== `tab-${name}`) $('main').scrollTop = 0;
     $$('.side button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
     $$('.tab').forEach((t) => t.classList.toggle('active', t.id === `tab-${name}`));
     try {

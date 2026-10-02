@@ -50,6 +50,7 @@ Les thèmes perso sont rangés dans le dossier de données de RL-UI (`%APPDATA%\
 | --- | --- |
 | `--win`, `--loss`, `--ot` | Couleurs (déjà remplies depuis `theme.json`) |
 | `--font` | Police des overlays |
+| `--plate`, `--plate-line`, `--cut` | Plaques des overlays : couleur de fond, filets entre les cases, taille des coins coupés à 45° |
 | `--s` | Échelle (taille réglée dans RL-UI) : `calc(40px * var(--s))` |
 
 ```css

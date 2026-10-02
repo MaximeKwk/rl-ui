@@ -190,7 +190,7 @@
     const live = st.live || {};
     const mm = s.mmr && s.mmr.primary;
     const showMmr = !!mm && cfg.showMmr !== false && !hide.has('mmr') && (mm.current != null || mm.games > 0);
-    const streakHtml = s.streak > 0 ? `${ICON_FIRE} ${s.streak}` : s.streak < 0 ? `${ICON_COLD} ${-s.streak}` : '—';
+    const streakHtml = s.streak > 0 ? String(s.streak) : s.streak < 0 ? String(-s.streak) : '—';
     const inOt = !!(live.inMatch && live.overtime && live.counted && live.me) && cfg.showOtBadge !== false && opt('otbadge', '1') !== '0';
 
     // horizontal / vertical

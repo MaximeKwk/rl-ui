@@ -62,7 +62,7 @@
       return out.join('');
     }
     if (a.type === 'streak') {
-      out.push(`<span class="chip hl">${ICON.fire} ${esc(OT.t('al.nInARow', { n: d.n }))}</span>`);
+      out.push(`<span class="chip hl">${esc(OT.t('al.nInARow', { n: d.n }))}</span>`);
       out.push(`<span class="chip">${esc(OT.t('al.session'))} ${d.wins}${esc(lw())} – ${d.losses}${esc(ll())}</span>`);
       return out.join('');
     }
@@ -73,7 +73,7 @@
       out.push(`<span class="chip mmr ${v >= 0 ? 'up' : 'down'}">${d.mmr.learned ? '' : '≈ '}${v > 0 ? '+' : ''}${v} MMR</span>`);
     }
     if (d.overtime && d.otSeconds > 0) out.push(`<span class="chip">${ICON.clock} OT ${OT.fmtClock(d.otSeconds, true)}</span>`);
-    if (isWin && d.streak >= 2) out.push(`<span class="chip hl">${ICON.fire} ${esc(OT.t('al.nInARow', { n: d.streak }))}</span>`);
+    if (isWin && d.streak >= 2) out.push(`<span class="chip hl">${esc(OT.t('al.nInARow', { n: d.streak }))}</span>`);
     else if (Number.isFinite(d.wins)) out.push(`<span class="chip">${esc(OT.t('al.session'))} ${d.wins}${esc(lw())} – ${d.losses}${esc(ll())}</span>`);
     if (isWin && d.mvp) out.push(`<span class="chip">${ICON.star} MVP</span>`);
     return out.join('');
@@ -82,20 +82,17 @@
   function build(a) {
     const el = document.createElement('div');
     el.className = `al t-${a.type}`;
-    const loss = a.type === 'loss' || a.type === 'ot_loss';
-    const layers = [a.type === 'overtime' ? '<div class="fx-layer band"></div>' : loss ? '' : '<div class="fx-layer rays"></div>', '<div class="fx-layer glow"></div>'];
-    if (!loss) layers.push('<div class="fx-layer ring"></div><div class="fx-layer ring r2"></div>');
-    const t = esc(a.title);
-    el.innerHTML = `${layers.join('')}<div class="art"></div><div class="kicker">${esc(kicker(a))}</div><div class="title"><span class="tx">${t}</span><span class="gl g1">${t}</span><span class="gl g2">${t}</span></div><div class="subs">${chips(a)}</div>`;
+    // bandeau sobre : emplacement d'image des thèmes, mode de jeu, titre, détail
+    el.innerHTML = `<div class="art"></div><div class="kicker">${esc(kicker(a))}</div><div class="title"><span class="tx">${esc(a.title)}</span></div><div class="subs">${chips(a)}</div>`;
     return el;
   }
 
   // Réduit la taille du titre s'il est trop long pour l'écran
   function fit(el) {
     const tx = el.querySelector('.tx');
-    let fs = 220;
+    let fs = 190;
     el.style.setProperty('--fs', `${fs}px`);
-    const max = window.innerWidth * 0.92;
+    const max = window.innerWidth * 0.82;
     const w = tx.offsetWidth;
     if (w > max) {
       fs = Math.floor((fs * max) / w);
@@ -112,7 +109,11 @@
     };
   }
 
-  function effects(a) {
+  // Plus d'effets de particules ni de secousse : le bandeau suffit (habillage télé sobre).
+  // Gardé pour les thèmes qui voudraient le réactiver plus tard.
+  function effects() {}
+
+  function effectsLegacy(a) {
     const p = palette();
     const H = window.innerHeight;
     const cy = stage.classList.contains('pos-top') ? H * 0.25 : stage.classList.contains('pos-bottom') ? H * 0.72 : H * 0.47;

@@ -51,3 +51,7 @@
 
 /* 4. DERNIÈRES PARTIES : pastilles arrondies ----------------------------- */
 .ov-history .pill { border-radius: 50%; }
+
+/* le thème dessine sa propre plaque : on masque celle par défaut */
+.ov-counter .theme-arena::after,
+.ov-summary .card::after { display: none; }

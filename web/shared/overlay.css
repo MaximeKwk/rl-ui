@@ -7,6 +7,10 @@
   --s: 1;
   --ink: #f4f7fb;
   --glass: rgba(9, 13, 23, 0.78);
+  /* habillage télé : plaques opaques, filets fins, coins coupés à 45° */
+  --plate: rgba(19, 21, 25, 0.94);
+  --plate-line: rgba(255, 255, 255, 0.12);
+  --cut: calc(14px * var(--s));
 }
 
 html,

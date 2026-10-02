@@ -5,6 +5,8 @@
     <title>RL-UI — Alerts</title>
     <link rel="stylesheet" href="/static/shared/overlay.css" />
     <style>
+      /* Alertes : un bandeau d'habillage télé. Une plaque qui s'ouvre de gauche à droite,
+         une barre de couleur pour le type d'alerte, le titre, puis le détail en cases. */
       html, body { width: 100vw; height: 100vh; }
       #fx { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 5; }
       .stage {
@@ -17,201 +19,123 @@
       }
       .stage.pos-top { align-items: flex-start; padding-top: calc(70px * var(--s)); }
       .stage.pos-bottom { align-items: flex-end; padding-bottom: calc(90px * var(--s)); }
-      .stage.shake { animation: stageShake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
-      @keyframes stageShake {
-        10%, 90% { transform: translate(-2px, 1px); }
-        20%, 80% { transform: translate(5px, -3px); }
-        30%, 50%, 70% { transform: translate(-9px, 4px); }
-        40%, 60% { transform: translate(9px, -4px); }
-      }
 
       .al {
-        --c1: var(--win);
-        --c2: #d9fff0;
-        --c-rgb: var(--win-rgb);
+        --c1: var(--win); /* couleur du titre */
+        --bar: var(--win); /* barre de gauche */
+        --cut2: calc(26px * var(--s));
+        isolation: isolate;
         position: relative;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        text-align: center;
+        align-items: flex-start;
+        min-width: calc(820px * var(--s));
+        max-width: 94vw;
+        padding: calc(26px * var(--s)) calc(56px * var(--s)) calc(26px * var(--s)) calc(60px * var(--s));
+        text-align: left;
       }
-      .al.t-loss { --c1: var(--loss); --c2: #ffd3dc; --c-rgb: var(--loss-rgb); }
-      .al.t-overtime { --c1: var(--ot); --c2: #fff3cc; --c-rgb: var(--ot-rgb); }
-      .al.t-ot_win { --c1: #ffc83a; --c2: #fff8dc; --c-rgb: 255, 200, 58; }
-      .al.t-ot_loss { --c1: #ff6b3d; --c2: #ffd8cc; --c-rgb: 255, 107, 61; }
-      .al.t-streak { --c1: #ff8a2a; --c2: #ffe7a8; --c-rgb: 255, 138, 42; }
+      .al.t-loss { --c1: var(--loss); --bar: var(--loss); }
+      .al.t-overtime { --c1: var(--ot); --bar: var(--ot); }
+      .al.t-ot_win { --c1: var(--win); --bar: var(--ot); }
+      .al.t-ot_loss { --c1: var(--loss); --bar: var(--ot); }
+      .al.t-streak { --c1: var(--win); --bar: var(--ot); }
 
-      .al > .fx-layer { position: absolute; left: 50%; top: 50%; pointer-events: none; }
-      .rays {
-        width: calc(1700px * var(--s));
-        height: calc(1700px * var(--s));
-        margin: calc(-850px * var(--s)) 0 0 calc(-850px * var(--s));
-        background: repeating-conic-gradient(from 0deg, rgba(var(--c-rgb), 0.2) 0deg 5deg, transparent 5deg 15deg);
-        -webkit-mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 25%, transparent 60%);
-        mask-image: radial-gradient(circle, #000 0%, rgba(0, 0, 0, 0.6) 25%, transparent 60%);
-        animation: raysIn 0.7s ease-out both, spin 16s linear infinite;
+      /* plaque (coins coupés) et barre de couleur : dessinées à part pour que l'image d'un thème (.art) puisse dépasser */
+      .al::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -2;
+        background: var(--plate);
+        clip-path: polygon(var(--cut2) 0, 100% 0, 100% calc(100% - var(--cut2)), calc(100% - var(--cut2)) 100%, 0 100%, 0 var(--cut2));
+        animation: open 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
       }
-      .glow {
-        width: calc(1300px * var(--s));
-        height: calc(520px * var(--s));
-        margin: calc(-260px * var(--s)) 0 0 calc(-650px * var(--s));
-        background: radial-gradient(closest-side, rgba(var(--c-rgb), 0.42), rgba(var(--c-rgb), 0.12) 55%, transparent);
-        animation: glowIn 0.5s ease-out both, breathe 2.2s ease-in-out 0.5s infinite;
+      .al::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: var(--cut2);
+        bottom: 0;
+        width: calc(16px * var(--s));
+        z-index: -1;
+        background: var(--bar);
+        transform-origin: 50% 100%;
+        animation: rise 0.35s ease-out 0.15s both;
       }
-      .ring {
-        width: calc(360px * var(--s));
-        height: calc(360px * var(--s));
-        margin: calc(-180px * var(--s)) 0 0 calc(-180px * var(--s));
-        border-radius: 50%;
-        border: calc(10px * var(--s)) solid rgba(var(--c-rgb), 0.9);
-        box-shadow: 0 0 calc(40px * var(--s)) rgba(var(--c-rgb), 0.9);
-        animation: ring 0.95s cubic-bezier(0.1, 0.7, 0.3, 1) 0.18s both;
+      @keyframes open {
+        from { clip-path: polygon(0 0, 0 0, 0 calc(100% - var(--cut2)), 0 100%, 0 100%, 0 var(--cut2)); }
       }
-      .ring.r2 { animation-delay: 0.36s; border-width: calc(4px * var(--s)); }
-      .band {
-        width: 100vw;
-        height: calc(190px * var(--s));
-        margin: calc(-95px * var(--s)) 0 0 -50vw;
-        background: repeating-linear-gradient(-45deg, rgba(var(--c-rgb), 0.85) 0 calc(34px * var(--s)), rgba(18, 12, 0, 0.88) calc(34px * var(--s)) calc(68px * var(--s)));
-        background-size: calc(96.17px * var(--s)) 100%;
-        -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
-        mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent);
-        border-top: calc(4px * var(--s)) solid rgba(var(--c-rgb), 1);
-        border-bottom: calc(4px * var(--s)) solid rgba(var(--c-rgb), 1);
-        animation: bandIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both, stripes 0.9s linear infinite;
-        opacity: 0.9;
-      }
-      @keyframes spin { to { transform: rotate(360deg); } }
-      @keyframes raysIn { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; } }
-      @keyframes glowIn { from { opacity: 0; transform: scale(0.4); } }
-      @keyframes breathe { 50% { transform: scale(1.08); opacity: 0.8; } }
-      @keyframes ring { from { transform: scale(0.15); opacity: 1; } to { transform: scale(5.5); opacity: 0; } }
-      @keyframes bandIn { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-      @keyframes stripes { to { background-position: calc(96.17px * var(--s)) 0; } }
+      @keyframes rise { from { transform: scaleY(0); } }
 
       .kicker {
         position: relative;
-        z-index: 2;
-        display: flex;
-        align-items: center;
-        gap: calc(18px * var(--s));
-        font-size: calc(34px * var(--s));
-        font-weight: 800;
-        letter-spacing: 0.32em;
-        text-transform: uppercase;
-        color: var(--c2);
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
-        margin-bottom: calc(4px * var(--s));
-        padding-left: 0.32em;
-        animation: fadeUp 0.5s ease-out 0.25s both;
+        font-size: calc(28px * var(--s));
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.62);
+        margin-bottom: calc(2px * var(--s));
+        animation: slide 0.45s ease-out 0.22s both;
       }
-      .kicker::before,
-      .kicker::after {
-        content: '';
-        width: calc(90px * var(--s));
-        height: calc(3px * var(--s));
-        background: linear-gradient(90deg, transparent, var(--c1));
-      }
-      .kicker::after { transform: scaleX(-1); }
       .kicker:empty { display: none; }
 
-      .title { position: relative; z-index: 2; animation: slam 0.62s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
-      .tx, .gl {
-        display: block;
-        font-weight: 900;
-        font-style: italic;
-        text-transform: uppercase;
-        font-size: calc(var(--fs, 220px) * var(--s));
-        line-height: 0.92;
-        letter-spacing: 0.01em;
-        padding: 0 0.12em 0.06em 0.06em;
-        white-space: nowrap;
-      }
+      .title { position: relative; animation: slide 0.45s ease-out 0.16s both; }
       .tx {
-        background-image:
-          linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.95) 50%, transparent 58%),
-          linear-gradient(180deg, #ffffff 0%, var(--c2) 42%, var(--c1) 100%);
-        background-size: 260% 100%, 100% 100%;
-        background-position: 160% 0, 0 0;
-        background-repeat: no-repeat;
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        filter: drop-shadow(0 calc(7px * var(--s)) 0 rgba(0, 0, 0, 0.45)) drop-shadow(0 0 calc(34px * var(--s)) rgba(var(--c-rgb), 0.75));
-        animation: shine 1.3s ease-in-out 0.55s both;
+        display: block;
+        font-weight: 800;
+        font-size: calc(var(--fs, 200px) * var(--s));
+        line-height: 0.9;
+        letter-spacing: 0.005em;
+        color: var(--c1);
+        white-space: nowrap;
+        padding-bottom: 0.02em;
       }
-      @keyframes shine { from { background-position: 160% 0, 0 0; } to { background-position: -60% 0, 0 0; } }
-      @keyframes slam {
-        0% { transform: scale(2.6); opacity: 0; filter: blur(16px); }
-        55% { transform: scale(0.93); opacity: 1; filter: blur(0); }
-        75% { transform: scale(1.04); }
-        100% { transform: scale(1); }
-      }
-      .gl { position: absolute; inset: 0; color: transparent; opacity: 0; }
-      .t-loss .gl, .t-ot_loss .gl { animation: glitch 0.75s steps(1) 0.1s both; }
-      .gl.g1 { color: rgba(0, 240, 255, 0.75); }
-      .gl.g2 { color: rgba(255, 30, 80, 0.85); }
-      .t-loss .gl.g2, .t-ot_loss .gl.g2 { animation-delay: 0.14s; }
-      @keyframes glitch {
-        0% { opacity: 1; transform: translate(-10px, 0); clip-path: inset(10% 0 55% 0); }
-        15% { transform: translate(12px, 0); clip-path: inset(62% 0 8% 0); }
-        30% { transform: translate(-6px, 0); clip-path: inset(30% 0 40% 0); }
-        45% { transform: translate(8px, 0); clip-path: inset(80% 0 2% 0); }
-        60% { transform: translate(-12px, 0); clip-path: inset(5% 0 75% 0); }
-        75% { transform: translate(4px, 0); clip-path: inset(45% 0 30% 0); }
-        100% { opacity: 0; }
-      }
-      .t-loss .title, .t-ot_loss .title { animation: drop 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) both; }
-      @keyframes drop {
-        0% { transform: translateY(calc(-160px * var(--s))) scale(1.05); opacity: 0; filter: blur(6px); }
-        60% { opacity: 1; filter: blur(0); }
-        100% { transform: none; opacity: 1; }
-      }
-      .t-overtime .title { animation: slam 0.6s cubic-bezier(0.2, 0.8, 0.25, 1) both, beat 0.9s ease-in-out 0.7s 4; }
-      @keyframes beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.07); } 30% { transform: scale(1); } 45% { transform: scale(1.04); } }
+      .gl { display: none; }
+      @keyframes slide { from { opacity: 0; transform: translateX(calc(-24px * var(--s))); } }
 
+      /* le détail : des cases séparées par des filets */
       .subs {
         position: relative;
-        z-index: 2;
         display: flex;
-        gap: calc(16px * var(--s));
-        margin-top: calc(16px * var(--s));
         flex-wrap: wrap;
-        justify-content: center;
+        align-self: stretch;
+        margin-top: calc(18px * var(--s));
+        padding-top: calc(16px * var(--s));
+        border-top: 1px solid var(--plate-line);
+        animation: fade 0.4s ease-out 0.4s both;
       }
+      .subs:empty { display: none; }
       .chip {
         display: inline-flex;
         align-items: center;
         gap: calc(10px * var(--s));
-        padding: calc(8px * var(--s)) calc(22px * var(--s)) calc(7px * var(--s));
-        border-radius: calc(999px * var(--s));
-        background: rgba(8, 11, 20, 0.82);
-        border: calc(2px * var(--s)) solid rgba(var(--c-rgb), 0.55);
-        box-shadow: 0 calc(8px * var(--s)) calc(24px * var(--s)) rgba(0, 0, 0, 0.45);
-        font-size: calc(38px * var(--s));
-        font-weight: 800;
-        letter-spacing: 0.03em;
+        padding: 0 calc(28px * var(--s));
+        border-left: 1px solid var(--plate-line);
+        font-size: calc(34px * var(--s));
+        font-weight: 700;
         color: #fff;
         white-space: nowrap;
-        animation: chipIn 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
       }
-      .chip:nth-child(1) { animation-delay: 0.45s; }
-      .chip:nth-child(2) { animation-delay: 0.58s; }
-      .chip:nth-child(3) { animation-delay: 0.71s; }
-      .chip:nth-child(4) { animation-delay: 0.84s; }
-      .chip.score { font-size: calc(46px * var(--s)); font-style: italic; font-weight: 900; }
+      .chip:first-child { padding-left: 0; border-left: 0; }
+      .chip.score { font-size: calc(42px * var(--s)); font-weight: 800; font-variant-numeric: tabular-nums; }
       .chip.score b.me { color: var(--c1); }
-      .chip.score i { font-style: normal; opacity: 0.5; }
-      .chip.mmr { font-style: italic; font-weight: 900; }
-      .chip.mmr.up { color: var(--win); border-color: var(--win-glow); }
-      .chip.mmr.down { color: var(--loss); border-color: var(--loss-glow); }
-      .chip.hl { background: linear-gradient(180deg, rgba(var(--c-rgb), 0.95), rgba(var(--c-rgb), 0.75)); color: #140d00; border-color: rgba(255, 255, 255, 0.5); }
-      .chip .ico { width: 0.9em; height: 0.9em; }
-      @keyframes chipIn { from { opacity: 0; transform: translateY(calc(24px * var(--s))) scale(0.8); } }
-      @keyframes fadeUp { from { opacity: 0; transform: translateY(calc(14px * var(--s))); } }
+      .chip.score i { font-style: normal; opacity: 0.4; }
+      .chip.mmr { font-weight: 800; }
+      .chip.mmr.up { color: var(--win); }
+      .chip.mmr.down { color: var(--loss); }
+      .chip.hl { color: var(--ot); }
+      .chip .ico { width: 0.85em; height: 0.85em; }
+      @keyframes fade { from { opacity: 0; } }
 
-      .al.out { animation: out 0.45s ease-in forwards; }
-      @keyframes out { to { opacity: 0; transform: translateY(calc(-40px * var(--s))) scale(1.05); filter: blur(8px); } }
+      /* sortie : la plaque se referme vers la droite */
+      .al.out::after { animation: close 0.4s ease-in forwards; }
+      .al.out > *, .al.out::before { animation: gone 0.25s ease-in forwards; }
+      @keyframes close {
+        to { clip-path: polygon(100% 0, 100% 0, 100% calc(100% - var(--cut2)), 100% 100%, 100% 100%, 100% var(--cut2)); }
+      }
+      @keyframes gone { to { opacity: 0; } }
+
+      @media (prefers-reduced-motion: reduce) {
+        .al::after, .al::before, .kicker, .title, .subs { animation: none !important; }
+      }
     </style>
   </head>
   <body>
