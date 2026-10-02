@@ -126,6 +126,21 @@ function cleanup(code) {
   const page = await get('/overlay/counter');
   ok(page.status === 200 || page.status === 404, 'route overlay');
 
+  // Sécurité : un site web ouvert dans le navigateur ne doit pas pouvoir lire le flux en direct
+  const wsFrom = (origin) =>
+    new Promise((r) => {
+      const c = new WebSocket(`ws://127.0.0.1:${PORT}/ws`, origin ? { headers: { Origin: origin } } : {});
+      c.on('message', () => {
+        c.close();
+        r(true);
+      });
+      c.on('error', () => r(false));
+      c.on('close', () => r(false));
+      setTimeout(() => r(false), 2000);
+    });
+  ok((await wsFrom(`http://127.0.0.1:${PORT}`)) === true, 'WebSocket : nos propres pages acceptées');
+  ok((await wsFrom('https://evil.example')) === false, 'WebSocket : un site extérieur est refusé');
+
   // Langue : anglais par défaut, passage en français
   ok(/lang="en"/.test(page.body), 'overlay servi en anglais par défaut');
   await fetch(`http://127.0.0.1:${PORT}/api/settings?key=${settings.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: 'fr' }) });

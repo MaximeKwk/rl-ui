@@ -138,6 +138,19 @@ class AppServer extends EventEmitter {
       sock.destroy();
       return;
     }
+    // Un site web ouvert dans le navigateur peut ouvrir un WebSocket vers 127.0.0.1 (pas de CORS) :
+    // seules nos propres pages (overlays, tableau de bord) sont acceptées quand une origine est annoncée.
+    const origin = req.headers.origin;
+    if (origin) {
+      let oh = '';
+      try {
+        oh = new URL(origin).host;
+      } catch {}
+      if (!oh || !this._hostAllowed(oh)) {
+        sock.destroy();
+        return;
+      }
+    }
     const dashboard = url.searchParams.get('role') === 'dashboard' && this._authorized(req, url);
     this.wss.handleUpgrade(req, sock, head, (ws) => {
       ws.isDashboard = dashboard;

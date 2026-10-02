@@ -242,6 +242,10 @@ You can always fix it with the + / − buttons.
 RL-UI runs **entirely locally**. It sends no data over the Internet, contains no telemetry and needs no account.
 Your matches are stored in `%APPDATA%\RL-UI\data.json`.
 
+## Security
+
+RL-UI runs on your PC only: the dashboard and every action need a random local key, websites open in your browser can't read the live feed, and themes can't contain code. Details and how to report a problem privately: **[SECURITY.md](SECURITY.md)**.
+
 ## Development
 
 ```bash

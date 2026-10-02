@@ -241,6 +241,10 @@ Tu peux toujours corriger avec les boutons + / −.
 RL-UI fonctionne **entièrement en local**. Il n'envoie aucune donnée sur Internet, ne contient aucune télémétrie et n'a pas
 de compte à créer. Tes parties sont stockées dans `%APPDATA%\RL-UI\data.json`.
 
+## Sécurité
+
+RL-UI fonctionne uniquement sur ton PC : le tableau de bord et chaque action demandent une clé locale aléatoire, un site web ouvert dans ton navigateur ne peut pas lire le flux en direct, et un thème ne peut pas contenir de code. Détails et signalement d'un problème en privé : **[SECURITY.md](SECURITY.md)**.
+
 ## Développement
 
 ```bash
