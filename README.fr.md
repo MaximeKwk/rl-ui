@@ -41,7 +41,7 @@
     <td width="50%"><img src="docs/images/alert-overtime.png" alt="Alerte overtime"></td>
   </tr>
   <tr>
-    <td align="center"><b>Victoire</b> — confettis, score, série, MMR, MVP</td>
+    <td align="center"><b>Victoire</b> — score, série, MMR, MVP</td>
     <td align="center"><b>Overtime</b> — dès que la prolongation commence</td>
   </tr>
   <tr>
@@ -50,7 +50,7 @@
   </tr>
   <tr>
     <td align="center"><b>Victoire en overtime</b> — but en or</td>
-    <td align="center"><b>Défaite</b> — effet glitch</td>
+    <td align="center"><b>Défaite</b> — score et variation de MMR</td>
   </tr>
 </table>
 

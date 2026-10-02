@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RL-UI: Rocket League win/loss tracker and stream overlay for OBS</title>
+<meta name="description" content="Free Windows app that tracks your Rocket League wins, losses, overtimes and real MMR automatically, with live overlays and alerts for OBS Studio and Streamlabs. No mods, works with the anti-cheat.">
+<link rel="canonical" href="https://maximekwk.github.io/rl-ui/">
+<link rel="icon" href="images/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RL-UI: Rocket League stream overlay and win/loss tracker">
+<meta property="og:description" content="Wins, losses, overtimes and real MMR tracked automatically, live overlays and alerts for OBS and Streamlabs. Free, no mods.">
+<meta property="og:url" content="https://maximekwk.github.io/rl-ui/">
+<meta property="og:image" content="https://maximekwk.github.io/rl-ui/images/banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"RL-UI","operatingSystem":"Windows 10, Windows 11","applicationCategory":"MultimediaApplication","description":"Rocket League win/loss and MMR tracker with stream overlays and alerts for OBS Studio and Streamlabs.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"author":{"@type":"Person","name":"Zoxam"},"downloadUrl":"https://github.com/MaximeKwk/rl-ui/releases/latest","image":"https://maximekwk.github.io/rl-ui/images/banner.png"}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Barlow+Condensed:wght@800&display=swap" rel="stylesheet">
+<style>
+:root{--desk:#121417;--panel:#1b1d22;--plate:#202329;--line:#30343b;--text:#e7e4de;--muted:#9297a1;--faint:#6b707a;
+  --accent:#4c8df6;--win:#4cc38a;--loss:#e5534b;--ot:#e8a33d;--blue:#4c8df6;--orange:#f08a3c;
+  --cut:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--desk);color:var(--text);font:400 17px/1.6 Archivo,system-ui,sans-serif}
+a{color:inherit}
+img{display:block;max-width:100%;height:auto}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+header{border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:24px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:800;font-stretch:115%;font-size:19px}
+.brand img{width:30px;height:30px}
+nav{margin-left:auto;display:flex;gap:22px;font-size:15px;color:var(--muted)}
+nav a{text-decoration:none}nav a:hover{color:var(--text)}
+
+.hero{padding-top:72px;padding-bottom:64px;display:grid;grid-template-columns:1fr 1.05fr;gap:56px;align-items:center}
+h1{margin:0;font-weight:800;font-stretch:112%;font-size:clamp(34px,4.6vw,54px);line-height:1.04;letter-spacing:-.015em}
+.lead{margin:20px 0 0;font-size:19px;color:var(--muted);max-width:30em}
+.cta{margin-top:32px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-flex;align-items:center;height:50px;padding:0 24px;font-weight:700;font-size:16px;text-decoration:none;border:1px solid var(--line)}
+.btn.main{background:var(--text);color:var(--desk);border-color:var(--text);clip-path:var(--cut)}
+.btn.main:hover{background:#fff}
+.btn.ghost:hover{border-color:var(--muted)}
+.req{margin-top:18px;font-size:14px;color:var(--faint)}
+.shot{background:var(--panel);padding:10px;clip-path:var(--cut)}
+
+.teams{display:flex;height:6px}.teams i{flex:1;background:var(--blue)}.teams i+i{background:var(--orange)}
+
+section{padding:80px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+h2{margin:0 0 12px;font-weight:800;font-stretch:110%;font-size:32px;line-height:1.15;letter-spacing:-.01em}
+.intro{margin:0 0 40px;color:var(--muted);max-width:40em}
+
+.features{display:grid;grid-template-columns:repeat(2,1fr);gap:0 56px}
+.features div{padding:22px 0;border-top:1px solid var(--line)}
+.features h3{margin:0 0 6px;font-size:18px;font-weight:700}
+.features p{margin:0;color:var(--muted);font-size:16px}
+.k{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1.15em}
+.w{color:var(--win)}.l{color:var(--loss)}.o{color:var(--ot)}
+
+.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+figure{margin:0}
+figure img{background:var(--panel)}
+figcaption{margin-top:10px;font-size:15px;color:var(--muted)}
+figcaption b{color:var(--text);font-weight:600}
+.counters{display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-top:24px;align-items:start}
+.counters .stack{display:grid;gap:24px}
+.counters .vert img{max-height:520px;width:auto;margin:0 auto}
+
+ol.steps{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+ol.steps li{counter-increment:s;border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:16px}
+ol.steps li::before{content:counter(s);display:block;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:44px;line-height:1;color:var(--text);margin-bottom:10px}
+ol.steps b{color:var(--text)}
+code{font:14px/1.4 Consolas,ui-monospace,monospace;background:var(--plate);padding:2px 6px;color:var(--text)}
+
+.faq details{border-top:1px solid var(--line);padding:18px 0}
+.faq details:last-child{border-bottom:1px solid var(--line)}
+.faq summary{cursor:pointer;font-weight:600;font-size:18px;list-style:none;display:flex;justify-content:space-between;gap:16px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';color:var(--muted);font-weight:400}
+.faq details[open] summary::after{content:'\2212'}
+.faq p{margin:12px 0 0;color:var(--muted);max-width:46em}
+
+footer{border-top:1px solid var(--line);padding:32px 0 48px;color:var(--faint);font-size:14px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px}
+footer a{color:var(--muted)}
+
+@media (max-width:860px){
+  nav{display:none}
+  .hero{grid-template-columns:1fr;padding-top:40px;padding-bottom:48px;gap:40px}
+  .features,.gallery,.counters,ol.steps{grid-template-columns:1fr}
+  section{padding:56px 0}
+  .wrap{padding:0 16px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="images/icon.png" alt="">RL-UI</a>
+    <nav aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#overlays">Overlays</a>
+      <a href="#caster">Caster mode</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/MaximeKwk/rl-ui">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap hero">
+    <div>
+      <h1>Your Rocket League wins, losses and MMR, live on stream</h1>
+      <p class="lead">RL-UI counts every match on its own, reads your real MMR and puts it all in OBS or Streamlabs, with alerts when you win, lose or go to overtime.</p>
+      <div class="cta">
+        <a class="btn main" href="https://github.com/MaximeKwk/rl-ui/releases/latest">Download for Windows</a>
+        <a class="btn ghost" href="https://github.com/MaximeKwk/rl-ui">Source on GitHub</a>
+      </div>
+      <p class="req">Free. Windows 10 or 11, Rocket League on Steam or Epic. No mods, safe with the anti-cheat.</p>
+    </div>
+    <div class="shot"><img src="images/alert-win.png" width="1920" height="1080" alt="RL-UI victory alert over Rocket League gameplay"></div>
+  </div>
+  <div class="teams" aria-hidden="true"><i></i><i></i></div>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Set it up once, then just play</h2>
+      <p class="intro">RL-UI listens to Rocket League's official Stats API and the game's log file. Nothing to click between matches.</p>
+      <div class="features">
+        <div><h3>Every match counted</h3><p><span class="k w">W</span>, <span class="k l">L</span> and <span class="k o">OT</span> detected automatically, plus forfeits, early leaves, MVP and the playlist (2v2 ranked, 3v3…).</p></div>
+        <div><h3>Real MMR</h3><p>Read from the game itself and shown as <span class="k w">+9</span> or <span class="k l">−12</span> after each match, per playlist.</p></div>
+        <div><h3>Alerts for the big moments</h3><p>Victory, defeat, overtime, overtime won or lost and win streaks, with sounds you can replace by your own.</p></div>
+        <div><h3>Counter next to the boost gauge</h3><p>Horizontal, vertical, or snapped to the in-game boost gauge in your team's color.</p></div>
+        <div><h3>Twitch chat commands</h3><p><code>!wl</code>, <code>!mmr</code>, <code>!last</code>, <code>!streak</code> answered in your chat with live numbers, plus your own commands.</p></div>
+        <div><h3>OBS, Streamlabs and Stream Deck</h3><p>Switch scenes or show sources on overtime and wins, fix the count from a Stream Deck or a hotkey.</p></div>
+        <div><h3>Themes</h3><p>Classic, Neon, Gold &amp; Black, or your own images, font, colors and sounds, shared as a .zip.</p></div>
+        <div><h3>Updates itself</h3><p>New versions download in the background. English and French.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="overlays">
+    <div class="wrap">
+      <h2>Overlays</h2>
+      <p class="intro">Browser sources for OBS Studio and Streamlabs Desktop. They follow your settings live, without reloading.</p>
+      <div class="gallery">
+        <figure><img src="images/alert-overtime.png" width="1920" height="1080" alt="Overtime alert" loading="lazy"><figcaption><b>Overtime</b> as soon as the clock runs out with a tied score</figcaption></figure>
+        <figure><img src="images/alert-loss.png" width="1920" height="1080" alt="Defeat alert" loading="lazy"><figcaption><b>Defeat</b> with the score and the MMR change</figcaption></figure>
+      </div>
+      <div class="counters">
+        <div class="stack">
+          <figure><img src="images/counter.png" alt="Horizontal win/loss counter" loading="lazy"><figcaption><b>Counter</b> with winrate, streak and MMR</figcaption></figure>
+          <figure><img src="images/counter-boost.png" alt="Counter attached to the Rocket League boost gauge" loading="lazy"><figcaption><b>Boost mode</b>, attached to the boost gauge</figcaption></figure>
+        </div>
+        <figure class="vert"><img src="images/counter-vertical.png" alt="Vertical counter" loading="lazy"><figcaption><b>Vertical</b> layout</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="caster">
+    <div class="wrap">
+      <h2>Caster mode</h2>
+      <p class="intro">Casting a tournament or a scrim as a spectator? RL-UI gives you a full broadcast overlay: scorebug, Bo3/Bo5/Bo7 series counted automatically, every player's boost, goal banner, statfeed and the end-of-match scoreboard.</p>
+      <div class="gallery">
+        <figure><img src="images/caster.png" alt="Live caster overlay" loading="lazy"><figcaption><b>Live</b>: scorebug, boosts, spectated player</figcaption></figure>
+        <figure><img src="images/caster-post.png" alt="End-of-match scoreboard" loading="lazy"><figcaption><b>End of match</b>: every player's stats and the MVP</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Install</h2>
+      <p class="intro">About two minutes. A guided setup opens on first launch.</p>
+      <ol class="steps">
+        <li><b>Download and install</b> <code>RL-UI-Setup</code> from the <a href="https://github.com/MaximeKwk/rl-ui/releases/latest">latest release</a>, or take the portable version.</li>
+        <li><b>Play a match.</b> RL-UI connects to Rocket League by itself and recognizes your Steam or Epic account.</li>
+        <li><b>Add the overlays</b> in OBS: Sources, Browser, and paste the address shown in the app, for example <code>127.0.0.1:5757/overlay/counter</code>.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="faq" class="faq">
+    <div class="wrap">
+      <h2>Questions</h2>
+      <details><summary>Can I get banned for using it?</summary><p>No mod and no injection: RL-UI only reads the Stats API that Psyonix built into the game for overlays, and the game's local log file. It is compatible with Easy Anti-Cheat.</p></details>
+      <details><summary>Windows says the app is unrecognized</summary><p>The .exe isn't code-signed yet, so SmartScreen may warn on first launch. Click More info, then Run anyway. The source code is on GitHub.</p></details>
+      <details><summary>Does it work on Epic Games and Steam?</summary><p>Yes, both. Your account is recognized from the game log, in solo, duos and trios.</p></details>
+      <details><summary>Where does the MMR come from?</summary><p>From Rocket League's own log on your PC. Right after a match RL-UI shows an estimate, then corrects it with the real value as soon as the game reports it.</p></details>
+      <details><summary>Does it send my data anywhere?</summary><p>No. Everything stays on your PC. The only connections are the update check on GitHub and the Twitch chat if you turn it on. Passwords are encrypted with Windows data protection.</p></details>
+      <details><summary>Is it free?</summary><p>Yes.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>RL-UI by Zoxam</span>
+    <a href="https://github.com/MaximeKwk/rl-ui/releases">Releases</a>
+    <a href="https://github.com/MaximeKwk/rl-ui/blob/main/README.fr.md">Lire en français</a>
+    <a href="https://github.com/MaximeKwk/rl-ui/blob/main/PRIVACY.md">Privacy</a>
+    <a href="https://github.com/MaximeKwk/rl-ui/blob/main/SECURITY.md">Security</a>
+    <span>Not affiliated with Psyonix or Epic Games.</span>
+  </div>
+</footer>
+</body>
+</html>
