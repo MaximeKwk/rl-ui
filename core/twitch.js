@@ -91,9 +91,9 @@ class TwitchChat extends EventEmitter {
     this.emit('status', this.status());
   }
 
+  // le bot répond uniquement sur la chaîne du compte connecté
   _channel() {
-    const c = String(this.getSettings().chat.channel || '').trim().replace(/^#/, '').toLowerCase();
-    return c || (this.auth ? this.auth.login : '');
+    return this.auth ? String(this.auth.login || '').toLowerCase() : '';
   }
 
   // le fichier contient { enc: "enc:v1:…" } (connexion chiffrée par Windows) ou, sans chiffrement, la connexion en clair

@@ -755,7 +755,7 @@ class Core extends EventEmitter {
       this._statsChanged();
     }
     if (langChanged || JSON.stringify(prev.caster) !== JSON.stringify(s.caster)) this._casterChanged();
-    if (prev.chat.channel !== s.chat.channel || prev.chat.enabled !== s.chat.enabled) {
+    if (prev.chat.enabled !== s.chat.enabled) {
       if (s.chat.enabled === false) this.chat.disconnect();
       else if (this.chat.auth) this.chat.connect();
     }

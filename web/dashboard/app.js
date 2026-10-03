@@ -963,7 +963,7 @@
         html = `<h2>${esc(t('o.doneTitle'))}</h2><p>${esc(t('o.doneText'))}</p>
           <div class="onb-more">
             <button class="onb-card" data-onbtab="caster"><b>${esc(t('o.moreCaster'))}</b><span>${esc(t('o.moreCasterText'))}</span></button>
-            <button class="onb-card" data-onbtab="obs"><b>${esc(t('o.moreChat'))}</b><span>${esc(t('o.moreChatText'))}</span></button>
+            <button class="onb-card" data-onbtab="twitch"><b>${esc(t('o.moreChat'))}</b><span>${esc(t('o.moreChatText'))}</span></button>
             <button class="onb-card" data-onbtab="settings"><b>${esc(t('o.moreDeck'))}</b><span>${esc(t('o.moreDeckText'))}</span></button>
           </div>`;
         break;

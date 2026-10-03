@@ -53,7 +53,7 @@ test('chat : connexion par code, puis réponse à !wl dans le chat (faux Twitch)
     }
     throw new Error(url);
   };
-  const settings = { chat: { enabled: true, channel: '', cooldown: 30, commands: [{ name: 'wl', aliases: '', enabled: true, text: '' }] } };
+  const settings = { chat: { enabled: true, channel: 'autre_chaine', cooldown: 30, commands: [{ name: 'wl', aliases: '', enabled: true, text: '' }] } };
   const chat = new TwitchChat({ dataDir: dir, getSettings: () => settings, render: () => 'Zoxam: 12W - 5L', fetchImpl, clientId: 'test', ircUrl: `ws://127.0.0.1:${irc.address().port}`, pollMs: 30 });
 
   const st = await chat.startLogin();

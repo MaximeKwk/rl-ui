@@ -101,7 +101,6 @@ function defaultSettings() {
     // Commandes du chat Twitch (texte vide = réponse par défaut dans la langue choisie)
     chat: {
       enabled: true,
-      channel: '', // vide = la chaîne du compte connecté
       cooldown: 10, // secondes entre deux utilisations d'une même commande
       commands: [
         { name: 'wl', aliases: 'record, score', enabled: true, text: '' },
