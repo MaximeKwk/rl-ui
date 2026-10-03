@@ -99,6 +99,7 @@
     if (!c) return;
     if (packOverride) {
       c.theme = packOverride;
+      c.casterTheme = packOverride;
       const col = packOverride.colors || {};
       c.overlay = { ...c.overlay };
       if (col.win) c.overlay.winColor = col.win;
@@ -106,7 +107,8 @@
       if (col.ot) c.overlay.otColor = col.ot;
     }
     if (c.lang) OT.setLang(c.lang);
-    applyTheme(c.theme);
+    // l'overlay caster peut avoir son propre thème (onglet Caster)
+    applyTheme(document.body.classList.contains('ov-caster') && c.casterTheme ? c.casterTheme : c.theme);
     OT.emit('config', c);
   }
 

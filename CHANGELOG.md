@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.4
+
+- **Themes for caster mode**: the caster overlay can use its own theme (Caster tab → Display → Look), or the same one as the other overlays.
+- Built-in themes now style the caster overlay too: Neon (glowing outlines in the team colors), Gold & Black (square black plates, gold trim), and the Template shows a background image behind the scorebug, a tournament logo under it and an image behind the final scoreboard.
+- New theme variables for the caster (`--round`, `--clock`, `--bug-shadow`) and free image slots; see docs/THEMES.md.
+
 ## 1.2.3
 
 - **Twitch has its own tab** in the dashboard (connection, commands, cooldown).

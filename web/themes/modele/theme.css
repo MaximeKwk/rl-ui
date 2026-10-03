@@ -55,3 +55,24 @@
 /* le thème dessine sa propre plaque : on masque celle par défaut */
 .ov-counter .theme-arena::after,
 .ov-summary .card::after { display: none; }
+
+/* 5. MODE CASTER --------------------------------------------------------- */
+/* (dans l'onglet Caster, « Apparence » permet un thème différent des autres overlays) */
+.ov-caster {
+  --round: 0.4;                            /* arrondi des coins : 0 = carrés, 1 = normal */
+  --clock: rgba(5, 7, 13, 0.92);           /* fond de l'horloge */
+}
+/* image de fond derrière le tableau des scores */
+.ov-caster .bug .row > .deco { background: url('images/fond-compteur.svg') center / cover; }
+.ov-caster .bug .score { background: rgba(8, 11, 20, 0.55); }
+/* logo du tournoi sous le tableau des scores */
+.ov-caster .bug > .art {
+  width: calc(110px * var(--s));
+  height: calc(110px * var(--s));
+  background: url('images/logo.svg') center / contain no-repeat;
+}
+/* image derrière le tableau de fin de partie */
+.ov-caster .post > .deco { background: url('images/fond-compteur.svg') center / cover; opacity: 0.45; }
+/* tes propres couleurs d'équipe à la place de celles du jeu : décommente
+.ov-caster { --blue: #35e0ff; --orange: #b05cff; }
+*/

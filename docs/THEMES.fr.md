@@ -88,6 +88,8 @@ Chaque page porte une classe sur `<body>` : `.ov-counter`, `.ov-alerts`, `.ov-hi
 
 **Caster** (`.ov-caster`)
 
+L'overlay caster peut utiliser **un autre thème** que les autres overlays : onglet *Caster* → *Affichage* → *Apparence (thème)*.
+
 | Sélecteur | Élément |
 | --- | --- |
 | `.bug`, `.bug .team.c0` / `.c1`, `.bug .score`, `.bug .clock` | Tableau des scores (`.clock.ot` en overtime, `.clock.replay` pendant un replay) |
@@ -97,7 +99,22 @@ Chaque page porte une classe sur `<body>` : `.ov-counter`, `.ov-alerts`, `.ov-hi
 | `.goal .tag` | Bannière de but |
 | `.feed .it` | Statfeed |
 | `.post .card` | Tableau de fin de match |
-| `--blue`, `--orange` | Couleurs des équipes (reçues du jeu) ; `--tc` = couleur de l'équipe de l'élément |
+| `.bug .row > .deco` | **Emplacement libre pour une image** derrière le tableau des scores |
+| `.bug > .art` | **Emplacement libre pour une image** sous le tableau des scores (logo du tournoi) : donne-lui une taille et un fond |
+| `.post > .deco` | **Emplacement libre pour une image** derrière le tableau de fin de match (plein écran) |
+| `--blue`, `--orange` | Couleurs des équipes (reçues du jeu) ; `--tc` = couleur de l'équipe de l'élément. Les définir sur `.ov-caster` impose tes propres couleurs |
+| `--panel`, `--line`, `--gold`, `--clock` | Fond des plaques, filets, couleur d'accent (overtime, MVP, vainqueur), fond de l'horloge |
+| `--round` | Arrondi des coins : `0` = carrés, `1` = normal |
+| `--bug-shadow` | Ombre du tableau des scores (`none` pour l'enlever) |
+
+```css
+/* Caster : coins carrés, logo du tournoi sous le tableau des scores */
+.ov-caster { --round: 0; }
+.ov-caster .bug > .art {
+  width: calc(110px * var(--s)); height: calc(110px * var(--s));
+  background: url('images/logo.png') center / contain no-repeat;
+}
+```
 
 **Dernières parties** (`.ov-history`) : `.bar`, `.pill`, `.ttl`, `.deco`.
 **Récap de session** (`.ov-summary`) : `.card`, `.big b`, `.tile`, `.pill`, `.deco`.

@@ -126,3 +126,22 @@ test('caster : démolitions et arrêts déduits des compteurs quand le jeu n\'en
   up([P('A', 0, { Demos: 1, Saves: 1 }), P('B', 1), P('C', 1, { Saves: 1 })]);
   assert.strictEqual(ev.filter((e) => e.derived).length, 2);
 });
+
+test('caster : thème propre ou le même que les autres overlays', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rlui-caster-'));
+  const { Core } = require('../core');
+  const core = new Core({ dataDir: dir, documentsDir: dir, webDir: path.join(__dirname, '..', 'web') });
+  core.server.broadcast = () => {};
+  core.store.patchSettings({ overlay: { themePack: 'neon' } });
+  assert.strictEqual(core.overlayConfig().casterTheme.id, 'neon', 'par défaut : le thème des overlays');
+  core.store.patchSettings({ caster: { themePack: 'or-noir' } });
+  const c = core.overlayConfig();
+  assert.strictEqual(c.theme.id, 'neon');
+  assert.strictEqual(c.casterTheme.id, 'or-noir');
+  assert.match(c.casterTheme.css, /^\/themes\/or-noir\/theme\.css/);
+  core.store.patchSettings({ caster: { themePack: 'inconnu' } });
+  assert.strictEqual(core.overlayConfig().casterTheme.id, 'classique', 'thème introuvable : Classique');
+  core.store.flush();
+  clearTimeout(core._casterTimer);
+  fs.rmSync(dir, { recursive: true, force: true });
+});

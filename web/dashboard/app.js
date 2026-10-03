@@ -1063,6 +1063,18 @@
     box.style.height = `${Math.round(1080 * k)}px`;
   }
 
+  // thème de l'overlay caster : le même que les autres overlays, ou un autre
+  function renderCasterTheme() {
+    const sel = $('#casterTheme');
+    const list = (D.themes && D.themes.list) || [];
+    const main = list.find((x) => x.id === (D.settings.overlay.themePack || 'classique'));
+    sel.innerHTML =
+      `<option value="">${esc(t('d.cs.sameTheme', { n: main ? main.name : 'Classic' }))}</option>` +
+      list.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
+    const cur = D.settings.caster.themePack || '';
+    sel.value = list.some((x) => x.id === cur) ? cur : '';
+  }
+
   function renderCasterStatic() {
     const url = `${baseUrl()}/overlay/caster`;
     if ($('#casterUrl').value !== url) {
@@ -1298,6 +1310,7 @@
     if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds])) renderStream();
     if (changed('layout', D.settings.overlay.layout)) renderLayout();
     if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
+    if (changed('casterTheme', [D.themes, D.settings.overlay.themePack, D.settings.caster.themePack, D.settings.language])) renderCasterTheme();
     renderObs();
     if (changed('update', [D.update, D.version])) renderUpdate();
     if (changed('chat', D.chat)) renderChat();

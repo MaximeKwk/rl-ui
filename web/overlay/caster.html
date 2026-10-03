@@ -12,6 +12,10 @@
         --panel: rgba(8, 11, 20, 0.9);
         --line: rgba(255, 255, 255, 0.12);
         --gold: #ffd35a;
+        /* réglables par un thème (docs/THEMES.md) */
+        --clock: #05070d; /* fond de l'horloge */
+        --round: 1; /* arrondi des coins : 0 = coins carrés */
+        --bug-shadow: drop-shadow(0 calc(8px * var(--s)) calc(20px * var(--s)) rgba(0, 0, 0, 0.5));
       }
       body { width: 100vw; height: 100vh; }
       .root { position: fixed; inset: 0; opacity: 0; transition: opacity 0.5s; }
@@ -29,7 +33,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        filter: drop-shadow(0 calc(8px * var(--s)) calc(20px * var(--s)) rgba(0, 0, 0, 0.5));
+        filter: var(--bug-shadow);
       }
       .bug .row { display: flex; align-items: stretch; height: calc(78px * var(--s)); position: relative; isolation: isolate; }
       .bug .team {
@@ -42,8 +46,8 @@
         position: relative;
         overflow: hidden;
       }
-      .bug .team.c0 { justify-content: flex-end; border-radius: calc(14px * var(--s)) 0 0 calc(14px * var(--s)); clip-path: polygon(0 0, 100% 0, 100% 100%, 4% 100%); }
-      .bug .team.c1 { flex-direction: row-reverse; justify-content: flex-end; border-radius: 0 calc(14px * var(--s)) calc(14px * var(--s)) 0; clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%); }
+      .bug .team.c0 { justify-content: flex-end; border-radius: calc(14px * var(--s) * var(--round)) 0 0 calc(14px * var(--s) * var(--round)); clip-path: polygon(0 0, 100% 0, 100% 100%, 4% 100%); }
+      .bug .team.c1 { flex-direction: row-reverse; justify-content: flex-end; border-radius: 0 calc(14px * var(--s) * var(--round)) calc(14px * var(--s) * var(--round)) 0; clip-path: polygon(0 0, 100% 0, 96% 100%, 0 100%); }
       .bug .team::after {
         content: '';
         position: absolute;
@@ -81,7 +85,7 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: #05070d;
+        background: var(--clock);
         border-bottom: calc(4px * var(--s)) solid rgba(255, 255, 255, 0.25);
       }
       .bug .clock b { font-size: calc(42px * var(--s)); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -104,7 +108,7 @@
         gap: calc(16px * var(--s));
         padding: calc(5px * var(--s)) calc(22px * var(--s));
         background: var(--panel);
-        border-radius: 0 0 calc(12px * var(--s)) calc(12px * var(--s));
+        border-radius: 0 0 calc(12px * var(--s) * var(--round)) calc(12px * var(--s) * var(--round));
         font-size: calc(15px * var(--s));
         font-weight: 800;
         letter-spacing: 0.16em;
@@ -115,7 +119,7 @@
       .pips i {
         width: calc(26px * var(--s));
         height: calc(8px * var(--s));
-        border-radius: calc(3px * var(--s));
+        border-radius: calc(3px * var(--s) * var(--round));
         background: rgba(255, 255, 255, 0.14);
         transform: skewX(-20deg);
       }
@@ -125,7 +129,7 @@
 
       /* logos et photos (onglet Caster) */
       .bug .logo { height: calc(58px * var(--s)); width: calc(58px * var(--s)); object-fit: contain; flex: none; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); }
-      .target .photo { width: calc(82px * var(--s)); height: calc(82px * var(--s)); border-radius: 50%; object-fit: cover; flex: none; border: calc(3px * var(--s)) solid var(--tc); background: #05070d; }
+      .target .photo { width: calc(82px * var(--s)); height: calc(82px * var(--s)); border-radius: 50%; object-fit: cover; flex: none; border: calc(3px * var(--s)) solid var(--tc); background: var(--clock); }
       .post .head .tm { display: flex; align-items: center; gap: calc(18px * var(--s)); }
       .post .head .tm.c1 { flex-direction: row-reverse; }
       .post .head .tm .logo { height: calc(84px * var(--s)); width: calc(84px * var(--s)); object-fit: contain; }
@@ -138,7 +142,7 @@
       .pl {
         position: relative;
         background: var(--panel);
-        border-radius: calc(10px * var(--s));
+        border-radius: calc(10px * var(--s) * var(--round));
         padding: calc(7px * var(--s)) calc(12px * var(--s)) calc(9px * var(--s));
         border: calc(2px * var(--s)) solid transparent;
         transition: border-color 0.25s, opacity 0.25s, transform 0.25s;
@@ -155,7 +159,7 @@
       .pl .nm { font-size: calc(22px * var(--s)); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .pl .bv { font-size: calc(24px * var(--s)); font-weight: 900; font-variant-numeric: tabular-nums; }
       .pl .dm { font-size: calc(13px * var(--s)); font-weight: 900; letter-spacing: 0.12em; color: #ff5a6a; }
-      .pl .bar { margin-top: calc(5px * var(--s)); height: calc(8px * var(--s)); border-radius: calc(4px * var(--s)); background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+      .pl .bar { margin-top: calc(5px * var(--s)); height: calc(8px * var(--s)); border-radius: calc(4px * var(--s) * var(--round)); background: rgba(255, 255, 255, 0.1); overflow: hidden; }
       .pl .bar i {
         display: block;
         height: 100%;
@@ -177,7 +181,7 @@
         gap: calc(18px * var(--s));
         padding: calc(12px * var(--s)) calc(22px * var(--s)) calc(12px * var(--s)) calc(14px * var(--s));
         background: var(--panel);
-        border-radius: calc(16px * var(--s));
+        border-radius: calc(16px * var(--s) * var(--round));
         border-top: calc(4px * var(--s)) solid var(--tc);
         box-shadow: 0 calc(10px * var(--s)) calc(30px * var(--s)) rgba(0, 0, 0, 0.45);
         transition: opacity 0.3s;
@@ -195,7 +199,7 @@
       .target .st div {
         min-width: calc(62px * var(--s));
         padding: calc(6px * var(--s)) calc(8px * var(--s));
-        border-radius: calc(8px * var(--s));
+        border-radius: calc(8px * var(--s) * var(--round));
         background: rgba(255, 255, 255, 0.05);
         text-align: center;
       }
@@ -213,7 +217,7 @@
         gap: calc(22px * var(--s));
         padding: calc(10px * var(--s)) calc(30px * var(--s)) calc(10px * var(--s)) calc(10px * var(--s));
         background: var(--panel);
-        border-radius: calc(14px * var(--s));
+        border-radius: calc(14px * var(--s) * var(--round));
         overflow: hidden;
         opacity: 0;
         pointer-events: none;
@@ -228,7 +232,7 @@
       }
       .goal .tag {
         padding: calc(8px * var(--s)) calc(22px * var(--s));
-        border-radius: calc(10px * var(--s));
+        border-radius: calc(10px * var(--s) * var(--round));
         background: var(--tc);
         font-size: calc(46px * var(--s));
         font-weight: 900;
@@ -250,7 +254,7 @@
         gap: calc(10px * var(--s));
         padding: calc(7px * var(--s)) calc(14px * var(--s));
         background: var(--panel);
-        border-radius: calc(10px * var(--s));
+        border-radius: calc(10px * var(--s) * var(--round));
         border-left: calc(5px * var(--s)) solid var(--tc);
         font-size: calc(19px * var(--s));
         font-weight: 700;
@@ -277,13 +281,18 @@
       .post .card {
         width: calc(1240px * var(--s));
         background: var(--panel);
-        border-radius: calc(22px * var(--s));
+        border-radius: calc(22px * var(--s) * var(--round));
         overflow: hidden;
         box-shadow: 0 calc(20px * var(--s)) calc(60px * var(--s)) rgba(0, 0, 0, 0.6);
         transform: translateY(calc(20px * var(--s)));
         transition: transform 0.6s cubic-bezier(0.2, 0.9, 0.3, 1);
       }
       .post.show .card { transform: none; }
+      /* emplacements libres pour les images d'un thème (vides par défaut) */
+      .bug .row > .deco { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+      .bug > .art { top: 100%; transform: translate(-50%, calc(10px * var(--s))); } /* sous le tableau des scores */
+      .post > .deco { position: absolute; inset: 0; pointer-events: none; }
+      .post .card { position: relative; }
       .post .head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
       .post .head .tm { padding: calc(22px * var(--s)) calc(30px * var(--s)); background: var(--tc); }
       .post .head .tm.c1 { text-align: right; }
@@ -317,7 +326,7 @@
       .post td { padding: calc(9px * var(--s)) calc(12px * var(--s)); text-align: center; font-size: calc(24px * var(--s)); font-weight: 800; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
       .post td:first-child { border-left: calc(6px * var(--s)) solid var(--tc); font-weight: 800; }
       .post tr.best td { background: rgba(255, 211, 90, 0.07); }
-      .post .mvp { margin-left: calc(10px * var(--s)); font-size: calc(13px * var(--s)); padding: calc(2px * var(--s)) calc(8px * var(--s)); border-radius: calc(6px * var(--s)); background: var(--gold); color: #1b1000; font-weight: 900; letter-spacing: 0.1em; vertical-align: middle; }
+      .post .mvp { margin-left: calc(10px * var(--s)); font-size: calc(13px * var(--s)); padding: calc(2px * var(--s)) calc(8px * var(--s)); border-radius: calc(6px * var(--s) * var(--round)); background: var(--gold); color: #1b1000; font-weight: 900; letter-spacing: 0.1em; vertical-align: middle; }
     </style>
   </head>
   <body>
@@ -327,6 +336,7 @@
 
       <div class="bug" id="bug">
         <div class="row">
+          <i class="deco"></i>
           <div class="team c0"><span class="tname" id="n0"></span><img class="logo hide" id="l0" alt="" /></div>
           <div class="score c0" id="s0">0</div>
           <div class="clock" id="clock"><b id="clk">5:00</b><i id="clkSub"></i></div>
@@ -338,12 +348,13 @@
           <span class="mid" id="subTxt"></span>
           <div class="pips c1" id="p1"></div>
         </div>
+        <i class="art"></i>
       </div>
 
       <div class="goal" id="goal"></div>
       <div class="target" id="target"></div>
       <div class="feed" id="feed"></div>
-      <div class="post" id="post"><div class="card" id="postCard"></div></div>
+      <div class="post" id="post"><i class="deco"></i><div class="card" id="postCard"></div></div>
     </div>
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>

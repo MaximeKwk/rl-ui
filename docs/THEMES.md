@@ -88,6 +88,8 @@ Each page has a class on `<body>`: `.ov-counter`, `.ov-alerts`, `.ov-history`, `
 
 **Caster** (`.ov-caster`)
 
+The caster overlay can use **a different theme** from the other overlays: *Caster* tab → *Display* → *Look (theme)*.
+
 | Selector | Element |
 | --- | --- |
 | `.bug`, `.bug .team.c0` / `.c1`, `.bug .score`, `.bug .clock` | Scorebug (`.clock.ot` in overtime, `.clock.replay` during a replay) |
@@ -97,7 +99,22 @@ Each page has a class on `<body>`: `.ov-counter`, `.ov-alerts`, `.ov-history`, `
 | `.goal .tag` | Goal banner |
 | `.feed .it` | Statfeed |
 | `.post .card` | End-of-match scoreboard |
-| `--blue`, `--orange` | Team colors (sent by the game); `--tc` = the element's team color |
+| `.bug .row > .deco` | **Free slot for an image** behind the scorebug |
+| `.bug > .art` | **Free slot for an image** under the scorebug (tournament logo): give it a size and a background |
+| `.post > .deco` | **Free slot for an image** behind the end-of-match scoreboard (full screen) |
+| `--blue`, `--orange` | Team colors (sent by the game); `--tc` = the element's team color. Setting them on `.ov-caster` forces your own colors |
+| `--panel`, `--line`, `--gold`, `--clock` | Plate background, thin rules, accent color (overtime, MVP, winner), clock background |
+| `--round` | Corner rounding: `0` = square, `1` = normal |
+| `--bug-shadow` | Scorebug shadow (`none` to remove it) |
+
+```css
+/* Caster: square corners, tournament logo under the scorebug */
+.ov-caster { --round: 0; }
+.ov-caster .bug > .art {
+  width: calc(110px * var(--s)); height: calc(110px * var(--s));
+  background: url('images/logo.png') center / contain no-repeat;
+}
+```
 
 **Recent matches** (`.ov-history`): `.bar`, `.pill`, `.ttl`, `.deco`.
 **Session recap** (`.ov-summary`): `.card`, `.big b`, `.tile`, `.pill`, `.deco`.

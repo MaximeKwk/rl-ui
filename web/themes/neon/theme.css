@@ -20,3 +20,28 @@
 /* le thème dessine sa propre plaque : on masque celle par défaut */
 .ov-counter .theme-arena::after,
 .ov-summary .card::after { display: none; }
+
+/* Mode caster : contours lumineux aux couleurs des équipes */
+.ov-caster {
+  --panel: rgba(6, 0, 22, 0.88);
+  --clock: #07001c;
+  --gold: #00e5ff;
+  --line: rgba(0, 229, 255, 0.25);
+  --bug-shadow: drop-shadow(0 0 calc(12px * var(--s)) rgba(0, 229, 255, 0.6));
+}
+.ov-caster .bug .team {
+  background: rgba(6, 0, 22, 0.92);
+  box-shadow: inset 0 calc(-4px * var(--s)) 0 var(--tc), inset 0 0 calc(30px * var(--s)) color-mix(in srgb, var(--tc) 40%, transparent);
+}
+.ov-caster .bug .tname,
+.ov-caster .bug .score { color: color-mix(in srgb, var(--tc) 35%, white); text-shadow: 0 0 10px var(--tc), 0 0 24px var(--tc); }
+.ov-caster .bug .clock b { color: #e9fbff; text-shadow: 0 0 10px #00e5ff; }
+.ov-caster .pl,
+.ov-caster .target,
+.ov-caster .goal,
+.ov-caster .feed .it,
+.ov-caster .post .card { box-shadow: 0 0 calc(14px * var(--s)) color-mix(in srgb, var(--tc, #00e5ff) 60%, transparent); }
+.ov-caster .pl .bar i { box-shadow: 0 0 calc(8px * var(--s)) var(--tc); }
+.ov-caster .goal .tag { background: transparent; box-shadow: inset 0 0 0 calc(2px * var(--s)) var(--tc); color: var(--tc); text-shadow: 0 0 12px var(--tc); }
+.ov-caster .post .head .tm { background: rgba(6, 0, 22, 0.92); color: color-mix(in srgb, var(--tc) 35%, white); text-shadow: 0 0 12px var(--tc); box-shadow: inset 0 calc(-4px * var(--s)) 0 var(--tc); }
+.ov-caster .post .win { color: #ff2d95; text-shadow: 0 0 12px #ff2d95; }

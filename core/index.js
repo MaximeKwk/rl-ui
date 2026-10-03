@@ -552,6 +552,7 @@ class Core extends EventEmitter {
       lang: i18n.getLang(),
       overlay: this._themedOverlay(),
       theme: this._themeInfo(),
+      casterTheme: this.themeInfo(s.caster.themePack || s.overlay.themePack || 'classique'),
       alerts: {
         enabled: s.alerts.enabled,
         texts: s.alerts.texts,
@@ -759,7 +760,7 @@ class Core extends EventEmitter {
       if (s.chat.enabled === false) this.chat.disconnect();
       else if (this.chat.auth) this.chat.connect();
     }
-    if (langChanged || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay) || JSON.stringify(prev.alerts) !== JSON.stringify(s.alerts)) {
+    if (langChanged || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay) || JSON.stringify(prev.alerts) !== JSON.stringify(s.alerts) || prev.caster.themePack !== s.caster.themePack) {
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
     }
     if (langChanged || JSON.stringify(prev.text) !== JSON.stringify(s.text) || JSON.stringify(prev.overlay) !== JSON.stringify(s.overlay)) {

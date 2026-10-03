@@ -124,6 +124,7 @@ function defaultSettings() {
       showFeed: true,
       showPostgame: true,
       speedUnit: 'kmh', // kmh | mph
+      themePack: '', // thème de l'overlay caster ; vide = le même que les autres overlays
     },
   };
 }

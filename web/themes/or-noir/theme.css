@@ -10,3 +10,28 @@
 .ov-alerts .al { --bar: #f5c542; }
 .ov-alerts .kicker { color: #f5c542; }
 .ov-alerts .chip.hl { color: #f5c542; }
+
+/* Mode caster : plaques noires à coins carrés, filets dorés, couleur d'équipe en soulignement */
+.ov-caster {
+  --panel: rgba(8, 8, 8, 0.95);
+  --clock: #000;
+  --gold: #f5c542;
+  --line: rgba(245, 197, 66, 0.28);
+  --round: 0;
+  --bug-shadow: none;
+}
+.ov-caster .bug .team { background: #0b0b0b; box-shadow: inset 0 calc(-4px * var(--s)) 0 var(--tc); }
+.ov-caster .bug .team.c0,
+.ov-caster .bug .team.c1 { clip-path: none; }
+.ov-caster .bug .tname { color: #f3efe4; }
+.ov-caster .bug .clock { border-bottom-color: #f5c542; }
+.ov-caster .bug .clock b { color: #f5c542; }
+.ov-caster .bug .sub { box-shadow: inset 0 1px 0 rgba(245, 197, 66, 0.35); }
+.ov-caster .pl,
+.ov-caster .target,
+.ov-caster .goal,
+.ov-caster .feed .it,
+.ov-caster .post .card { box-shadow: inset 0 0 0 1px rgba(245, 197, 66, 0.3); }
+.ov-caster .target { border-top-color: #f5c542; }
+.ov-caster .goal .tag { background: #f5c542; color: #111; }
+.ov-caster .post .head .tm { background: #0b0b0b; box-shadow: inset 0 calc(-5px * var(--s)) 0 var(--tc); }
