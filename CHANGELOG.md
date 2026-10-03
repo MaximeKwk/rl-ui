@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3
+
+- **Twitch has its own tab** in the dashboard (connection, commands, cooldown).
+- Chat commands are answered only in the channel of the connected Twitch account; the “Channel” field is gone.
+
 ## 1.2.2
 
 - **New default alert sounds**, in a modern video game style: riser, impact and big synth chords. Shorter (1–2 s) and balanced with each other (the win streak sound is now clearly audible). Your own sounds and theme sounds still replace them.
