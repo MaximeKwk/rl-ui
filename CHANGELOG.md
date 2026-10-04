@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.5
+
+- **MMR estimate**: before RL-UI knows any real MMR value for you (for example when your party leader always starts the search), a match is now estimated at **±10** instead of ±12, closer to a real ranked match. Existing estimated matches are recalculated; real values don't change.
+
 ## 1.2.4
 
 - **Themes for caster mode**: the caster overlay can use its own theme (Caster tab → Display → Look), or the same one as the other overlays.
