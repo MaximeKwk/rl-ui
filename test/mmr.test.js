@@ -79,7 +79,7 @@ test('une partie entre deux files : variation exacte', () => {
   sample(687.4, 1000);
   const r = match('W', 2000);
   assert.strictEqual(r.mmr.status, 'estimated');
-  assert.strictEqual(r.mmr.delta, 12); // estimation par défaut
+  assert.strictEqual(r.mmr.delta, 10); // estimation par défaut
   assert.strictEqual(r.mmr.before, 687.4);
   sample(702.6, 3000);
   const m = store.getMatch(r.id);
@@ -229,4 +229,16 @@ test('partie finie depuis longtemps : toujours comptée dans la valeur suivante'
   sample(1162.7, T + 3600e3); // une heure plus tard : -21.8 pour les deux défaites
   assert.strictEqual(store.getMatch(a.id).mmr.status, 'grouped');
   assert.strictEqual(store.getMatch(b.id).mmr.status, 'grouped');
+});
+
+test('estimation par défaut : ±10, et l\'ancien réglage 12 passe à 10', () => {
+  const { match } = setup();
+  assert.strictEqual(match('W', 2000).mmr.delta, 10);
+  assert.strictEqual(match('L', 3000).mmr.delta, -10);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ot-mmr-'));
+  tmpDirs.push(dir);
+  fs.writeFileSync(path.join(dir, 'data.json'), JSON.stringify({ settings: { mmr: { defaultDelta: 12 } } }));
+  const old = new Store(dir);
+  stores.push(old);
+  assert.strictEqual(old.settings.mmr.defaultDelta, 10);
 });

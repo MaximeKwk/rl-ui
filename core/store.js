@@ -20,6 +20,8 @@ function migrateDefaults(s) {
   if (s.overlay.labelWin === 'V') s.overlay.labelWin = '';
   if (s.overlay.labelLoss === 'D') s.overlay.labelLoss = '';
   if (s.text.template === OLD_DEFAULTS.template) s.text.template = '';
+  // ancienne estimation par défaut (12) : en réalité une partie classée fait plutôt ±9 / ±10
+  if (s.mmr && s.mmr.defaultDelta === 12) s.mmr.defaultDelta = 10;
 }
 
 function defaultSettings() {
@@ -35,7 +37,7 @@ function defaultSettings() {
     counting: { ranked: true, casual: true, extra: true, tournament: true, private: false, offline: false, unknown: true },
     abandonAsLoss: 'ranked', // always | ranked | never
     session: { autoResetHours: 6 },
-    mmr: { enabled: true, includeCasual: false, defaultDelta: 12, showInAlerts: true },
+    mmr: { enabled: true, includeCasual: false, defaultDelta: 10, showInAlerts: true },
     overlay: {
       theme: 'arena', // arena | minimal | broadcast
       themePack: 'classique', // thème (DA) : intégré ou perso

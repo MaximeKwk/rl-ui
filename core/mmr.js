@@ -15,7 +15,7 @@ const round1 = (n) => Math.round(n * 10) / 10;
 // Une partie finie depuis plus longtemps que ça avant la recherche est forcément comptée dans la valeur lue.
 // En dessous, le serveur n'a peut-être pas encore mis le MMR à jour (la variation arrive à la recherche suivante).
 const LAG_MS = 3 * 60 * 1000;
-const ALGO = 2; // version de l'attribution (recalcul de l'historique quand elle change)
+const ALGO = 3; // version de l'attribution (recalcul de l'historique quand elle change ; 3 = estimation par défaut ±10)
 const accountOf = (key) => String(key).slice(0, String(key).lastIndexOf('|'));
 
 class MmrTracker extends EventEmitter {
@@ -228,7 +228,7 @@ class MmrTracker extends EventEmitter {
     let v = pick(L.byKey[k]);
     if (v == null) v = pick(L.byAcc[accountOf(k)]);
     if (v == null) {
-      const def = Math.abs(Number(this.settings.defaultDelta)) || 12;
+      const def = Math.abs(Number(this.settings.defaultDelta)) || 10;
       v = win ? def : -def;
     }
     return round1(v);
