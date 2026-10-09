@@ -30,6 +30,7 @@
         <button data-tab="caster"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg><span class="lbl" data-i18n="h.nav.caster">Caster</span></button>
         <button data-tab="history"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg><span class="lbl" data-i18n="h.nav.history">History</span></button>
         <div class="side-end">
+          <button data-tab="diag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21" /></svg><span class="lbl" data-i18n="h.nav.diag">Diagnostic</span><i class="nav-dot" aria-hidden="true"></i></button>
           <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg><span class="lbl" data-i18n="h.nav.settings">Settings</span></button>
           <button data-tab="help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M9.8 9.5a2.3 2.3 0 1 1 3.3 2.1c-.7.4-1.1.9-1.1 1.7M12 16.4v.2" /></svg><span class="lbl" data-i18n="h.nav.help">Help</span></button>
           <button id="themeToggle" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg><span class="lbl" data-i18n="h.nav.theme">Light or dark theme</span></button>
@@ -56,6 +57,7 @@
           </div>
 
           <div id="setupCard" class="card setup hidden"></div>
+          <div id="noticeCard" class="card notice hidden" role="status"></div>
           <div id="identityCard" class="card identity hidden"></div>
 
           <div class="grid-main">
@@ -112,15 +114,9 @@
             </div>
           </div>
 
-          <div class="grid-2">
-            <div class="card">
-              <div class="card-head"><h3 data-i18n="h.sessMatches">Session matches</h3><span class="muted" id="sessCount"></span></div>
-              <div id="sessionList" class="match-list"></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 data-i18n="h.log">Log</h3></div>
-              <div id="logList" class="log-list"></div>
-            </div>
+          <div class="card">
+            <div class="card-head"><h3 data-i18n="h.sessMatches">Session matches</h3><span class="muted" id="sessCount"></span></div>
+            <div id="sessionList" class="match-list"></div>
           </div>
         </section>
 
@@ -654,6 +650,48 @@
         </section>
 
         <!-- ============================== HELP ============================== -->
+        <!-- ============================== DIAGNOSTIC ============================== -->
+        <section id="tab-diag" class="tab">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.dg.title">Diagnostic</h2>
+              <p class="muted" data-i18n="h.dg.sub">What RL-UI sees, and why each match is counted or not.</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" id="dgSave" data-i18n="h.dg.save">Save the report</button>
+              <button class="btn primary" id="dgCopy" data-i18n="h.dg.copy">Copy the report</button>
+            </div>
+          </div>
+
+          <div class="split">
+            <div>
+              <div class="card">
+                <div class="card-head">
+                  <h3><span data-i18n="h.dg.matches">Matches seen</span> <button type="button" class="help" data-tip="Every match the game reported, counted or not. A match that was not counted can still be added from here, with its real score." data-i18n-tip="h.tip.dgMatches">?</button></h3>
+                  <span class="muted small" id="dgCount"></span>
+                </div>
+                <div id="dgJournal" class="dg-journal"></div>
+              </div>
+            </div>
+            <div>
+              <div class="card">
+                <div class="card-head"><h3 data-i18n="h.dg.health">Detection status</h3><span id="dgLevel" class="pill"></span></div>
+                <ul id="dgChecks" class="dg-checks"></ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3 data-i18n="h.log">Log</h3><span class="muted small" data-i18n="h.dg.logSub">What the app did, most recent first</span></div>
+            <div id="logList" class="log-list"></div>
+          </div>
+
+          <p class="muted small ov-foot" data-i18n="h.dg.privacy">
+            The report holds the detection status, the matches seen and the log. It contains no access key, no password and no other
+            player's name. Nothing is sent anywhere: you decide who you give it to.
+          </p>
+        </section>
+
         <section id="tab-help" class="tab">
           <div class="card help">
             <div class="card-head"><h2 data-i18n="h.help.start">Get started in 3 steps</h2><button class="btn small primary" id="onbReopen" data-i18n="h.help.guide">Open the guided setup</button></div>
@@ -672,7 +710,7 @@
               </li>
             </ol>
             <h2 data-i18n="h.help.faq">FAQ</h2>
-            <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Check the log (Home tab): the match may be from an excluded mode (private match, offline…) or the tracker was paused. You can always fix it with the + / − buttons.</p></details>
+            <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Open Diagnostic: every match the game reported is listed there with the reason it was counted or not (excluded mode, tracking paused, account not recognized…), and a button to count it afterwards with its real score.</p></details>
             <details><summary data-i18n="h.faq.q2">“Stats API: closed” while the game is running</summary><p data-i18n="h.faq.a2">The game only opens the API when started with PacketSendRate &gt; 0. Click “Enable / repair the API” in Settings, then fully restart Rocket League (also after a game update).</p></details>
             <details><summary data-i18n="h.faq.q3">Alerts have no sound on stream</summary><p data-i18n="h.faq.a3">In the OBS browser source properties, tick “Control audio via OBS”, then set the source volume in the audio mixer.</p></details>
             <details><summary data-i18n="h.faq.q4">The “Boost” counter isn't aligned with my gauge</summary><p data-i18n="h.faq.a4">Overlays → Counter: turn on “Show the gauge guide”, then adjust the HUD size and offsets until the guide covers your gauge in the OBS preview. Then turn the guide off. The source must be the size of your canvas (e.g. 1920 × 1080).</p></details>

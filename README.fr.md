@@ -220,8 +220,10 @@ tes vraies variations récentes. Si c'est ton mate qui lance la recherche, seule
 <details>
 <summary><b>Une partie n'a pas été comptée</b></summary>
 
-Regarde le journal du tableau de bord : le mode est peut-être exclu (parties privées, hors-ligne) ou le tracker était en pause.
-Tu peux toujours corriger avec les boutons + / −.
+Ouvre **Diagnostic** dans le tableau de bord : chaque partie signalée par le jeu y est listée avec la raison pour laquelle elle
+est comptée ou non (mode exclu, suivi en pause, compte non reconnu, partie quittée…). Une partie non comptée peut être ajoutée
+d'un clic, avec son vrai score. La même page vérifie chaque maillon de la détection (jeu, Stats API, journal du jeu, compte, MMR)
+et prépare un rapport à copier pour demander de l'aide.
 </details>
 
 <details>

@@ -195,7 +195,7 @@ class Store {
   }
 
   _load() {
-    const base = { version: 1, settings: defaultSettings(), sessions: [], currentSessionId: null, matches: [] };
+    const base = { version: 1, settings: defaultSettings(), sessions: [], currentSessionId: null, matches: [], journal: [] };
     for (const f of [this.file, this.file + '.bak']) {
       try {
         // (un fichier retouché à la main peut commencer par un BOM UTF-8)
@@ -206,6 +206,7 @@ class Store {
         this._openSecrets(data.settings);
         if (!Array.isArray(data.matches)) data.matches = [];
         if (!Array.isArray(data.sessions)) data.sessions = [];
+        if (!Array.isArray(data.journal)) data.journal = [];
         if (!data.currentSessionId) this._newSession(data);
         return data;
       } catch (e) {
@@ -310,6 +311,19 @@ class Store {
     record.sessionId = this.data.currentSessionId;
     this.data.matches.push(record);
     if (this.data.matches.length > 20000) this.data.matches.splice(0, this.data.matches.length - 20000);
+    this.save();
+    return record;
+  }
+
+  // Partie comptée après coup (depuis le diagnostic) : rangée à sa place dans le temps, dans la session de l'époque.
+  insertMatch(record) {
+    const sessions = this.data.sessions.filter((s) => s.startedAt <= record.endedAt);
+    const sess = sessions.length ? sessions[sessions.length - 1] : this.session;
+    record.sessionId = sess.id;
+    const ms = this.data.matches;
+    let i = ms.length;
+    while (i > 0 && ms[i - 1].endedAt > record.endedAt) i--;
+    ms.splice(i, 0, record);
     this.save();
     return record;
   }

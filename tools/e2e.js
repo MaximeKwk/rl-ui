@@ -123,6 +123,14 @@ function cleanup(code) {
   const r2 = JSON.parse((await get(`/api/action/undo?key=${settings.apiKey}`)).body);
   ok(r2.stats.wins === 2, 'annuler la dernière partie');
 
+  // Diagnostic : une entrée par partie vue, avec sa raison et sa trace ; rapport sans la clé d'accès
+  const diag = JSON.parse((await get(`/api/diagnostic?key=${settings.apiKey}`)).body);
+  ok(diag.journal.length === 4 && diag.journal.every((e) => e.outcome === 'counted' && e.why && e.trace.length > 3), `diagnostic : 4 parties vues et expliquées (${diag.journal.length})`);
+  ok(diag.checks.some((c) => c.id === 'account' && c.level === 'ok') && diag.checks.some((c) => c.id === 'log' && c.level === 'ok'), 'diagnostic : compte et journal du jeu au vert');
+  const report = (await get(`/api/diagnostic/report?key=${settings.apiKey}`)).body;
+  ok(report.includes('RL-UI') && report.includes('decision: counted') && !report.includes(settings.apiKey), 'rapport de diagnostic sans la clé d\'accès');
+  ok((await get('/api/diagnostic')).status === 401, 'diagnostic protégé sans clé');
+
   const page = await get('/overlay/counter');
   ok(page.status === 200 || page.status === 404, 'route overlay');
 

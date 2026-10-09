@@ -108,7 +108,11 @@ class LogSession {
           const s = this.mm;
           this.mm = null;
           // une seule playlist en file : sinon on ne sait pas à quel mode correspond la valeur
-          if (ev.playlistCount === 1 && s.playlists.length === 1 && s.account && Number.isFinite(s.mu) && s.mu > 0) {
+          const why = !s.account ? 'no-account' : ev.playlistCount !== 1 || s.playlists.length !== 1 ? 'multi' : !(Number.isFinite(s.mu) && s.mu > 0) ? 'no-value' : null;
+          if (why) {
+            // recherche vue mais MMR inutilisable : on le dit (diagnostic) au lieu de l'ignorer en silence
+            out.push({ type: 'mmr-skip', why, playlists: s.playlists, at: s.at, secs: s.secs });
+          } else {
             out.push({
               type: 'mmr',
               accountId: s.account.id,
@@ -143,6 +147,7 @@ class RlLogWatcher extends EventEmitter {
     this.account = null; // { name, id, platform, at }
     this.playlist = null; // { id, source, at }
     this.presence = null; // { data, text, at }
+    this.lastSearch = null; // dernière recherche de partie vue : { at, ok, playlist | playlists, why }
     this.exists = false;
     this.lastWriteAt = 0;
     this._offset = 0;
@@ -245,7 +250,11 @@ class RlLogWatcher extends EventEmitter {
         this.emit('playlist', null);
       }
     } else if (ev.type === 'mmr') {
+      this.lastSearch = { at, ok: true, playlist: ev.playlist, mmr: ev.mmr };
       this.emit('mmr', ev);
+    } else if (ev.type === 'mmr-skip') {
+      this.lastSearch = { at, ok: false, why: ev.why, playlists: ev.playlists };
+      this.emit('mmr-skip', ev);
     }
   }
 

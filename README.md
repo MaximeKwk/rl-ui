@@ -221,8 +221,10 @@ your recent real changes. If your teammate starts the search, only the estimate 
 <details>
 <summary><b>A match wasn't counted</b></summary>
 
-Check the log in the dashboard: the mode may be excluded (private matches, offline) or the tracker was paused.
-You can always fix it with the + / − buttons.
+Open **Diagnostic** in the dashboard: every match the game reported is listed with the reason it was counted or not
+(excluded mode, tracking paused, account not recognized, match left…). A match that was not counted can be added in one click,
+with its real score. The same page checks every link of the detection (game, Stats API, game log, account, MMR) and prepares a
+report you can copy when asking for help.
 </details>
 
 <details>

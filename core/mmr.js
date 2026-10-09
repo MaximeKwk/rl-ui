@@ -159,12 +159,16 @@ class MmrTracker extends EventEmitter {
   }
 
   // ---------------------------------------------------------------- fin de match
-  onMatch(record) {
+  // late : partie comptée après coup (diagnostic). Si une valeur réelle a été lue depuis, sa variation y est
+  // déjà : la partie garde une estimation, sans attendre une valeur qui ne viendra plus.
+  onMatch(record, { late = false } = {}) {
     if (!this.settings.enabled || record.manual || !record.me || !record.me.id || record.playlistId == null) return null;
     if (!this.tracks(record.playlistId)) return null;
     const k = this.key(record.me.id, record.playlistId);
     const est = this.estimate(record, k);
-    const cur = this.current(k);
+    const last = this.d.last[k];
+    const covered = late && !!last && last.at > record.endedAt + 2000;
+    const cur = covered ? null : this.current(k);
     record.mmr = {
       key: k,
       playlist: record.playlistId,
@@ -174,6 +178,7 @@ class MmrTracker extends EventEmitter {
       status: 'estimated',
       learned: this.hasLearned(k),
     };
+    if (covered) return record.mmr;
     const list = this.d.pending[k] || (this.d.pending[k] = []);
     list.push(record.id);
     if (list.length > 40) list.splice(0, list.length - 40);

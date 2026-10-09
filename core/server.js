@@ -333,6 +333,17 @@ class AppServer extends EventEmitter {
       }
       m = /^\/api\/matches\/([^/]+)$/.exec(p);
       if (m && (method === 'DELETE' || method === 'POST')) return this._json(res, 200, { ok: this.core.deleteMatch(m[1]) });
+      if (p === '/api/diagnostic') return this._json(res, 200, this.core.diagnostic());
+      if (p === '/api/diagnostic/report') return this._text(res, 200, this.core.diagnosticReport());
+      if (p === '/api/diagnostic/count' && method === 'POST') {
+        const b = await this._body(req, true);
+        const r = this.core.countSkipped(b.id, { player: Number.isInteger(b.player) ? b.player : null, result: b.result });
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/diagnostic/dismiss' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, { ok: this.core.dismissNotice(b.id) });
+      }
       if (p === '/api/history') {
         return this._json(res, 200, this.core.history(url.searchParams.get('scope') || 'session', Number(url.searchParams.get('limit')) || 500));
       }

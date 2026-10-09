@@ -141,6 +141,7 @@
       localStorage.setItem('rlui-tab', entry);
     } catch {}
     if (entry === 'history') loadHistory();
+    if (entry === 'diag') loadDiag();
     if (entry === 'stream' || entry === 'session') layoutPreviews();
     if (entry === 'caster') layoutCasterPv();
     // section demandée rangée sous une autre entrée : on l'amène à l'écran
@@ -319,6 +320,8 @@
   function buildOnce() {
     if (built) return;
     built = true;
+
+    bindDiag();
 
     // Parties comptées
     $('#countingForm').innerHTML = CATS.map(([k, label]) => `<label class="check"><input type="checkbox" data-set="counting.${k}" /> ${esc(label)}</label>`).join('');
@@ -821,6 +824,212 @@
         return `<div class="${l.level}"><time>${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</time><span>${esc(l.msg)}</span></div>`;
       })
       .join('');
+  }
+
+  // ------------------------------------------------------------------ diagnostic
+  const DG_ICON = {
+    ok: '<path d="M7 12.5l3.2 3.2L17 9" />',
+    warn: '<path d="M12 7v6M12 16.6v.2" />',
+    bad: '<path d="M8.5 8.5l7 7M15.5 8.5l-7 7" />',
+    idle: '<path d="M8 12h8" />',
+  };
+  const DG_FIX = { 'enable-api': 'd.dg.enable', resume: 'd.dg.resume', counting: 'd.dg.toSettings', identity: 'd.dg.toSettings', overlays: 'd.dg.toOverlays' };
+
+  // Bilan de santé : un point par maillon de la détection, avec ce qu'il faut faire si ça coince
+  function renderDiagChecks() {
+    const dg = D.diag;
+    const lvl = $('#dgLevel');
+    lvl.className = `pill ${dg.level === 'ok' ? 'ok' : dg.level === 'bad' ? 'err' : 'wait'}`;
+    lvl.textContent = t(`d.dg.${dg.level}`);
+    $('#dgChecks').innerHTML = dg.checks
+      .map(
+        (c) => `
+      <li class="dg-check ${c.level}">
+        <span class="dg-ic" role="img" aria-label="${esc(t(`d.dg.${c.level}`))}"><svg viewBox="0 0 24 24" aria-hidden="true">${DG_ICON[c.level] || DG_ICON.idle}</svg></span>
+        <div>
+          <b>${esc(c.title)}</b>
+          <p>${esc(c.detail)}</p>
+          ${c.fix && DG_FIX[c.fix] && c.level !== 'ok' ? `<button class="btn small" data-dgdo="${esc(c.fix)}">${esc(t(DG_FIX[c.fix]))}</button>` : ''}
+        </div>
+      </li>`
+      )
+      .join('');
+    // pastille sur l'entrée du menu : un point de contrôle bloquant, ou une partie non comptée à regarder
+    const b = $('.side button[data-tab="diag"]');
+    b.classList.toggle('dot-bad', dg.level === 'bad');
+    b.classList.toggle('dot-warn', dg.level !== 'bad' && !!dg.notice);
+  }
+
+  const dgScore = (e) => (e.score ? (e.mySide ? e.score : `${t('team.blue')} ${e.score} ${t('team.orange')}`) : '');
+
+  // Avis sur l'accueil : la dernière partie vue n'a pas été comptée
+  function renderNotice() {
+    const n = D.diag.notice;
+    const card = $('#noticeCard');
+    if (!n) return card.classList.add('hidden');
+    card.classList.remove('hidden');
+    const direct = n.canFix && !n.needs.length;
+    card.innerHTML = `
+      <div class="notice-txt">
+        <b>${esc(t('d.dg.noticeTitle'))}</b>
+        <span class="muted">${esc([n.mode, dgScore(n), n.when].filter(Boolean).join(' · '))}</span>
+        <p>${esc(n.why)}</p>
+      </div>
+      <div class="head-actions">
+        <button class="link" data-dgnotice="hide">${esc(t('d.dg.noticeHide'))}</button>
+        ${direct ? `<button class="btn" data-dgnotice="why">${esc(t('d.dg.noticeWhy'))}</button><button class="btn primary" data-dgnotice="count">${esc(t(n.leftDraft ? 'd.dg.countLoss' : 'd.dg.count'))}</button>` : `<button class="btn primary" data-dgnotice="why">${esc(t(n.canFix ? 'd.dg.noticeChoose' : 'd.dg.noticeWhy'))}</button>`}
+      </div>`;
+  }
+
+  // Journal des parties vues (lu à la demande : il porte la trace technique de chaque partie)
+  let DG = null;
+  let dgRev = -1;
+  let dgBusy = false;
+  async function loadDiag() {
+    if (dgBusy) return;
+    dgBusy = true;
+    const r = await api('/api/diagnostic');
+    dgBusy = false;
+    if (!r || !Array.isArray(r.journal)) return;
+    dgRev = r.rev;
+    DG = r;
+    if (changed('dgJournal', r.journal)) renderDiagJournal();
+  }
+
+  function dgEntry(e) {
+    const kind = e.removed ? 'rm' : e.result ? e.result : 'no';
+    const fix = [];
+    if (e.canFix) {
+      if (e.needs.includes('player')) {
+        const group = (team) => {
+          const ps = e.players.filter((p) => p.team === team);
+          return ps.length ? `<optgroup label="${esc(t(team === 0 ? 'team.blue' : 'team.orange'))}">${ps.map((p) => `<option value="${p.i}">${esc(p.name)}</option>`).join('')}</optgroup>` : '';
+        };
+        fix.push(`<select data-dgplayer aria-label="${esc(t('d.dg.who'))}"><option value="">${esc(t('d.dg.who'))}</option>${group(0)}${group(1)}</select>`);
+      }
+      if (e.needs.includes('result')) {
+        fix.push(`<button class="btn small" data-dgfix="W">${esc(t('d.dg.asWin'))}</button><button class="btn small" data-dgfix="L">${esc(t('d.dg.asLoss'))}</button>`);
+      } else {
+        fix.push(`<button class="btn small primary" data-dgfix="">${esc(t(e.leftDraft ? 'd.dg.countLoss' : 'd.dg.count'))}</button>`);
+      }
+    } else if (e.warn && e.recorded) {
+      fix.push(`<button class="btn small" data-dgremove>${esc(t('d.dg.remove'))}</button>`);
+    }
+    const trace = (e.trace || []).map((l) => `<span>${String(l.t.toFixed(1)).padStart(6)} s</span> ${esc(l.text)}`).join('\n');
+    return `
+      <article class="dg-entry ${kind}" data-dgid="${esc(e.id)}">
+        <header>
+          <span class="dg-badge ${kind}">${esc(e.label)}</span>
+          <b>${esc(e.mode)}</b>
+          <span class="sc">${esc(dgScore(e))}</span>
+          <time>${esc(e.when)}</time>
+        </header>
+        <p>${esc(e.why)}</p>
+        ${e.warn ? `<p class="dg-warn">${esc(e.warn)}</p>` : ''}
+        ${fix.length ? `<div class="dg-fix">${fix.join('')}</div>` : ''}
+        ${trace ? `<details class="dg-trace"><summary>${esc(t('d.dg.trace'))}</summary><p class="muted small">${esc(t('d.dg.traceHelp'))}</p><pre>${trace}</pre></details>` : ''}
+      </article>`;
+  }
+
+  function renderDiagJournal() {
+    const list = DG ? DG.journal : [];
+    $('#dgCount').textContent = list.length ? tn('d.dg.nSeen', list.length) : '';
+    // on garde ce qui est ouvert ou choisi pendant le rafraîchissement
+    const open = new Set($$('#dgJournal details[open]').map((d) => d.closest('[data-dgid]').dataset.dgid));
+    const picked = new Map($$('#dgJournal select[data-dgplayer]').map((s) => [s.closest('[data-dgid]').dataset.dgid, s.value]));
+    $('#dgJournal').innerHTML = list.length ? list.map(dgEntry).join('') : `<div class="empty">${esc(t('d.dg.empty'))}</div>`;
+    for (const el of $$('#dgJournal [data-dgid]')) {
+      if (open.has(el.dataset.dgid)) $('details', el).open = true;
+      const sel = $('select[data-dgplayer]', el);
+      if (sel && picked.get(el.dataset.dgid)) sel.value = picked.get(el.dataset.dgid);
+    }
+  }
+
+  async function dgCount(id, body) {
+    const r = await post('/api/diagnostic/count', { id, ...body });
+    if (!r.ok) return toast(r.error || t('d.failed'), 'err');
+    const word = t(r.result === 'W' ? 'type.win' : 'type.loss');
+    toast(t(r.inSession ? 'd.dg.done' : 'd.dg.doneOld', { r: word }), 'ok');
+    loadDiag();
+  }
+
+  async function dgReport() {
+    try {
+      const r = await fetch(`/api/diagnostic/report?key=${encodeURIComponent(KEY)}`);
+      if (!r.ok) throw new Error(String(r.status));
+      return await r.text();
+    } catch {
+      toast(t('d.dg.reportFail'), 'err');
+      return null;
+    }
+  }
+
+  function bindDiag() {
+    $('#dgJournal').addEventListener('click', async (e) => {
+      const entry = e.target.closest('[data-dgid]');
+      if (!entry) return;
+      const id = entry.dataset.dgid;
+      const fix = e.target.closest('[data-dgfix]');
+      if (fix) {
+        const body = {};
+        const sel = $('select[data-dgplayer]', entry);
+        if (sel) {
+          if (sel.value === '') {
+            sel.focus();
+            return toast(t('d.dg.pickFirst'), 'err');
+          }
+          body.player = Number(sel.value);
+        }
+        if (fix.dataset.dgfix) body.result = fix.dataset.dgfix;
+        return dgCount(id, body);
+      }
+      if (e.target.closest('[data-dgremove]') && (await confirmBox(t('d.dg.removeQ'), t('d.dg.remove')))) {
+        await api(`/api/matches/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        loadDiag();
+      }
+    });
+    $('#dgChecks').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-dgdo]');
+      if (!b) return;
+      const act = b.dataset.dgdo;
+      if (act === 'enable-api') enableApi();
+      else if (act === 'resume') post('/api/action/resume');
+      else if (act === 'overlays') showTab('stream');
+      else showTab('settings');
+    });
+    $('#noticeCard').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-dgnotice]');
+      const n = D && D.diag.notice;
+      if (!b || !n) return;
+      if (b.dataset.dgnotice === 'hide') post('/api/diagnostic/dismiss', { id: n.id });
+      else if (b.dataset.dgnotice === 'count') dgCount(n.id, {});
+      else showTab('diag');
+    });
+    $('#dgCopy').addEventListener('click', async () => {
+      const text = await dgReport();
+      if (text == null) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      toast(t('d.dg.reportCopied'), 'ok');
+    });
+    $('#dgSave').addEventListener('click', async () => {
+      const text = await dgReport();
+      if (text == null) return;
+      const d = new Date();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+      a.download = `rl-ui-diagnostic-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    });
   }
 
   // ------------------------------------------------------------------ overlays / aperçus
@@ -1474,6 +1683,10 @@
     renderLive();
     if (changed('matches', [D.sessionMatches, D.settings.overlay.labelWin, D.settings.overlay.labelLoss])) renderSessionList();
     if (changed('logs', D.logs.length && D.logs[D.logs.length - 1])) renderLogs();
+    if (changed('dgChecks', [D.diag.checks, D.diag.level, !!D.diag.notice])) renderDiagChecks();
+    if (changed('dgNotice', D.diag.notice)) renderNotice();
+    // le journal des parties vues se relit quand il a bougé, si la page Diagnostic est à l'écran
+    if (D.diag.rev !== dgRev && $('#tab-diag').classList.contains('active')) loadDiag();
     if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds])) renderStream();
     if (changed('layout', D.settings.overlay.layout)) renderLayout();
     if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
