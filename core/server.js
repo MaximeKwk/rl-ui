@@ -227,7 +227,9 @@ class AppServer extends EventEmitter {
     const method = req.method;
     if (p === '/' || p === '/index.html') {
       if (!isLoopback(req.socket.remoteAddress)) return this._text(res, 403, tr('s.dashLocal'));
-      return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang() });
+      // THEME : posé dès le HTML pour que la page s'affiche directement dans le bon thème
+      const theme = ['light', 'dark'].includes(this.settings.app.theme) ? this.settings.app.theme : 'system';
+      return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang(), THEME: theme });
     }
     if (p === '/favicon.ico') return this._file(res, path.join(this.webDir, 'assets', 'icon.png'));
     let m = /^\/overlay\/([a-z]+)\/?$/.exec(p);

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{LANG}}">
+<html lang="{{LANG}}" data-theme="{{THEME}}">
   <head>
     <meta charset="utf-8" />
     <meta name="ot-key" content="{{KEY}}" />
@@ -12,7 +12,8 @@
   <body>
     <header class="topbar">
       <div class="brand">
-        <img src="/static/assets/icon.png" alt="" />
+        <!-- le logo : un cadre dont le coin supérieur est coupé, le ballon logé dans la lucarne -->
+        <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true"><path class="frame" d="M27 9H47L91 53V73A18 18 0 0 1 73 91H27A18 18 0 0 1 9 73V27A18 18 0 0 1 27 9Z" /><circle class="ball" cx="85" cy="15" r="13" /></svg>
         <span class="logo">RL<em>-UI</em></span>
         <span class="brand-sub" data-i18n="h.by">by Zoxam</span>
       </div>
@@ -23,17 +24,20 @@
 
     <div class="layout">
       <nav class="side">
-        <button data-tab="session" class="active"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm8 0h8v-9h-8v9zm0-16v5h8V4h-8z" /></svg><span data-i18n="h.nav.session">Session</span></button>
-        <button data-tab="stream"><svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 00-2 2v12a2 2 0 002 2h5v2h8v-2h5a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H3V5h18v12zM16 11l-7 4V7z" /></svg><span data-i18n="h.nav.stream">OBS overlays</span></button>
-        <button data-tab="history"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.9 3.9L9 12H6a7 7 0 117 7 6.9 6.9 0 01-4.9-2.1l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z" /></svg><span data-i18n="h.nav.history">History</span></button>
-        <button data-tab="obs"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 3.2a3.3 3.3 0 11-.01 6.61A3.3 3.3 0 0112 5.2zM6.6 16.6a3.3 3.3 0 116.6 0 3.3 3.3 0 01-6.6 0zm7.6-2.1a3.3 3.3 0 116.3-1.3 3.3 3.3 0 01-6.3 1.3z" /></svg><span data-i18n="h.nav.obs">Stream actions</span></button>
-        <button data-tab="twitch"><svg viewBox="0 0 24 24"><path d="M4.3 2 3 5.4V19h4.6v2.5h2.6l2.5-2.5h3.7l5-5V2H4.3zm15.7 11.1-2.9 2.9h-4.6l-2.5 2.5V16H6.1V3.8H20v9.3zM16.3 6.8v5h-1.8v-5h1.8zm-4.9 0v5H9.6v-5h1.8z" /></svg><span data-i18n="h.nav.twitch">Twitch</span></button>
-        <button data-tab="caster"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11h-2z" /></svg><span data-i18n="h.nav.caster">Caster</span></button>
-        <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 000-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 00-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 00-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 000 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 001.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 001.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" transform="translate(-1 0)" /></svg><span data-i18n="h.nav.settings">Settings</span></button>
-        <button data-tab="help"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2v2zm2.1-7.7l-.9.9A3.4 3.4 0 0013 15h-2v-.5a4 4 0 011.2-2.8l1.2-1.3A2 2 0 0014 9a2 2 0 00-4 0H8a4 4 0 118 0 3.2 3.2 0 01-.9 2.3z" /></svg><span data-i18n="h.nav.help">Help</span></button>
-        <div class="side-foot">
-          <div id="versionInfo">RL-UI</div>
-          <div id="portInfo" class="muted"></div>
+        <button data-tab="session" class="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></svg><span class="lbl" data-i18n="h.nav.home">Home</span></button>
+        <button data-tab="stream"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l8 4-8 4-8-4z" /><path d="M4 12l8 4 8-4" /><path d="M4 16l8 4 8-4" /></svg><span class="lbl" data-i18n="h.nav.stream">Overlays</span></button>
+        <button data-tab="obs"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14" /></svg><span class="lbl" data-i18n="h.nav.obs">Stream</span></button>
+        <button data-tab="caster"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg><span class="lbl" data-i18n="h.nav.caster">Caster</span></button>
+        <button data-tab="history"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg><span class="lbl" data-i18n="h.nav.history">History</span></button>
+        <div class="side-end">
+          <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg><span class="lbl" data-i18n="h.nav.settings">Settings</span></button>
+          <button data-tab="help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M9.8 9.5a2.3 2.3 0 1 1 3.3 2.1c-.7.4-1.1.9-1.1 1.7M12 16.4v.2" /></svg><span class="lbl" data-i18n="h.nav.help">Help</span></button>
+          <button id="themeToggle" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg><span class="lbl" data-i18n="h.nav.theme">Light or dark theme</span></button>
+          <button id="navToggle" type="button" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M9 5v14" /><path class="when-closed" d="M13 10l2 2-2 2" /><path class="when-open" d="M15 10l-2 2 2 2" /></svg><span class="lbl when-closed" data-i18n="h.nav.expand">Expand menu</span><span class="lbl when-open" data-i18n="h.nav.collapse">Collapse menu</span></button>
+          <div class="side-foot">
+            <div id="versionInfo">RL-UI</div>
+            <div id="portInfo" class="muted"></div>
+          </div>
         </div>
       </nav>
 
@@ -306,7 +310,7 @@
         </section>
 
         <!-- ============================== TWITCH ============================== -->
-        <section id="tab-twitch" class="tab">
+        <section id="tab-twitch" class="tab" data-with="obs">
           <div class="card" id="chatCard">
             <div class="card-head">
               <h2 data-i18n="h.tw.title">Twitch chat commands</h2>
@@ -380,7 +384,7 @@
               <h3 data-i18n="h.cs.display">Display</h3>
               <div class="form">
                 <label><span data-i18n="h.cs.theme">Look (theme)</span> <select data-set="caster.themePack" id="casterTheme"></select></label>
-                <p class="muted small" data-i18n="h.cs.themeHelp">Install, customize or create themes in <b>OBS overlays → Themes</b>. A theme can change the scorebug, boosts, goal banner and scoreboard (see docs/THEMES.md).</p>
+                <p class="muted small" data-i18n="h.cs.themeHelp">Install, customize or create themes in <b>Overlays → Themes</b>. A theme can change the scorebug, boosts, goal banner and scoreboard (see docs/THEMES.md).</p>
                 <label class="check"><input type="checkbox" data-set="caster.showSeries" /> <span data-i18n="h.cs.showSeries">Series score and game number</span></label>
                 <label class="check"><input type="checkbox" data-set="caster.showBoosts" /> <span data-i18n="h.cs.showBoosts">Every player's boost</span></label>
                 <label class="check"><input type="checkbox" data-set="caster.showTarget" /> <span data-i18n="h.cs.showTarget">Spectated player card</span></label>
@@ -430,6 +434,19 @@
                   <select data-set="language">
                     <option value="en">English</option>
                     <option value="fr">Français</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="h.set.look">Appearance</h3>
+              <div class="form">
+                <label><span data-i18n="h.set.theme">Theme</span>
+                  <select data-set="app.theme">
+                    <option value="system" data-i18n="h.set.themeSystem">Same as my system</option>
+                    <option value="light" data-i18n="h.set.themeLight">Light</option>
+                    <option value="dark" data-i18n="h.set.themeDark">Dark</option>
                   </select>
                 </label>
               </div>
@@ -581,16 +598,16 @@
                 mode (2v2 ranked, 3v3…), MVPs and early leaves.
               </li>
               <li data-i18n="h.help.s3">
-                <b>Add the overlays in OBS or Streamlabs</b> (OBS overlays tab): the counter (horizontal, vertical or next to the boost
+                <b>Add the overlays in OBS or Streamlabs</b> (Overlays tab): the counter (horizontal, vertical or next to the boost
                 gauge), full-screen alerts, recent matches and the end-of-stream recap.
               </li>
             </ol>
             <h2 data-i18n="h.help.faq">FAQ</h2>
-            <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Check the log (Session tab): the match may be from an excluded mode (private match, offline…) or the tracker was paused. You can always fix it with the + / − buttons.</p></details>
+            <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Check the log (Home tab): the match may be from an excluded mode (private match, offline…) or the tracker was paused. You can always fix it with the + / − buttons.</p></details>
             <details><summary data-i18n="h.faq.q2">“Stats API: closed” while the game is running</summary><p data-i18n="h.faq.a2">The game only opens the API when started with PacketSendRate &gt; 0. Click “Enable / repair the API” in Settings, then fully restart Rocket League (also after a game update).</p></details>
             <details><summary data-i18n="h.faq.q3">Alerts have no sound on stream</summary><p data-i18n="h.faq.a3">In the OBS browser source properties, tick “Control audio via OBS”, then set the source volume in the audio mixer.</p></details>
-            <details><summary data-i18n="h.faq.q4">The “Boost” counter isn't aligned with my gauge</summary><p data-i18n="h.faq.a4">OBS overlays → Counter: turn on “Show the gauge guide”, then adjust the HUD size and offsets until the guide covers your gauge in the OBS preview. Then turn the guide off. The source must be the size of your canvas (e.g. 1920 × 1080).</p></details>
-            <details><summary data-i18n="h.faq.q5">Automatic actions with Streamlabs</summary><p data-i18n="h.faq.a5">Stream actions tab → Software: Streamlabs Desktop. In Streamlabs: Settings → Remote Control → click the QR code → Show details → copy the API token.</p></details>
+            <details><summary data-i18n="h.faq.q4">The “Boost” counter isn't aligned with my gauge</summary><p data-i18n="h.faq.a4">Overlays → Counter: turn on “Show the gauge guide”, then adjust the HUD size and offsets until the guide covers your gauge in the OBS preview. Then turn the guide off. The source must be the size of your canvas (e.g. 1920 × 1080).</p></details>
+            <details><summary data-i18n="h.faq.q5">Automatic actions with Streamlabs</summary><p data-i18n="h.faq.a5">Stream tab → Software: Streamlabs Desktop. In Streamlabs: Settings → Remote Control → click the QR code → Show details → copy the API token.</p></details>
             <details><summary data-i18n="h.faq.q6">2-PC setup</summary><p data-i18n="h.faq.a6">Turn on “Reachable from the local network” (Settings → Local server) and use the gaming PC's IP address in the overlay URLs on the streaming PC. Allow the app in the Windows firewall if asked.</p></details>
             <details><summary data-i18n="h.faq.q7">I play duos, does it count for me?</summary><p data-i18n="h.faq.a7">Yes: the app follows your own account (the Steam/Epic ID read from the game log), not your teammate's.</p></details>
             <details><summary data-i18n="h.faq.q8">Where does the MMR come from?</summary><p data-i18n="h.faq.a8">From the game log: when you start a matchmaking search (solo or party leader), Rocket League writes your MMR for that mode. So the change of a match is known at the next search; meanwhile, the app shows an estimate based on your recent real changes (marked ≈ in the dashboard). If your teammate starts the search, only the estimate is available.</p></details>

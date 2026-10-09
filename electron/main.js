@@ -2,7 +2,7 @@
 // Processus principal Electron : fenêtre du tableau de bord, icône dans la zone de notification,
 // raccourcis clavier globaux et démarrage avec Windows. Toute la logique est dans ../core.
 
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, globalShortcut, dialog, safeStorage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, nativeTheme, shell, globalShortcut, dialog, safeStorage } = require('electron');
 const path = require('path');
 const { Core } = require('../core');
 const { migrateLegacyData } = require('./migrate');
@@ -36,7 +36,32 @@ let stopped = false;
 
 const dashboardUrl = () => `http://127.0.0.1:${core.server.port}/?app=1`;
 
+// Thème de la fenêtre : suit le réglage app.theme (system | light | dark). On le donne à Electron
+// (la page et les menus natifs suivent), et les boutons de la barre de titre prennent les couleurs
+// de la barre du haut du tableau de bord (--rail et --muted de web/dashboard/style.css).
+const CHROME = {
+  dark: { color: '#0e1316', symbolColor: '#97a6aa' },
+  light: { color: '#e7eeee', symbolColor: '#55666a' },
+};
+const windowChrome = () => (nativeTheme.shouldUseDarkColors ? CHROME.dark : CHROME.light);
+function applyWindowTheme() {
+  const pref = core.store.settings.app.theme;
+  const source = pref === 'light' || pref === 'dark' ? pref : 'system';
+  if (nativeTheme.themeSource !== source) nativeTheme.themeSource = source;
+  if (!win || win.isDestroyed()) return;
+  const c = windowChrome();
+  win.setBackgroundColor(c.color);
+  // setTitleBarOverlay n'existe que là où la barre de titre est superposée (Windows, Linux)
+  if (typeof win.setTitleBarOverlay === 'function') {
+    try {
+      win.setTitleBarOverlay({ color: c.color, symbolColor: c.symbolColor, height: 44 });
+    } catch {}
+  }
+}
+
 function createWindow(show = true) {
+  applyWindowTheme();
+  const chrome = windowChrome();
   win = new BrowserWindow({
     width: 1340,
     height: 880,
@@ -45,9 +70,9 @@ function createWindow(show = true) {
     show: false,
     title: 'RL-UI',
     icon: ICON,
-    backgroundColor: '#070a12',
+    backgroundColor: chrome.color,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#070a12', symbolColor: '#aab4c8', height: 44 },
+    titleBarOverlay: { color: chrome.color, symbolColor: chrome.symbolColor, height: 44 },
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false },
   });
   win.loadURL(dashboardUrl());
@@ -196,7 +221,13 @@ app.whenReady().then(async () => {
   tray.on('click', showWindow);
   updateTray();
   let trayTimer = null;
+  let shownTheme = core.store.settings.app.theme;
+  nativeTheme.on('updated', applyWindowTheme); // le système passe du clair au sombre
   core.on('changed', () => {
+    if (core.store.settings.app.theme !== shownTheme) {
+      shownTheme = core.store.settings.app.theme;
+      applyWindowTheme();
+    }
     if (trayTimer) return;
     trayTimer = setTimeout(() => {
       trayTimer = null;

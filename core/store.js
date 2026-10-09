@@ -16,6 +16,7 @@ const OLD_DEFAULTS = {
 
 function migrateDefaults(s) {
   if (!['en', 'fr'].includes(s.language)) s.language = 'en';
+  if (!['system', 'light', 'dark'].includes(s.app.theme)) s.app.theme = 'system';
   for (const [k, v] of Object.entries(OLD_DEFAULTS.texts)) if (s.alerts.texts[k] === v) s.alerts.texts[k] = '';
   if (s.overlay.labelWin === 'V') s.overlay.labelWin = '';
   if (s.overlay.labelLoss === 'D') s.overlay.labelLoss = '';
@@ -99,7 +100,8 @@ function defaultSettings() {
       loss: 'Ctrl+Alt+Shift+Down',
       undo: 'Ctrl+Alt+Shift+Backspace',
     },
-    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true, onboarded: false },
+    // theme : system (suit le système d'exploitation) | light | dark
+    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true, onboarded: false, theme: 'system' },
     // Commandes du chat Twitch (texte vide = réponse par défaut dans la langue choisie)
     chat: {
       enabled: true,

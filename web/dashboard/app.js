@@ -122,20 +122,77 @@
   }
 
   // ------------------------------------------------------------------ onglets
+  // Une entrée du menu peut réunir plusieurs sections : une section porte data-with="<entrée>"
+  // (les commandes Twitch sont rangées sous « Stream », avec les actions OBS).
   function showTab(name) {
+    const own = $(`#tab-${name}`);
+    const entry = (own && own.dataset.with) || name;
     // tous les onglets partagent la même zone de défilement : on repart du haut en changeant d'onglet
     const cur = $('.tab.active');
-    if (!cur || cur.id !== `tab-${name}`) $('main').scrollTop = 0;
-    $$('.side button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
-    $$('.tab').forEach((t) => t.classList.toggle('active', t.id === `tab-${name}`));
+    if (!cur || (cur.dataset.with || cur.id.slice(4)) !== entry) $('main').scrollTop = 0;
+    $$('.side button[data-tab]').forEach((b) => {
+      const on = b.dataset.tab === entry;
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    $$('.tab').forEach((t) => t.classList.toggle('active', t.id === `tab-${entry}` || t.dataset.with === entry));
     try {
-      localStorage.setItem('rlui-tab', name);
+      localStorage.setItem('rlui-tab', entry);
     } catch {}
-    if (name === 'history') loadHistory();
-    if (name === 'stream') layoutPreviews();
-    if (name === 'caster') layoutCasterPv();
+    if (entry === 'history') loadHistory();
+    if (entry === 'stream') layoutPreviews();
+    if (entry === 'caster') layoutCasterPv();
+    // section demandée rangée sous une autre entrée : on l'amène à l'écran
+    if (own && entry !== name) own.scrollIntoView({ block: 'start' });
   }
-  $$('.side button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  $$('.side button[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+  // ------------------------------------------------------------------ menu réduit / déplié
+  function setNav(open) {
+    document.body.classList.toggle('nav-open', open);
+    $('#navToggle').setAttribute('aria-expanded', String(open));
+    // menu déplié : le nom est affiché ; réduit : il sert d'infobulle, on le donne aussi aux lecteurs d'écran
+    $$('.side button').forEach((b) => {
+      const lbl = $(open ? '.lbl:not(.when-closed)' : '.lbl:not(.when-open)', b);
+      if (lbl) b.setAttribute('aria-label', lbl.textContent);
+    });
+  }
+  {
+    let open = false;
+    try {
+      open = localStorage.getItem('rlui-nav') === 'open';
+    } catch {}
+    setNav(open);
+    $('#navToggle').addEventListener('click', () => {
+      const next = !document.body.classList.contains('nav-open');
+      setNav(next);
+      try {
+        localStorage.setItem('rlui-nav', next ? 'open' : 'closed');
+      } catch {}
+      // la largeur utile change : les aperçus se recalent
+      layoutPreviews();
+      layoutCasterPv();
+    });
+  }
+
+  // ------------------------------------------------------------------ thème clair / sombre
+  // Réglage app.theme : « system » (suit le système), « light » ou « dark ». Le bouton du menu bascule
+  // vers l'inverse de ce qui est affiché ; « Comme mon système » se choisit dans les Réglages.
+  const THEMES = ['system', 'light', 'dark'];
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = THEMES.includes(theme) ? theme : 'system';
+  }
+  function shownTheme() {
+    const th = document.documentElement.dataset.theme;
+    if (th === 'light' || th === 'dark') return th;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  $('#themeToggle').addEventListener('click', () => {
+    const next = shownTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    saveSetting('app.theme', next, true);
+  });
 
   // ------------------------------------------------------------------ actions
   document.addEventListener('click', async (e) => {
@@ -1300,7 +1357,10 @@
   function renderAll() {
     if (!D) return;
     buildOnce();
-    if (changed('settings', D.settings)) syncInputs();
+    if (changed('settings', D.settings)) {
+      syncInputs();
+      applyTheme(D.settings.app.theme);
+    }
     renderChips();
     if (changed('setup', [D.status.rlConfig, D.status.logFound])) renderSetup();
     if (changed('identity', D.live && D.live.needsIdentity ? D.live.players : null)) renderIdentity();
