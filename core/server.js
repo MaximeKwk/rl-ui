@@ -157,13 +157,19 @@ class AppServer extends EventEmitter {
       ws.isAlive = true;
       this.clients.add(ws);
       ws.on('pong', () => (ws.isAlive = true));
-      ws.on('close', () => this.clients.delete(ws));
+      ws.on('close', () => {
+        this.clients.delete(ws);
+        if (ws.overlay) this._overlaysChanged(); // une source OBS s'est fermée
+      });
       ws.on('error', () => {});
       ws.on('message', (raw) => {
         // les overlays peuvent signaler qu'ils sont prêts ; rien d'autre n'est accepté
         try {
           const m = JSON.parse(raw.toString());
-          if (m.type === 'hello' && typeof m.overlay === 'string') ws.overlay = m.overlay.slice(0, 20);
+          if (m.type === 'hello' && typeof m.overlay === 'string') {
+            ws.overlay = m.overlay.slice(0, 20);
+            this._overlaysChanged(); // une source OBS vient de s'ouvrir
+          }
           // abonnement aux données du mode caster (nombreuses : envoyées seulement à qui les demande)
           if (m.type === 'sub' && m.topic === 'caster') {
             ws.subs = ws.subs || new Set();
@@ -203,6 +209,11 @@ class AppServer extends EventEmitter {
       if (topic && !(c.subs && c.subs.has(topic))) continue;
       this._send(c, data);
     }
+  }
+
+  // Le tableau de bord affiche quels overlays sont ouverts dans OBS : on le prévient tout de suite
+  _overlaysChanged() {
+    if (this.core && typeof this.core._changed === 'function') this.core._changed();
   }
 
   overlayClients() {

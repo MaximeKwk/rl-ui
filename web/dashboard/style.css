@@ -361,6 +361,26 @@ main::-webkit-scrollbar-thumb { background: var(--line); border-radius: 6px; bor
 .identity { border-color: color-mix(in srgb, var(--violet) 55%, transparent); }
 .pick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
+/* ------------------------------------------------------------ accueil : premiers pas, aperçu du stream */
+.steps-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.step { display: flex; align-items: flex-start; gap: 12px; }
+.step .n { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1.5px solid var(--line-2); color: var(--muted); font-size: 12px; font-weight: 700; }
+.step .n svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.step .lbl { line-height: 24px; font-weight: 500; color: var(--muted); }
+.step.now .n { border: 2px solid var(--violet); color: var(--violet); }
+.step.now .lbl { color: var(--text); font-weight: 600; }
+.step.done .n { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.step.done .lbl { text-decoration: line-through; }
+.step .detail { margin-top: 4px; font-size: 13px; color: var(--muted); max-width: 78ch; }
+.step:not(.now) .detail { display: none; }
+.step .detail .btn { margin-left: 6px; }
+button.link { padding: 0; border: 0; background: none; color: var(--violet); font: inherit; cursor: pointer; text-decoration: underline; }
+.home-side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.home-side .live-card { flex: 1; min-height: 190px; }
+.pv iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+.home-pv { position: relative; height: 128px; overflow: hidden; border-radius: 10px; background: var(--stage); }
+.stream-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
+
 /* ------------------------------------------------------------ listes */
 .match-list { display: flex; flex-direction: column; max-height: 400px; overflow-y: auto; margin: 0 -8px; }
 .m-row { display: grid; grid-template-columns: 26px 1fr auto auto; align-items: center; gap: 12px; padding: 8px; border-radius: 8px; }

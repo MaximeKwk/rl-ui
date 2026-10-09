@@ -44,15 +44,22 @@
       <main>
         <!-- ============================== SESSION ============================== -->
         <section id="tab-session" class="tab active">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.sess.title">Current session</h2>
+              <p class="muted" id="sessStart"></p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" data-act="undo" data-i18n="h.undo">Undo last match</button>
+              <button class="btn primary" id="newSessionBtn" data-i18n="h.newSession">New session</button>
+            </div>
+          </div>
+
           <div id="setupCard" class="card setup hidden"></div>
           <div id="identityCard" class="card identity hidden"></div>
 
           <div class="grid-main">
             <div class="card score-card">
-              <div class="card-head">
-                <h2 data-i18n="h.sess.title">Current session</h2>
-                <span id="sessStart" class="muted"></span>
-              </div>
               <div class="readout">
                 <div class="count-col win">
                   <div class="count" id="cWins">0</div>
@@ -89,13 +96,20 @@
                 <div class="kpi"><span data-i18n="h.gas">Goals · assists · saves</span><b id="kGas">0 · 0 · 0</b></div>
                 <div class="kpi" title="Session MMR change (real value read when you queue, estimated in between)" data-i18n-title="h.mmrTip"><span id="kMmrLbl">MMR</span><b id="kMmr">—</b></div>
               </div>
-              <div class="actions">
-                <button class="btn" data-act="undo" data-i18n="h.undo">Undo last match</button>
-                <button class="btn ghost" id="newSessionBtn" data-i18n="h.newSession">New session</button>
-              </div>
             </div>
 
-            <div class="card live-card" id="liveCard"></div>
+            <div class="home-side">
+              <div class="card live-card" id="liveCard"></div>
+              <!-- le compteur tel que les spectateurs le voient, avec son état dans OBS -->
+              <div class="card stream-card">
+                <div class="card-head"><h3 data-i18n="h.home.stream">On your stream</h3><span id="homeObs" class="pill"></span></div>
+                <div class="pv home-pv"><iframe id="homePv" data-w="1000" data-h="220" data-counter loading="lazy" tabindex="-1" title="Counter preview" data-i18n-title="h.home.pvTitle"></iframe></div>
+                <div class="stream-foot">
+                  <span class="muted small" id="homeTheme"></span>
+                  <button class="btn small" id="homeOverlays" data-i18n="h.home.adjust">Adjust the overlay</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="grid-2">

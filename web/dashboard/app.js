@@ -141,7 +141,7 @@
       localStorage.setItem('rlui-tab', entry);
     } catch {}
     if (entry === 'history') loadHistory();
-    if (entry === 'stream') layoutPreviews();
+    if (entry === 'stream' || entry === 'session') layoutPreviews();
     if (entry === 'caster') layoutCasterPv();
     // section demandée rangée sous une autre entrée : on l'amène à l'écran
     if (own && entry !== name) own.scrollIntoView({ block: 'start' });
@@ -345,7 +345,9 @@
       if (tab) showOvTab(tab.dataset.ovtab || tab.dataset.ovgo);
     });
     $('#previewSound').addEventListener('change', () => setPreviewSrc(true));
+    $('#homeOverlays').addEventListener('click', goCounter);
     new ResizeObserver(layoutPreviews).observe($('#tab-stream'));
+    new ResizeObserver(layoutPreviews).observe($('#tab-session'));
     {
       let ovTab = 'counter';
       try {
@@ -725,20 +727,70 @@
       <div class="pick">${L.players.map((p) => `<button class="btn ${p.team === 0 ? '' : 'ghost'}" data-pick="${esc(p.key)}">${esc(p.name)}</button>`).join('')}</div>`;
   }
 
+  // Premiers pas : trois étapes, cochées dès qu'elles sont faites. Les deux premières sont nécessaires
+  // au suivi (la carte reste tant qu'elles manquent) ; la troisième se masque si on n'utilise pas OBS.
   function renderSetup() {
     const st = D.status;
     const cfg = st.rlConfig;
-    const items = [];
     const apiOff = cfg && cfg.known && !cfg.enabled;
-    if (apiOff) items.push(`<li>${t('d.setupApiOff', { btn: `<button class="btn small primary" id="setupEnable">${esc(t('d.enable'))}</button>` })}</li>`);
-    else if (cfg && !cfg.known) items.push(`<li>${t('d.setupNoCfg')}</li>`);
-    if (!st.logFound) items.push(`<li>${t('d.setupNoLog')}</li>`);
+    const noCfg = cfg && !cfg.known;
+    const inObs = Object.values(st.overlays || {}).some((n) => n > 0);
+    const steps = [
+      {
+        label: t('d.stepApi'),
+        done: !apiOff && !noCfg,
+        help: apiOff ? t('d.setupApiOff', { btn: `<button class="btn small primary" id="setupEnable">${esc(t('d.enable'))}</button>` }) : t('d.setupNoCfg'),
+      },
+      { label: t('d.stepLog'), done: !!st.logFound, help: t('d.setupNoLog') },
+      {
+        label: t('d.stepObs'),
+        done: inObs,
+        optional: true,
+        help: `${esc(t('d.stepObsHelp'))} <button class="btn small primary" id="setupObs">${esc(t('d.stepObsBtn'))}</button>`,
+      },
+    ];
+    let hidden = false;
+    try {
+      hidden = localStorage.getItem('rlui-steps') === 'hidden';
+    } catch {}
+    const todo = steps.filter((s) => !s.done);
     const card = $('#setupCard');
-    if (!items.length) return card.classList.add('hidden');
+    if (!todo.length || (hidden && todo.every((s) => s.optional))) return card.classList.add('hidden');
     card.classList.remove('hidden');
-    card.innerHTML = `<h3>${esc(t('d.setupTitle'))}</h3><ol>${items.join('')}</ol>`;
+    const next = todo[0];
+    const canHide = todo.every((s) => s.optional);
+    card.innerHTML = `
+      <div class="card-head">
+        <h3>${esc(t('d.stepsTitle'))}</h3>
+        <span class="muted small">${esc(t('d.stepsCount', { n: steps.length - todo.length, t: steps.length }))}${canHide ? ` · <button class="link" id="setupHide">${esc(t('d.stepsHide'))}</button>` : ''}</span>
+      </div>
+      <ol class="steps-list">${steps
+        .map(
+          (s, i) => `
+        <li class="step ${s.done ? 'done' : s === next ? 'now' : ''}">
+          <span class="n" aria-hidden="true">${s.done ? '<svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10" /></svg>' : i + 1}</span>
+          <div><div class="lbl">${esc(s.label)}</div>${s.done ? '' : `<div class="detail">${s.help}</div>`}</div>
+        </li>`
+        )
+        .join('')}</ol>`;
     const b = $('#setupEnable');
     if (b) b.onclick = enableApi;
+    const o = $('#setupObs');
+    if (o) o.onclick = () => goCounter();
+    const h = $('#setupHide');
+    if (h) {
+      h.onclick = () => {
+        try {
+          localStorage.setItem('rlui-steps', 'hidden');
+        } catch {}
+        card.classList.add('hidden');
+      };
+    }
+  }
+  // Ouvre Overlays → Compteur (lien OBS, réglages)
+  function goCounter() {
+    showTab('stream');
+    showOvTab('counter');
   }
 
   function matchRow(m) {
@@ -784,6 +836,7 @@
       const extra = id === 'alerts' && !$('#previewSound').checked ? '&mute=1' : '';
       $('iframe', ov).src = `${url}?preview=1${extra}`;
     });
+    $('#homePv').src = `${baseUrl()}/overlay/counter?preview=1`;
     layoutPreviews();
   }
   // Sous-onglets de la page Overlays : compteur, alertes, autres overlays, thèmes
@@ -797,7 +850,7 @@
     layoutPreviews(); // un aperçu caché n'a pas de taille : on le recale quand il apparaît
   }
   function layoutPreviews() {
-    $$('#tab-stream .pv').forEach((pv) => {
+    $$('#tab-stream .pv, #tab-session .pv').forEach((pv) => {
       if (!pv.clientWidth) return;
       const f = $('iframe', pv);
       const w = Number(f.dataset.w);
@@ -809,8 +862,11 @@
       f.style.width = `${w}px`;
       f.style.height = `${h}px`;
       f.style.transform = `scale(${k})`;
-      f.style.left = `${(pv.clientWidth - cw * k) / 2 - cx * k}px`;
-      f.style.top = `${(pv.clientHeight - ch * k) / 2 - cy * k}px`;
+      // zone centrée ; si la page de l'overlay est plus grande que le cadre, elle le remplit jusqu'aux bords
+      // (la jauge de boost est dans un coin : sans ça, il resterait une bande vide à côté)
+      const fill = (box, size, at) => (size * k > box ? Math.min(0, Math.max(box - size * k, at)) : at);
+      f.style.left = `${fill(pv.clientWidth, w, (pv.clientWidth - cw * k) / 2 - cx * k)}px`;
+      f.style.top = `${fill(pv.clientHeight, h, (pv.clientHeight - ch * k) / 2 - cy * k)}px`;
     });
   }
   // Taille conseillée du compteur selon sa disposition
@@ -825,14 +881,18 @@
     const dims = COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
     const ov = $('#tab-stream .ov[data-ov="counter"]');
     if (!ov) return;
-    const f = $('iframe', ov);
     const crop = layout === 'boost' ? '1330,690,590,390' : '';
-    if (f.dataset.w !== String(dims.w) || f.dataset.h !== String(dims.h) || (f.dataset.crop || '') !== crop) {
-      f.dataset.w = dims.w;
-      f.dataset.h = dims.h;
-      f.dataset.crop = crop;
-      layoutPreviews();
+    // les deux aperçus du compteur : celui de la page Overlays et celui de l'accueil
+    let moved = false;
+    for (const f of [$('iframe', ov), $('#homePv')]) {
+      if (f.dataset.w !== String(dims.w) || f.dataset.h !== String(dims.h) || (f.dataset.crop || '') !== crop) {
+        f.dataset.w = dims.w;
+        f.dataset.h = dims.h;
+        f.dataset.crop = crop;
+        moved = true;
+      }
     }
+    if (moved) layoutPreviews();
     $('.title span', ov).textContent = dims.label;
     $('.desc', ov).firstChild.textContent = `${dims.desc} `;
   }
@@ -844,6 +904,11 @@
       const el = $(`[data-live="${o.id}"]`);
       if (el) el.textContent = ovs[o.id] ? tn('o.sources', ovs[o.id]) : '';
     });
+    // accueil : le compteur est-il affiché dans OBS ?
+    const live = ovs.counter > 0;
+    const pill = $('#homeObs');
+    pill.className = `pill ${live ? 'ok' : 'wait'}`;
+    pill.textContent = t(live ? 'd.inObs' : 'd.notInObs');
     const cs = D.settings.alerts.customSounds || {};
     TYPES.forEach(([t]) => {
       const lab = $(`[data-snd="${t}"]`);
@@ -859,6 +924,7 @@
     const cur = D.settings.overlay.themePack || 'signature';
     const active = list.find((x) => x.id === cur);
     $('#ovThemeName').textContent = active ? active.name : cur;
+    $('#homeTheme').textContent = t('d.themeIs', { n: active ? active.name : cur });
     $('#themeGrid').innerHTML = list
       .map((t) => {
         const c = t.colors || {};
@@ -1403,7 +1469,7 @@
       applyTheme(D.settings.app.theme);
     }
     renderChips();
-    if (changed('setup', [D.status.rlConfig, D.status.logFound])) renderSetup();
+    if (changed('setup', [D.status.rlConfig, D.status.logFound, D.status.overlays])) renderSetup();
     if (changed('identity', D.live && D.live.needsIdentity ? D.live.players : null)) renderIdentity();
     renderLive();
     if (changed('matches', [D.sessionMatches, D.settings.overlay.labelWin, D.settings.overlay.labelLoss])) renderSessionList();
