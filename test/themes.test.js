@@ -114,7 +114,7 @@ test('langue : chaque texte des pages a sa traduction française', () => {
   const keys = new Set();
   for (const p of pages) {
     const html = fs.readFileSync(path.join(web, p), 'utf8');
-    for (const m of html.matchAll(/data-i18n(?:-title|-ph)?="([^"]+)"/g)) keys.add(m[1]);
+    for (const m of html.matchAll(/data-i18n(?:-title|-ph|-tip)?="([^"]+)"/g)) keys.add(m[1]);
   }
   const missing = [...keys].filter((k) => !(k in I.DICT.fr));
   assert.deepStrictEqual(missing, []);

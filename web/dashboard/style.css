@@ -437,7 +437,9 @@ details .form { margin-top: 10px; }
 .ov .url input { font-family: 'Cascadia Mono', Consolas, monospace; font-size: 11.5px; }
 .ov .live-dot { font-size: 12px; color: var(--win); }
 .test-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.test-row .btn { background: transparent; box-shadow: inset 3px 0 0 currentColor; color: var(--text); padding-left: 16px; }
+/* boutons de test : la couleur du texte dit de quelle alerte il s'agit */
+.test-row .btn { background: transparent; }
+.test-row .btn:hover { background: var(--raised); }
 .test-row .t-win { color: var(--win); }
 .test-row .t-loss { color: var(--loss); }
 .test-row .t-overtime, .test-row .t-ot_win, .test-row .t-ot_loss { color: var(--ot); }
@@ -453,10 +455,48 @@ details .form { margin-top: 10px; }
 .o-row .ret { font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
 @media (max-width: 1180px) { .a-row { grid-template-columns: 22px 1fr 1fr; } .o-row { grid-template-columns: 1fr 1fr; } }
 
+/* page Overlays : sous-onglets, aperçu à gauche, réglages à droite */
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.page-head h2 { font-size: 20px; margin: 0 0 6px; }
+.page-head p { margin: 0; }
+.ov-pane { display: flex; flex-direction: column; gap: 18px; }
+.split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.split > div { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+@media (max-width: 1080px) { .split { grid-template-columns: 1fr; } }
+.ov-big .ov { background: var(--panel); border-radius: 14px; }
+.ov-big .ov .pv { height: 300px; }
+.ov-big .ov .body { padding: 14px 20px 18px; }
+.ov-foot { margin: 0; }
+.sub-head { margin: 4px 0 2px; padding-top: 14px; border-top: 1px solid var(--line); }
+.card-head h3 { display: flex; align-items: center; gap: 8px; }
+.theme-now { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.theme-now b { font: 600 13.5px/1.4 var(--display); }
+.more-opts { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.more-opts .form { margin-top: 12px; }
+
+/* ligne à interrupteur : le libellé, un « ? » d'aide éventuel, l'interrupteur à droite */
+.sw-row, .form label.sw-row { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); color: var(--text); font-size: 13.5px; cursor: pointer; }
+.sub-head + .sw-row, .form > .sw-row:first-child, .sw-pair .sw-row { border-top: 0; }
+.sw-row .switch { margin-left: auto; }
+.sw-row label { cursor: pointer; }
+/* une ligne avec un « ? » est un <div> : un <label> s'associerait au bouton d'aide et non à l'interrupteur */
+.sw-pair { gap: 24px; margin-bottom: 12px; }
+input.switch { appearance: none; position: relative; width: 38px; height: 22px; flex: none; margin: 0; border-radius: 11px; background: var(--line-2); cursor: pointer; transition: background 0.15s; }
+input.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); transition: transform 0.15s; }
+input.switch:checked { background: var(--violet); }
+input.switch:checked::after { transform: translateX(16px); }
+
+/* « ? » d'aide : la bulle (data-tip) s'ouvre au survol ou au focus, sous le bouton */
+.help { position: relative; width: 18px; height: 18px; flex: none; padding: 0; border: 1px solid var(--muted); border-radius: 50%; background: none; color: var(--muted); font: 600 11px/1 var(--ui); cursor: help; }
+.help:hover, .help:focus-visible { border-color: var(--violet); color: var(--violet); }
+.help::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: -10px; z-index: 20; display: none; width: max-content; max-width: 260px; padding: 8px 11px; border-radius: 8px; background: var(--text); color: var(--desk); font: 500 12.5px/1.45 var(--ui); text-align: left; white-space: normal; box-shadow: 0 8px 22px var(--shadow); }
+.help:hover::after, .help:focus::after { display: block; }
+
 /* ------------------------------------------------------------ historique */
 .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--well); border: 1px solid var(--line); }
 .seg button { border: 0; background: none; padding: 4px 14px; border-radius: 7px; cursor: pointer; color: var(--muted); font-weight: 600; font-size: 13px; }
 .seg button.on { background: var(--accent-soft); color: var(--accent-text); }
+.seg.big button { padding: 7px 14px; font-size: 13.5px; }
 .alltime { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-bottom: 16px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .alltime .kpi b { font-size: 19px; }
 .alltime .bypl { grid-column: 1 / -1; display: flex; gap: 6px 18px; flex-wrap: wrap; padding: 10px 14px; background: var(--well); }

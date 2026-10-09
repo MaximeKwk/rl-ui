@@ -245,7 +245,25 @@
       if (el.classList.contains('rec')) return;
       writeInput(el, getPath(D.settings, el.dataset.set));
     });
+    syncPicks();
   }
+  // Choix segmentés : <div class="seg" data-choice="chemin.du.réglage"><button data-val="valeur">…
+  function syncPicks() {
+    $$('[data-choice]').forEach((g) => {
+      const v = String(getPath(D.settings, g.dataset.choice));
+      $$('button[data-val]', g).forEach((b) => {
+        b.classList.toggle('on', b.dataset.val === v);
+        b.setAttribute('aria-pressed', String(b.dataset.val === v));
+      });
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-choice] button[data-val]');
+    if (!b) return;
+    const g = b.closest('[data-choice]');
+    $$('button[data-val]', g).forEach((x) => x.classList.toggle('on', x === b));
+    saveSetting(g.dataset.choice, b.dataset.val, true);
+  });
 
   // Raccourcis : capture de la combinaison
   const CODE_KEYS = {
@@ -306,25 +324,35 @@
     $('#countingForm').innerHTML = CATS.map(([k, label]) => `<label class="check"><input type="checkbox" data-set="counting.${k}" /> ${esc(label)}</label>`).join('');
 
     // Overlays
-    $('#overlayGrid').innerHTML = OVERLAYS.map(
-      (o) => `
+    // chaque overlay a sa carte (aperçu, taille, lien), posée dans son emplacement data-ovslot
+    OVERLAYS.forEach((o) => {
+      $(`[data-ovslot="${o.id}"]`).innerHTML = `
       <div class="ov" data-ov="${o.id}">
         <div class="pv"><iframe data-w="${o.w}" data-h="${o.h}" loading="lazy"></iframe></div>
         <div class="body">
           <div class="title"><b>${esc(o.name)}</b><span>${o.w} × ${o.h}</span></div>
           <div class="desc">${esc(o.desc)} <span class="live-dot" data-live="${o.id}"></span></div>
-          <div class="url"><input readonly data-url="${o.id}" /><button class="btn small" data-copy="${o.id}">${esc(t('d.copy'))}</button><button class="btn small ghost" data-open="${o.id}">${esc(t('d.open'))}</button></div>
+          <div class="url"><input readonly data-url="${o.id}" /><button class="btn small primary" data-copy="${o.id}">${esc(t('d.copy'))}</button><button class="btn small ghost" data-open="${o.id}">${esc(t('d.open'))}</button></div>
         </div>
-      </div>`
-    ).join('');
-    $('#overlayGrid').addEventListener('click', (e) => {
+      </div>`;
+    });
+    $('#tab-stream').addEventListener('click', (e) => {
       const c = e.target.closest('[data-copy]');
       if (c) copy($(`[data-url="${c.dataset.copy}"]`).value);
       const o = e.target.closest('[data-open]');
       if (o) post('/api/open', { target: 'url', url: $(`[data-url="${o.dataset.open}"]`).value });
+      const tab = e.target.closest('[data-ovtab], [data-ovgo]');
+      if (tab) showOvTab(tab.dataset.ovtab || tab.dataset.ovgo);
     });
     $('#previewSound').addEventListener('change', () => setPreviewSrc(true));
-    new ResizeObserver(layoutPreviews).observe($('#overlayGrid'));
+    new ResizeObserver(layoutPreviews).observe($('#tab-stream'));
+    {
+      let ovTab = 'counter';
+      try {
+        ovTab = localStorage.getItem('rlui-ovtab') || 'counter';
+      } catch {}
+      showOvTab(ovTab);
+    }
 
     // Thèmes
     $('#themeGrid').addEventListener('click', onThemeClick);
@@ -749,7 +777,7 @@
     const sig = `${D.port}|${$('#previewSound').checked}`;
     if (!force && sig === lastSrcSig) return;
     lastSrcSig = sig;
-    $$('#overlayGrid .ov').forEach((ov) => {
+    $$('#tab-stream .ov').forEach((ov) => {
       const id = ov.dataset.ov;
       const url = `${baseUrl()}/overlay/${id}`;
       $(`[data-url="${id}"]`, ov).value = url;
@@ -758,8 +786,19 @@
     });
     layoutPreviews();
   }
+  // Sous-onglets de la page Overlays : compteur, alertes, autres overlays, thèmes
+  function showOvTab(name) {
+    if (!$(`[data-ovpane="${name}"]`)) name = 'counter';
+    $$('#ovTabs button').forEach((b) => b.classList.toggle('on', b.dataset.ovtab === name));
+    $$('[data-ovpane]').forEach((p) => p.classList.toggle('hidden', p.dataset.ovpane !== name));
+    try {
+      localStorage.setItem('rlui-ovtab', name);
+    } catch {}
+    layoutPreviews(); // un aperçu caché n'a pas de taille : on le recale quand il apparaît
+  }
   function layoutPreviews() {
-    $$('#overlayGrid .pv').forEach((pv) => {
+    $$('#tab-stream .pv').forEach((pv) => {
+      if (!pv.clientWidth) return;
       const f = $('iframe', pv);
       const w = Number(f.dataset.w);
       const h = Number(f.dataset.h);
@@ -784,7 +823,7 @@
     const layout = D.settings.overlay.layout || 'horizontal';
     $('#boostOpts').classList.toggle('hidden', layout !== 'boost');
     const dims = COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
-    const ov = $('#overlayGrid .ov[data-ov="counter"]');
+    const ov = $('#tab-stream .ov[data-ov="counter"]');
     if (!ov) return;
     const f = $('iframe', ov);
     const crop = layout === 'boost' ? '1330,690,590,390' : '';
@@ -818,6 +857,8 @@
   function renderThemes() {
     const list = (D.themes && D.themes.list) || [];
     const cur = D.settings.overlay.themePack || 'classique';
+    const active = list.find((x) => x.id === cur);
+    $('#ovThemeName').textContent = active ? active.name : cur;
     $('#themeGrid').innerHTML = list
       .map((t) => {
         const c = t.colors || {};

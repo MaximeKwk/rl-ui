@@ -112,125 +112,180 @@
 
         <!-- ============================== OVERLAYS ============================== -->
         <section id="tab-stream" class="tab">
-          <div class="card">
-            <div class="card-head">
-              <h2 data-i18n="h.ov.title">Overlays for OBS</h2>
-              <label class="check"><input type="checkbox" id="previewSound" /> <span data-i18n="h.ov.previewSound">Preview sound</span></label>
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.ov.title">Overlays</h2>
+              <p class="muted" data-i18n="h.ov.sub">What your viewers see on stream.</p>
             </div>
-            <p class="muted" data-i18n="h.ov.intro">
-              In OBS: <b>Sources → + → Browser</b>, paste the URL and set the size shown. For alerts, tick
-              <b>“Control audio via OBS”</b> so the sound plays on stream. Works in Streamlabs too.
-            </p>
-            <div class="overlay-grid" id="overlayGrid"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-head">
-              <h2 data-i18n="h.th.title">Themes</h2>
-              <div class="head-actions">
-                <button class="btn small" id="themeInstall" data-i18n="h.th.install">Install a theme (.zip)</button>
-                <button class="btn small ghost" id="themeFolder" data-i18n="h.th.folder">Open themes folder</button>
-              </div>
+            <div class="seg big" id="ovTabs">
+              <button data-ovtab="counter" class="on" data-i18n="h.ov.tabCounter">Counter</button>
+              <button data-ovtab="alerts" data-i18n="h.ov.tabAlerts">Alerts</button>
+              <button data-ovtab="more" data-i18n="h.ov.tabMore">More overlays</button>
+              <button data-ovtab="themes" data-i18n="h.th.title">Themes</button>
             </div>
-            <p class="muted" data-i18n="h.th.intro">
-              Pick a ready-made look, or click <b>Customize</b>: an editable copy is created and its folder opens. Replace the images,
-              the colors in <code>theme.json</code> or the <code>theme.css</code>: overlays update live, even in OBS.
-              Full guide in the <code>README.md</code> of the “Template” theme.
-            </p>
-            <div class="theme-grid" id="themeGrid"></div>
-            <label class="check"><input type="checkbox" data-set="overlay.themeColors" /> <span data-i18n="h.th.colors">Use the theme's colors (otherwise, the ones set below)</span></label>
           </div>
 
-          <div class="card">
-            <div class="card-head"><h2 data-i18n="h.test.title">Test alerts</h2><span class="muted" data-i18n="h.test.sub">Counters don't change</span></div>
-            <div class="test-row" id="testRow"></div>
-            <label class="check"><input type="checkbox" id="testObs" /> <span data-i18n="h.test.obs">Also trigger OBS / Streamlabs actions</span></label>
-          </div>
+          <!-- ............................ compteur ............................ -->
+          <div class="ov-pane" data-ovpane="counter">
+            <div class="split">
+              <div>
+                <div data-ovslot="counter" class="ov-big"></div>
 
-          <div class="grid-2">
-            <div class="card">
-              <h3 data-i18n="h.ctr.title">W/L counter</h3>
-              <div class="form">
-                <label><span data-i18n="h.ctr.layout">Layout</span>
-                  <select data-set="overlay.layout">
-                    <option value="horizontal" data-i18n="h.ctr.lh">Horizontal (bar)</option>
-                    <option value="vertical" data-i18n="h.ctr.lv">Vertical (column)</option>
-                    <option value="boost" data-i18n="h.ctr.lb">Boost: stuck to the left of the boost gauge</option>
-                  </select>
-                </label>
-                <div id="boostOpts" class="sub-opts hidden">
-                  <div class="muted small" data-i18n="h.ctr.boostHelp">
+                <div id="boostOpts" class="card hidden">
+                  <h3 data-i18n="h.ctr.boostTitle">Boost gauge calibration</h3>
+                  <p class="muted small" data-i18n="h.ctr.boostHelp">
                     <b>Full-screen</b> OBS source (canvas size), placed above the game capture: the counter snaps to the left of the gauge
                     and takes your team's color. If your HUD is different, turn on the guide and fit it on your gauge.
+                  </p>
+                  <div class="row2 sw-pair">
+                    <label class="sw-row"><span data-i18n="h.ctr.guide">Show the gauge guide (calibration)</span><input type="checkbox" class="switch" data-set="overlay.boostGuide" /></label>
+                    <label class="sw-row"><span data-i18n="h.ctr.team">My team's color, like the gauge</span><input type="checkbox" class="switch" data-set="overlay.boostTeamColor" /></label>
                   </div>
-                  <label class="check"><input type="checkbox" data-set="overlay.boostGuide" /> <span data-i18n="h.ctr.guide">Show the gauge guide (calibration)</span></label>
-                  <label class="check"><input type="checkbox" data-set="overlay.boostTeamColor" /> <span data-i18n="h.ctr.team">My team's color, like the gauge</span></label>
-                  <label><span data-i18n="h.ctr.hud">HUD size</span> <input type="range" min="0.6" max="1.6" step="0.01" data-set="overlay.boostScale" /></label>
-                  <div class="row2">
+                  <div class="form row3">
+                    <label><span data-i18n="h.ctr.hud">HUD size</span> <input type="range" min="0.6" max="1.6" step="0.01" data-set="overlay.boostScale" /></label>
                     <label><span data-i18n="h.ctr.x">Left ↔ right</span> <input type="range" min="-400" max="400" step="1" data-set="overlay.boostX" /></label>
                     <label><span data-i18n="h.ctr.y">Up ↕ down</span> <input type="range" min="-400" max="400" step="1" data-set="overlay.boostY" /></label>
                   </div>
-                  <div><button class="btn small ghost" id="boostReset" data-i18n="h.ctr.reset">Reset calibration</button></div>
+                  <div class="actions"><button class="btn small ghost" id="boostReset" data-i18n="h.ctr.reset">Reset calibration</button></div>
                 </div>
-                <label><span data-i18n="h.ctr.style">Counter style</span>
-                  <select data-set="overlay.theme">
-                    <option value="arena" data-i18n="h.ctr.arena">Arena (glass card)</option>
-                    <option value="broadcast" data-i18n="h.ctr.broadcast">Broadcast (RLCS style)</option>
-                    <option value="minimal" data-i18n="h.ctr.minimal">Minimal (text only)</option>
-                  </select>
-                </label>
-                <div class="row2">
-                  <label><span data-i18n="h.ctr.lw">Win letter</span> <input data-set="overlay.labelWin" maxlength="3" id="inLw" /></label>
-                  <label><span data-i18n="h.ctr.ll">Loss letter</span> <input data-set="overlay.labelLoss" maxlength="3" id="inLl" /></label>
-                </div>
-                <label class="check"><input type="checkbox" data-set="overlay.showWinrate" /> <span data-i18n="h.ctr.showWr">Show winrate</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showStreak" /> <span data-i18n="h.ctr.showStreak">Show streak</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showOt" /> <span data-i18n="h.ctr.showOt">Show overtime record</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showOtBadge" /> <span data-i18n="h.ctr.showOtBadge">“OVERTIME” badge during overtime</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showPlaylist" /> <span data-i18n="h.ctr.showPl">Show game mode during a match</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showMmr" /> <span data-i18n="h.ctr.showMmr">Show MMR</span></label>
-                <label><span data-i18n="h.ctr.mmrMode">MMR display</span>
-                  <select data-set="overlay.mmrMode">
-                    <option value="session" data-i18n="h.ctr.mmrSession">Session gain (+45)</option>
-                    <option value="value" data-i18n="h.ctr.mmrValue">Current MMR (1175)</option>
-                    <option value="both" data-i18n="h.ctr.mmrBoth">Both (1175 +45)</option>
-                  </select>
-                </label>
-                <div class="row3">
-                  <label><span data-i18n="h.win">Win</span> <input type="color" data-set="overlay.winColor" /></label>
-                  <label><span data-i18n="h.loss">Loss</span> <input type="color" data-set="overlay.lossColor" /></label>
-                  <label>Overtime <input type="color" data-set="overlay.otColor" /></label>
-                </div>
-                <label><span data-i18n="h.size">Size</span> <input type="range" min="0.5" max="2" step="0.05" data-set="overlay.scale" /></label>
               </div>
-            </div>
-            <div class="card">
-              <h3 data-i18n="h.al.title">Alerts</h3>
-              <div class="form">
-                <label class="check"><input type="checkbox" data-set="alerts.sound" /> <span data-i18n="h.al.sound">Play sounds</span></label>
-                <label>Volume <input type="range" min="0" max="1" step="0.05" data-set="alerts.volume" /></label>
-                <label>Position
-                  <select data-set="alerts.position">
-                    <option value="center" data-i18n="h.al.center">Center of the screen</option>
-                    <option value="top" data-i18n="h.al.top">Top</option>
-                    <option value="bottom" data-i18n="h.al.bottom">Bottom</option>
-                  </select>
-                </label>
-                <label><span data-i18n="h.size">Size</span> <input type="range" min="0.4" max="1.6" step="0.05" data-set="alerts.scale" /></label>
-                <label><span data-i18n="h.al.milestones">“Streak” alert at these numbers of wins in a row</span>
-                  <input data-set="alerts.streakMilestones" data-type="list-number" placeholder="3, 5, 10" />
-                </label>
-                <label class="check"><input type="checkbox" data-set="alerts.alertOnAbandon" /> <span data-i18n="h.al.abandon">Also alert when I leave a match</span></label>
-                <label class="check"><input type="checkbox" data-set="mmr.showInAlerts" /> <span data-i18n="h.al.mmr">Show “+15 MMR” in end-of-match alerts</span></label>
+
+              <div>
+                <div class="card">
+                  <div class="card-head">
+                    <h3><span data-i18n="h.ctr.layout">Layout</span> <button type="button" class="help" data-tip="Horizontal: a bar. Vertical: a column. Boost: stuck to the left of the game's boost gauge." data-i18n-tip="h.tip.layout">?</button></h3>
+                    <div class="seg" data-choice="overlay.layout">
+                      <button data-val="horizontal" data-i18n="h.ctr.sh">Horizontal</button>
+                      <button data-val="vertical" data-i18n="h.ctr.sv">Vertical</button>
+                      <button data-val="boost">Boost</button>
+                    </div>
+                  </div>
+
+                  <h3 class="sub-head" data-i18n="h.ctr.shown">What is shown</h3>
+                  <div class="sw-row"><label for="sw-wr" data-i18n="h.ctr.showWr">Show winrate</label><button type="button" class="help" data-tip="Share of matches won this session." data-i18n-tip="h.tip.wr">?</button><input type="checkbox" class="switch" id="sw-wr" data-set="overlay.showWinrate" /></div>
+                  <div class="sw-row"><label for="sw-streak" data-i18n="h.ctr.showStreak">Show streak</label><button type="button" class="help" data-tip="Wins or losses in a row right now." data-i18n-tip="h.tip.streak">?</button><input type="checkbox" class="switch" id="sw-streak" data-set="overlay.showStreak" /></div>
+                  <div class="sw-row"><label for="sw-ot" data-i18n="h.ctr.showOt">Show overtime record</label><button type="button" class="help" data-tip="Overtime matches won and lost this session." data-i18n-tip="h.tip.ot">?</button><input type="checkbox" class="switch" id="sw-ot" data-set="overlay.showOt" /></div>
+                  <div class="sw-row"><label for="sw-mmr" data-i18n="h.ctr.showMmr">Show MMR</label><button type="button" class="help" data-tip="Your rank points. The real value is read when you queue; in between it is estimated." data-i18n-tip="h.tip.mmr">?</button><input type="checkbox" class="switch" id="sw-mmr" data-set="overlay.showMmr" /></div>
+
+                  <details class="adv more-opts">
+                    <summary data-i18n="h.ctr.more">More options: style, letters, colors, size</summary>
+                    <div class="form">
+                      <label class="sw-row"><span data-i18n="h.ctr.showOtBadge">“OVERTIME” badge during overtime</span><input type="checkbox" class="switch" data-set="overlay.showOtBadge" /></label>
+                      <label class="sw-row"><span data-i18n="h.ctr.showPl">Show game mode during a match</span><input type="checkbox" class="switch" data-set="overlay.showPlaylist" /></label>
+                      <label><span data-i18n="h.ctr.mmrMode">MMR display</span>
+                        <select data-set="overlay.mmrMode">
+                          <option value="session" data-i18n="h.ctr.mmrSession">Session gain (+45)</option>
+                          <option value="value" data-i18n="h.ctr.mmrValue">Current MMR (1175)</option>
+                          <option value="both" data-i18n="h.ctr.mmrBoth">Both (1175 +45)</option>
+                        </select>
+                      </label>
+                      <label><span data-i18n="h.ctr.style">Counter style</span>
+                        <select data-set="overlay.theme">
+                          <option value="arena" data-i18n="h.ctr.arena">Arena (glass card)</option>
+                          <option value="broadcast" data-i18n="h.ctr.broadcast">Broadcast (RLCS style)</option>
+                          <option value="minimal" data-i18n="h.ctr.minimal">Minimal (text only)</option>
+                        </select>
+                      </label>
+                      <div class="row2">
+                        <label><span data-i18n="h.ctr.lw">Win letter</span> <input data-set="overlay.labelWin" maxlength="3" id="inLw" /></label>
+                        <label><span data-i18n="h.ctr.ll">Loss letter</span> <input data-set="overlay.labelLoss" maxlength="3" id="inLl" /></label>
+                      </div>
+                      <label><span data-i18n="h.size">Size</span> <input type="range" min="0.5" max="2" step="0.05" data-set="overlay.scale" /></label>
+                      <label class="check"><input type="checkbox" data-set="overlay.themeColors" /> <span data-i18n="h.th.colors">Use the theme's colors (otherwise, the ones set below)</span></label>
+                      <div class="row3">
+                        <label><span data-i18n="h.win">Win</span> <input type="color" data-set="overlay.winColor" /></label>
+                        <label><span data-i18n="h.loss">Loss</span> <input type="color" data-set="overlay.lossColor" /></label>
+                        <label>Overtime <input type="color" data-set="overlay.otColor" /></label>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+
+                <div class="card theme-now">
+                  <div>
+                    <div class="muted small" data-i18n="h.ctr.themeNow">Theme</div>
+                    <b id="ovThemeName">—</b>
+                  </div>
+                  <button class="btn small" data-ovgo="themes" data-i18n="h.ctr.themeChange">Change theme</button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="card">
-            <h3 data-i18n="h.al.table">Alert texts, durations and sounds</h3>
-            <p class="muted" data-i18n="h.al.tableHelp">Leave a text empty to use the default one. In the streak text, <code>{n}</code> is replaced by the number of wins. Custom sounds: mp3, wav, ogg (8 MB max).</p>
-            <div class="alert-table" id="alertTable"></div>
+          <!-- ............................ alertes ............................ -->
+          <div class="ov-pane hidden" data-ovpane="alerts">
+            <div class="split">
+              <div>
+                <div data-ovslot="alerts" class="ov-big"></div>
+                <div class="card">
+                  <div class="card-head"><h3 data-i18n="h.test.title">Test alerts</h3><span class="muted" data-i18n="h.test.sub">Counters don't change</span></div>
+                  <div class="test-row" id="testRow"></div>
+                  <label class="sw-row"><span data-i18n="h.ov.previewSound">Preview sound</span><input type="checkbox" class="switch" id="previewSound" /></label>
+                  <label class="sw-row"><span data-i18n="h.test.obs">Also trigger OBS / Streamlabs actions</span><input type="checkbox" class="switch" id="testObs" /></label>
+                </div>
+              </div>
+              <div>
+                <div class="card">
+                  <h3 data-i18n="h.al.title">Alerts</h3>
+                  <div class="form">
+                    <label class="sw-row"><span data-i18n="h.al.sound">Play sounds</span><input type="checkbox" class="switch" data-set="alerts.sound" /></label>
+                    <label>Volume <input type="range" min="0" max="1" step="0.05" data-set="alerts.volume" /></label>
+                    <label>Position
+                      <select data-set="alerts.position">
+                        <option value="center" data-i18n="h.al.center">Center of the screen</option>
+                        <option value="top" data-i18n="h.al.top">Top</option>
+                        <option value="bottom" data-i18n="h.al.bottom">Bottom</option>
+                      </select>
+                    </label>
+                    <label><span data-i18n="h.size">Size</span> <input type="range" min="0.4" max="1.6" step="0.05" data-set="alerts.scale" /></label>
+                    <label><span data-i18n="h.al.milestones">“Streak” alert at these numbers of wins in a row</span>
+                      <input data-set="alerts.streakMilestones" data-type="list-number" placeholder="3, 5, 10" />
+                    </label>
+                    <label class="sw-row"><span data-i18n="h.al.abandon">Also alert when I leave a match</span><input type="checkbox" class="switch" data-set="alerts.alertOnAbandon" /></label>
+                    <label class="sw-row"><span data-i18n="h.al.mmr">Show “+15 MMR” in end-of-match alerts</span><input type="checkbox" class="switch" data-set="mmr.showInAlerts" /></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="h.al.table">Alert texts, durations and sounds</h3>
+              <p class="muted" data-i18n="h.al.tableHelp">Leave a text empty to use the default one. In the streak text, <code>{n}</code> is replaced by the number of wins. Custom sounds: mp3, wav, ogg (8 MB max).</p>
+              <div class="alert-table" id="alertTable"></div>
+            </div>
           </div>
+
+          <!-- ............................ autres overlays ............................ -->
+          <div class="ov-pane hidden" data-ovpane="more">
+            <div class="overlay-grid">
+              <div data-ovslot="history"></div>
+              <div data-ovslot="summary"></div>
+            </div>
+          </div>
+
+          <!-- ............................ thèmes ............................ -->
+          <div class="ov-pane hidden" data-ovpane="themes">
+            <div class="card">
+              <div class="card-head">
+                <h3 data-i18n="h.th.title">Themes</h3>
+                <div class="head-actions">
+                  <button class="btn small" id="themeInstall" data-i18n="h.th.install">Install a theme (.zip)</button>
+                  <button class="btn small ghost" id="themeFolder" data-i18n="h.th.folder">Open themes folder</button>
+                </div>
+              </div>
+              <p class="muted" data-i18n="h.th.intro">
+                Pick a ready-made look, or click <b>Customize</b>: an editable copy is created and its folder opens. Replace the images,
+                the colors in <code>theme.json</code> or the <code>theme.css</code>: overlays update live, even in OBS.
+                Full guide in the <code>README.md</code> of the “Template” theme.
+              </p>
+              <div class="theme-grid" id="themeGrid"></div>
+            </div>
+          </div>
+
+          <p class="muted small ov-foot" data-i18n="h.ov.intro">
+            In OBS: <b>Sources → + → Browser</b>, paste the URL and set the size shown. For alerts, tick
+            <b>“Control audio via OBS”</b> so the sound plays on stream. Works in Streamlabs too.
+          </p>
         </section>
 
         <!-- ============================== HISTORY ============================== -->

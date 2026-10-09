@@ -117,7 +117,7 @@
   OT.lang = I.norm(document.documentElement.lang);
   OT.t = (key, vars) => I.t(OT.lang, key, vars);
   OT.tn = (key, n, vars) => I.tn(OT.lang, key, n, vars);
-  // Éléments du HTML : data-i18n (contenu), data-i18n-title, data-i18n-ph (placeholder).
+  // Éléments du HTML : data-i18n (contenu), data-i18n-title, data-i18n-ph (placeholder), data-i18n-tip (bulle d'aide).
   // L'anglais est dans le HTML : on le garde de côté pour pouvoir y revenir.
   OT.applyI18n = function (root = document) {
     const d = I.DICT[OT.lang] || {};
@@ -126,11 +126,12 @@
       const v = d[el.dataset.i18n];
       el.innerHTML = v != null ? v : el.dataset.i18nEn;
     }
-    for (const [attr, prop] of [
-      ['title', 'i18nTitle'],
-      ['placeholder', 'i18nPh'],
+    for (const [attr, prop, sel] of [
+      ['title', 'i18nTitle', 'i18n-title'],
+      ['placeholder', 'i18nPh', 'i18n-ph'],
+      ['data-tip', 'i18nTip', 'i18n-tip'],
     ]) {
-      for (const el of root.querySelectorAll(`[data-${attr === 'title' ? 'i18n-title' : 'i18n-ph'}]`)) {
+      for (const el of root.querySelectorAll(`[data-${sel}]`)) {
         const keep = `${prop}En`;
         if (el.dataset[keep] == null) el.dataset[keep] = el.getAttribute(attr) || '';
         const v = d[el.dataset[prop]];
