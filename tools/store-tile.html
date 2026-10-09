@@ -1,12 +1,12 @@
 <!doctype html>
 <!-- Images du Microsoft Store (build/appx) : store-tile.html?w=310&h=150&pad=0.12&name=1 — rendu par tools/shot.js -->
 <html><head><meta charset="utf-8"><style>
-@font-face { font-family: 'Archivo'; font-weight: 100 900; font-stretch: 62% 125%; src: url('../web/assets/fonts/archivo-latin-standard-normal.woff2') format('woff2-variations'); }
+@font-face { font-family: 'Unbounded'; font-weight: 200 900; src: url('../web/assets/fonts/unbounded-latin-wght-normal.woff2') format('woff2-variations'); }
 html,body{margin:0;overflow:hidden;background:transparent}
 .t{display:flex;align-items:center;justify-content:center;gap:6%;box-sizing:border-box}
-.t.bg{background:#121417}
+.t.bg{background:#12181b}
 img{display:block}
-b{font-family:Archivo,sans-serif;font-weight:800;font-stretch:118%;color:#e7e4de;line-height:.9;letter-spacing:-.01em}
+b{font-family:Unbounded,sans-serif;font-weight:700;color:#e8eeef;line-height:.9}
 </style></head><body>
 <div class="t" id="t"><img src="../build/icon.png" id="i"></div>
 <script>
@@ -20,7 +20,7 @@ i.style.width = i.style.height = s + 'px';
 if (q.get('name')) {
   const b = document.createElement('b');
   b.textContent = 'RL-UI';
-  b.style.fontSize = (s * 0.42) + 'px';
+  b.style.fontSize = (s * 0.34) + 'px';
   t.appendChild(b);
 }
 </script>

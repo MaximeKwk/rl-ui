@@ -26,6 +26,7 @@ if (!app.requestSingleInstanceLock()) {
 app.setAppUserModelId('com.zoxam.rlui');
 
 const ICON = path.join(__dirname, '..', 'web', 'assets', 'icon.png');
+const ICON_TRAY = path.join(__dirname, '..', 'web', 'assets', 'icon-tray.png'); // sans lettres : lisible en 16 px
 const isDev = !app.isPackaged;
 let core = null;
 let win = null;
@@ -217,7 +218,7 @@ app.whenReady().then(async () => {
   }
   if (migrated) core.log(t('s.migrated'));
   registerHotkeys();
-  tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16, quality: 'best' }));
+  tray = new Tray(nativeImage.createFromPath(ICON_TRAY).resize({ width: 16, height: 16, quality: 'best' }));
   tray.on('click', showWindow);
   updateTray();
   let trayTimer = null;
