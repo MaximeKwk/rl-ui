@@ -35,6 +35,15 @@
   function applyConfig(conf) {
     cfg = (conf && conf.overlay) || {};
     OT.applyColors(cfg);
+    // Le compteur « Boost » ne suit pas les couleurs du thème : il garde celles réglées par l'utilisateur
+    // (sauf couleur forcée dans l'URL), pour rester identique quel que soit le thème choisi.
+    const base = cfg.baseColors || {};
+    for (const el of [$('boost'), $('bGuide')]) {
+      for (const k of ['win', 'loss', 'ot']) {
+        if (base[k] && !P.get(k)) el.style.setProperty(`--${k}`, base[k]);
+        else el.style.removeProperty(`--${k}`);
+      }
+    }
     const theme = opt('theme', cfg.theme || 'arena');
     w.className = w.className.replace(/theme-\S+/g, '').trim() + ` theme-${theme}`;
     document.documentElement.style.setProperty('--s', OT.num('scale', Number(cfg.scale) || 1));

@@ -856,7 +856,7 @@
   // ------------------------------------------------------------------ thèmes
   function renderThemes() {
     const list = (D.themes && D.themes.list) || [];
-    const cur = D.settings.overlay.themePack || 'classique';
+    const cur = D.settings.overlay.themePack || 'signature';
     const active = list.find((x) => x.id === cur);
     $('#ovThemeName').textContent = active ? active.name : cur;
     $('#themeGrid').innerHTML = list
@@ -1047,7 +1047,7 @@
           <p class="muted small">${t('o.obsAudio')}</p>`;
         break;
       case 3: {
-        const cur = D.settings.overlay.themePack || 'classique';
+        const cur = D.settings.overlay.themePack || 'signature';
         const layout = D.settings.overlay.layout || 'horizontal';
         html = `<h2>${esc(t('o.lookTitle'))}</h2><p>${esc(t('o.lookText'))}</p>
           <div class="onb-themes">${((D.themes && D.themes.list) || [])
@@ -1165,7 +1165,7 @@
   function renderCasterTheme() {
     const sel = $('#casterTheme');
     const list = (D.themes && D.themes.list) || [];
-    const main = list.find((x) => x.id === (D.settings.overlay.themePack || 'classique'));
+    const main = list.find((x) => x.id === (D.settings.overlay.themePack || 'signature'));
     sel.innerHTML =
       `<option value="">${esc(t('d.cs.sameTheme', { n: main ? main.name : 'Classic' }))}</option>` +
       list.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');

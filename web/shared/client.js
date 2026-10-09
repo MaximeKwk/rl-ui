@@ -152,7 +152,7 @@
 
   // Thème (DA) : feuille de style chargée en dernier, rechargée quand un fichier du thème change
   function applyTheme(t) {
-    const id = (t && t.id) || 'classique';
+    const id = (t && t.id) || 'signature';
     document.body.className = document.body.className.replace(/\bpack-\S+/g, '').trim();
     document.body.classList.add(`pack-${id}`);
     let link = document.getElementById('rlui-theme');

@@ -130,7 +130,7 @@ que le repère recouvre ta jauge dans OBS, puis masque-le.
 | Compteur | `theme=arena\|broadcast\|minimal` · `layout=horizontal\|vertical\|boost` · `scale=1.3` · `align=left\|center\|right` · `hide=wr,streak,ot,mmr` · `mmr=session\|value\|both` · `bscale` · `bx` · `by` · `guide=1` |
 | Alertes | `pos=center\|top\|bottom` · `scale` · `mute=1` · `only=overtime,ot_win` · `mmr=0` |
 | Dernières parties | `n=5` · `order=old` · `bare=1` · `title=0` |
-| Tous | thème `pack=neon` · couleurs `win=2ef2a0&loss=ff4d6d&ot=ffb020` · aperçu `preview=1` |
+| Tous | thème `pack=contraste` · couleurs `win=2ef2a0&loss=ff4d6d&ot=ffb020` · aperçu `preview=1` |
 
 </details>
 
@@ -142,7 +142,7 @@ Change la DA de tous les overlays en un clic, ou crée la tienne avec tes images
 
 | | |
 | --- | --- |
-| **Thèmes intégrés** | Classique, Néon, Or & Noir, et un **Modèle** avec images à dupliquer |
+| **Thèmes intégrés** | Signature, Épuré, Contraste, et un **Modèle** avec images à dupliquer |
 | **Personnaliser** | Crée une copie modifiable et ouvre son dossier : remplace les images, les couleurs de `theme.json` ou le `theme.css`, les overlays se mettent à jour **en direct dans OBS** |
 | **Partager** | *Exporter* donne un `.zip` ; les autres le chargent avec *Installer un thème* |
 | **Sûr** | Aucun script accepté dans un thème : images, polices, sons et CSS uniquement |

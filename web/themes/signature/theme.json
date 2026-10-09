@@ -1,0 +1,13 @@
+{
+  "name": "Signature",
+  "author": "Zoxam",
+  "version": "2.0.0",
+  "description": "The RL-UI look: rounded dark plate with the logo's cut corner, wide numerals.",
+  "translations": {
+    "fr": {
+      "name": "Signature",
+      "description": "L'identité RL-UI : plaque sombre arrondie, coin coupé du logo, chiffres larges."
+    }
+  },
+  "colors": { "win": "#8bd95a", "loss": "#f2685f", "ot": "#f0b03f" }
+}

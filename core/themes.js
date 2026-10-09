@@ -11,6 +11,10 @@ const { t: tr, getLang } = require('./i18n');
 
 const ALLOWED = new Set(['.json', '.css', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.woff2', '.woff', '.ttf', '.otf', '.mp3', '.wav', '.ogg', '.md', '.txt']);
 const SOUND_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
+// Thème par défaut, et celui sur lequel on retombe quand le thème choisi n'existe plus
+const DEFAULT_THEME = 'signature';
+// Thèmes intégrés des versions 1.x, retirés avec la V2 : un réglage qui les désigne revient au thème par défaut
+const RETIRED_THEMES = ['classique', 'neon', 'or-noir'];
 
 const slug = (s) =>
   String(s || '')
@@ -101,8 +105,8 @@ class ThemeManager extends EventEmitter {
         if (m && !(builtin === false && out.some((t) => t.id === m.id))) out.push(m);
       }
     }
-    // intégrés d'abord, "classique" en tête
-    return out.sort((a, b) => (a.id === 'classique' ? -1 : b.id === 'classique' ? 1 : a.builtin === b.builtin ? a.name.localeCompare(b.name) : a.builtin ? -1 : 1));
+    // intégrés d'abord, le thème par défaut en tête
+    return out.sort((a, b) => (a.id === DEFAULT_THEME ? -1 : b.id === DEFAULT_THEME ? 1 : a.builtin === b.builtin ? a.name.localeCompare(b.name) : a.builtin ? -1 : 1));
   }
 
   get(id) {
@@ -234,4 +238,4 @@ class ThemeManager extends EventEmitter {
   }
 }
 
-module.exports = { ThemeManager, safeRel, slug, SOUND_TYPES };
+module.exports = { ThemeManager, safeRel, slug, SOUND_TYPES, DEFAULT_THEME, RETIRED_THEMES };

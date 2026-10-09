@@ -1,0 +1,153 @@
+/* =====================================================================
+   Épuré — le plus discret
+   Plaque translucide en forme de pilule, contour fin, chiffres blancs :
+   seules les lettres (V / D) et les repères portent la couleur.
+   Le compteur « Boost » et le mode caster gardent leur habillage : rien
+   ici ne les vise, et les variables ne sont jamais posées sur :root.
+   ===================================================================== */
+
+/* ---- variables, limitées aux éléments redessinés */
+.ov-counter .w,
+.ov-alerts .al,
+.ov-history .bar,
+.ov-summary .card {
+  --plate: rgba(10, 15, 17, 0.6);
+  --plate-line: rgba(255, 255, 255, 0.2);
+  --edge: rgba(255, 255, 255, 0.32);
+  font-family: 'Onest', 'Barlow Condensed', sans-serif;
+}
+/* la police se charge dès l'ouverture de la page, pas à la première alerte */
+body::after { content: '0'; position: absolute; opacity: 0; pointer-events: none; font: 800 1px 'Onest'; }
+
+/* ====================================================== 1. COMPTEUR */
+.ov-counter .theme-arena { padding-right: calc(18px * var(--s)); }
+.ov-counter .theme-arena::after {
+  border: calc(1.5px * var(--s)) solid var(--edge);
+  border-radius: 999px;
+  clip-path: none;
+}
+.ov-counter .theme-arena::before { display: none; }
+.ov-counter .theme-arena .rec { padding: 0 calc(20px * var(--s)) 0 calc(32px * var(--s)); }
+.ov-counter .theme-arena .cell.win, .ov-counter .theme-arena .cell.loss { color: #fff; }
+.ov-counter .theme-arena .num { font-size: calc(52px * var(--s)); font-weight: 800; }
+.ov-counter .theme-arena .lbl { font-size: calc(19px * var(--s)); font-weight: 800; opacity: 1; }
+.ov-counter .theme-arena .cell.win .lbl { color: var(--win); }
+.ov-counter .theme-arena .cell.loss .lbl { color: var(--loss); }
+.ov-counter .theme-arena .stats { border-left-width: 1px; }
+.ov-counter .w .st b { font-size: calc(27px * var(--s)); font-weight: 800; }
+.ov-counter .w .st i { font-size: calc(13px * var(--s)); font-weight: 500; letter-spacing: 0; opacity: 0.7; margin-top: calc(4px * var(--s)); }
+.ov-counter .w .streak.hot b, .ov-counter .w .streak.cold b { color: #fff; }
+.ov-counter .w .cell::before { border-radius: 999px; }
+
+/* mode de jeu et badge overtime : des pastilles au-dessus de la plaque */
+.ov-counter .w .tag {
+  left: calc(22px * var(--s));
+  top: calc(-34px * var(--s));
+  padding: calc(4px * var(--s)) calc(13px * var(--s));
+  border: calc(1.5px * var(--s)) solid var(--edge);
+  border-radius: 999px;
+  font-size: calc(14px * var(--s));
+  font-weight: 600;
+}
+.ov-counter .w .otbadge {
+  right: calc(24px * var(--s));
+  top: calc(-36px * var(--s));
+  padding: calc(5px * var(--s)) calc(13px * var(--s));
+  border-radius: 999px;
+  clip-path: none;
+  font-size: calc(15px * var(--s));
+  letter-spacing: 0;
+}
+
+/* disposition verticale : la pilule devient un rectangle très arrondi */
+.ov-counter .theme-arena.vertical { width: calc(160px * var(--s)); padding: calc(14px * var(--s)) 0 calc(8px * var(--s)); }
+.ov-counter .theme-arena.vertical::after { border-radius: calc(30px * var(--s)); }
+.ov-counter .theme-arena.vertical .rec { padding: calc(4px * var(--s)) 0 calc(10px * var(--s)); }
+.ov-counter .theme-arena.vertical .stats { border-top-width: 1px; }
+.ov-counter .w.vertical .otbadge { right: auto; }
+
+/* ====================================================== 2. ALERTES */
+.ov-alerts .al {
+  --r: calc(46px * var(--s));
+  padding: calc(52px * var(--s)) calc(72px * var(--s)) calc(32px * var(--s)) calc(64px * var(--s));
+}
+.ov-alerts .al::after {
+  border: calc(2px * var(--s)) solid var(--edge);
+  border-radius: var(--r);
+  clip-path: inset(0 round var(--r));
+  animation-name: ep-open;
+}
+@keyframes ep-open { from { clip-path: inset(0 100% 0 0 round var(--r)); } }
+.ov-alerts .al.out::after { animation-name: ep-close; }
+@keyframes ep-close { to { clip-path: inset(0 0 0 100% round var(--r)); } }
+/* la couleur de l'alerte : un trait court au-dessus du titre */
+.ov-alerts .al::before {
+  left: calc(64px * var(--s));
+  top: calc(30px * var(--s));
+  bottom: auto;
+  width: calc(84px * var(--s));
+  height: calc(7px * var(--s));
+  border-radius: 999px;
+  transform-origin: 0 50%;
+  animation-name: ep-bar;
+}
+@keyframes ep-bar { from { transform: scaleX(0); } }
+.ov-alerts .kicker { font-size: calc(23px * var(--s)); font-weight: 600; margin-bottom: calc(6px * var(--s)); }
+.ov-alerts .tx { font-size: calc(var(--fs, 200px) * 0.78 * var(--s)); font-weight: 800; line-height: 1; letter-spacing: -0.015em; color: #fff; }
+.ov-alerts .subs { margin-top: calc(20px * var(--s)); }
+.ov-alerts .chip { font-size: calc(27px * var(--s)); font-weight: 600; padding: 0 calc(24px * var(--s)); }
+.ov-alerts .chip.score { font-size: calc(32px * var(--s)); font-weight: 800; }
+
+/* ====================================================== 3. DERNIÈRES PARTIES */
+.ov-history .bar {
+  gap: calc(7px * var(--s));
+  padding: calc(10px * var(--s)) calc(16px * var(--s)) calc(10px * var(--s)) calc(22px * var(--s));
+  border: calc(1.5px * var(--s)) solid var(--edge);
+  border-radius: 999px;
+  clip-path: none;
+}
+.ov-history .ttl { font-size: calc(15px * var(--s)); font-weight: 600; opacity: 0.75; }
+/* des anneaux : le contour dit victoire ou défaite, un point ambre signale l'overtime */
+.ov-history .pill, .ov-summary .pill {
+  width: calc(38px * var(--s));
+  height: calc(38px * var(--s));
+  border-radius: 50%;
+  background: none;
+  box-shadow: inset 0 0 0 calc(2.5px * var(--s)) var(--win);
+  color: #fff;
+  font-size: calc(17px * var(--s));
+  font-weight: 800;
+}
+.ov-history .pill.l, .ov-summary .pill.l { background: none; box-shadow: inset 0 0 0 calc(2.5px * var(--s)) var(--loss); }
+.ov-history .pill.ot::after, .ov-summary .pill.ot::after {
+  content: '';
+  position: absolute;
+  top: calc(-2px * var(--s));
+  right: calc(-2px * var(--s));
+  width: calc(11px * var(--s));
+  height: calc(11px * var(--s));
+  border-radius: 50%;
+  background: var(--ot);
+}
+.ov-history .empty { font-size: calc(18px * var(--s)); font-weight: 600; }
+
+/* ====================================================== 4. RÉCAP DE SESSION */
+.ov-summary .card::after {
+  border: calc(2px * var(--s)) solid var(--edge);
+  border-radius: calc(46px * var(--s));
+  clip-path: none;
+}
+.ov-summary .card::before { display: none; }
+.ov-summary .head h1 { font-size: calc(36px * var(--s)); font-weight: 800; }
+.ov-summary .head .who { font-size: calc(22px * var(--s)); font-weight: 600; }
+.ov-summary .big b { font-size: calc(150px * var(--s)); font-weight: 800; line-height: 0.92; }
+.ov-summary .big.w b, .ov-summary .big.l b { color: #fff; }
+.ov-summary .big i { font-size: calc(22px * var(--s)); font-weight: 700; opacity: 1; }
+.ov-summary .big.w i { color: var(--win); }
+.ov-summary .big.l i { color: var(--loss); }
+.ov-summary .ring .val b { font-size: calc(96px * var(--s)); font-weight: 800; line-height: 0.92; }
+.ov-summary .ring .val i { font-size: calc(22px * var(--s)); font-weight: 500; }
+.ov-summary .tile b { font-size: calc(38px * var(--s)); font-weight: 800; }
+.ov-summary .tile.hot b, .ov-summary .tile.ot b { color: #fff; }
+.ov-summary .tile i { font-size: calc(17px * var(--s)); font-weight: 500; opacity: 0.7; }
+.ov-summary .last span.t { font-size: calc(17px * var(--s)); }

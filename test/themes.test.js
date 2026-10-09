@@ -41,10 +41,36 @@ test('chemins : scripts, dossiers parents et fichiers cachés refusés', () => {
   assert.strictEqual(slug('Néon Été !'), 'neon-ete');
 });
 
-test('thèmes intégrés listés, « classique » en tête', () => {
+test('thèmes intégrés listés, le thème par défaut en tête', () => {
+  const { DEFAULT_THEME, RETIRED_THEMES } = require('../core/themes');
   const list = manager().list();
-  assert.strictEqual(list[0].id, 'classique');
-  for (const id of ['neon', 'or-noir', 'modele']) assert.ok(list.some((t) => t.id === id && t.builtin), id);
+  assert.strictEqual(DEFAULT_THEME, 'signature');
+  assert.strictEqual(list[0].id, DEFAULT_THEME);
+  for (const id of ['epure', 'contraste', 'modele']) assert.ok(list.some((t) => t.id === id && t.builtin), id);
+  // chaque thème intégré a sa feuille de style et son aperçu
+  for (const t of list.filter((x) => x.builtin)) assert.ok(t.hasCss && t.hasPreview, t.id);
+  // les thèmes des versions 1.x ne sont plus livrés
+  for (const id of RETIRED_THEMES) assert.ok(!list.some((t) => t.id === id), id);
+});
+
+test('les thèmes intégrés ne touchent ni au compteur « Boost » ni à :root', () => {
+  const dir = path.join(__dirname, '..', 'web', 'themes');
+  for (const id of ['signature', 'epure', 'contraste']) {
+    const css = fs.readFileSync(path.join(dir, id, 'theme.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.ok(!/\.boost|\.bfill|\.brow|\.bst|\.bguide|\.ov-caster/.test(css), `${id} : Boost et caster gardent leur habillage`);
+    assert.ok(!/(^|[},\s]):root|(^|[},])\s*(html|body)\s*[{,]/m.test(css), `${id} : aucune variable posée sur la page entière`);
+  }
+});
+
+test('réglages : un thème intégré retiré revient au thème par défaut', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rlui-retired-'));
+  const { Store } = require('../core/store');
+  const first = new Store(dir);
+  first.patchSettings({ overlay: { themePack: 'neon' }, caster: { themePack: 'or-noir' } });
+  first.flush();
+  const again = new Store(dir);
+  assert.strictEqual(again.settings.overlay.themePack, 'signature');
+  assert.strictEqual(again.settings.caster.themePack, '');
 });
 
 test('personnaliser puis exporter puis réinstaller un thème', () => {
@@ -70,17 +96,17 @@ test('personnaliser puis exporter puis réinstaller un thème', () => {
 test('installation : les scripts sont ignorés, un thème intégré n\'est jamais écrasé', () => {
   const tm = manager();
   const zip = writeZip([
-    { name: 'theme.json', data: Buffer.from('{"id":"neon","name":"Néon"}') },
+    { name: 'theme.json', data: Buffer.from('{"id":"epure","name":"Épuré"}') },
     { name: 'theme.css', data: Buffer.from('body{color:red}') },
     { name: 'hack.js', data: Buffer.from('alert(1)') },
     { name: '../../sortie.css', data: Buffer.from('x') },
   ]);
   const r = tm.install(zip);
-  assert.notStrictEqual(r.id, 'neon');
+  assert.notStrictEqual(r.id, 'epure');
   assert.strictEqual(r.refused.length, 2);
   assert.ok(!fs.existsSync(path.join(tm.userDir, r.id, 'hack.js')));
-  assert.ok(tm.get('neon').builtin);
-  assert.ok(!tm.remove('neon'));
+  assert.ok(tm.get('epure').builtin);
+  assert.ok(!tm.remove('epure'));
 });
 
 test('installation : un zip sans theme.json est refusé', () => {

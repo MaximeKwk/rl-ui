@@ -17,7 +17,7 @@ const { TextExporter, renderTemplate, templateVars, customTemplate } = require('
 const { StreamBridge } = require('./streamBridge');
 const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
-const { ThemeManager } = require('./themes');
+const { ThemeManager, DEFAULT_THEME } = require('./themes');
 const { CasterFeed } = require('./caster');
 const { TwitchChat } = require('./twitch');
 const { CasterAssets } = require('./casterAssets');
@@ -521,11 +521,11 @@ class Core extends EventEmitter {
 
   // Thème choisi (DA) : feuille de style, couleurs et sons qu'il apporte
   _themeInfo() {
-    return this.themeInfo(this.store.settings.overlay.themePack || 'classique');
+    return this.themeInfo(this.store.settings.overlay.themePack || DEFAULT_THEME);
   }
 
   themeInfo(id) {
-    const t = this.themes.get(id) || this.themes.get('classique');
+    const t = this.themes.get(id) || this.themes.get(DEFAULT_THEME);
     if (!t) return null;
     const v = Math.round(this.themes.stamp(t.id));
     const sounds = {};
@@ -535,7 +535,9 @@ class Core extends EventEmitter {
 
   _themedOverlay() {
     const o = { ...this.store.settings.overlay };
-    const t = this.themes.get(o.themePack || 'classique');
+    // couleurs réglées par l'utilisateur, avant celles du thème : le compteur « Boost » garde les siennes
+    o.baseColors = { win: o.winColor, loss: o.lossColor, ot: o.otColor };
+    const t = this.themes.get(o.themePack || DEFAULT_THEME) || this.themes.get(DEFAULT_THEME);
     if (t && o.themeColors !== false) {
       if (t.colors.win) o.winColor = t.colors.win;
       if (t.colors.loss) o.lossColor = t.colors.loss;
@@ -552,7 +554,7 @@ class Core extends EventEmitter {
       lang: i18n.getLang(),
       overlay: this._themedOverlay(),
       theme: this._themeInfo(),
-      casterTheme: this.themeInfo(s.caster.themePack || s.overlay.themePack || 'classique'),
+      casterTheme: this.themeInfo(s.caster.themePack || s.overlay.themePack || DEFAULT_THEME),
       alerts: {
         enabled: s.alerts.enabled,
         texts: s.alerts.texts,
@@ -833,7 +835,7 @@ class Core extends EventEmitter {
 
   removeTheme(id) {
     const ok = this.themes.remove(id);
-    if (ok && this.store.settings.overlay.themePack === id) this.store.patchSettings({ overlay: { themePack: 'classique' } });
+    if (ok && this.store.settings.overlay.themePack === id) this.store.patchSettings({ overlay: { themePack: DEFAULT_THEME } });
     if (ok) this.log(tr('s.themeDeleted', { n: id }));
     return ok;
   }

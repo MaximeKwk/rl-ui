@@ -119,7 +119,7 @@ The interface is in English by default; French is available in *Settings → Lan
 > Overlays follow the dashboard settings live (theme, style, colors, texts, sounds, language).
 
 **Boost mode** — the counter snaps to the left of the boost gauge, its edge follows the gauge's arc and it takes your team's
-color. If your HUD has a different size: *OBS overlays → Counter → Show the gauge guide*, adjust the size and position until
+color. If your HUD has a different size: *Overlays → Counter → Show the gauge guide*, adjust the size and position until
 the guide covers your gauge in OBS, then hide it.
 
 <details>
@@ -131,7 +131,7 @@ the guide covers your gauge in OBS, then hide it.
 | Alerts | `pos=center\|top\|bottom` · `scale` · `mute=1` · `only=overtime,ot_win` · `mmr=0` |
 | Recent matches | `n=5` · `order=old` · `bare=1` · `title=0` |
 | Caster | `hide=bug,boosts,target,goals,feed,post` · `scale` |
-| All | theme `pack=neon` · colors `win=2ef2a0&loss=ff4d6d&ot=ffb020` · preview `preview=1` |
+| All | theme `pack=contraste` · colors `win=2ef2a0&loss=ff4d6d&ot=ffb020` · preview `preview=1` |
 
 </details>
 
@@ -143,7 +143,7 @@ Change the look of every overlay in one click, or build your own with your image
 
 | | |
 | --- | --- |
-| **Built-in themes** | Classic, Neon, Gold & Black, and a **Template** with images, ready to duplicate |
+| **Built-in themes** | Signature, Minimal, Contrast, and a **Template** with images, ready to duplicate |
 | **Customize** | Creates an editable copy and opens its folder: replace the images, the colors in `theme.json` or the `theme.css`, overlays update **live in OBS** |
 | **Share** | *Export* gives a `.zip`; others load it with *Install a theme* |
 | **Safe** | No scripts allowed in a theme: images, fonts, sounds and CSS only |

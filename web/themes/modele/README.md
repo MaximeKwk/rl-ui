@@ -1,6 +1,6 @@
 # Template theme
 
-Duplicate this theme from RL-UI (OBS overlays > Themes > Customize), then:
+Duplicate this theme from RL-UI (Overlays > Themes > Customize), then:
 
 - replace `images/fond-compteur.svg` and `images/logo.svg` with your own images;
 - put your colors in `theme.json`;

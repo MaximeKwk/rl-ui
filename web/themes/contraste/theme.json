@@ -1,0 +1,13 @@
+{
+  "name": "Contrast",
+  "author": "Zoxam",
+  "version": "2.0.0",
+  "description": "The Signature shapes on a light plate with dark text: readable on any map.",
+  "translations": {
+    "fr": {
+      "name": "Contraste",
+      "description": "Les formes de Signature sur une plaque claire, texte sombre : lisible sur toutes les maps."
+    }
+  },
+  "colors": { "win": "#2e7d12", "loss": "#c4302b", "ot": "#9a5b00" }
+}

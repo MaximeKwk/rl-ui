@@ -5,7 +5,7 @@
 Un thème change la DA de **tous les overlays** (compteur, alertes, dernières parties, récap) : couleurs, images, police et sons. Pas besoin de savoir coder : la plupart des thèmes se font en remplaçant deux images et trois couleurs.
 
 > [!TIP]
-> Le plus simple : dans RL-UI, **Overlays OBS → Thèmes → Personnaliser** sur le thème **« Modèle (avec images) »**. Une copie modifiable est créée et son dossier s'ouvre. Chaque fois que tu enregistres un fichier, les overlays se mettent à jour **en direct**, même dans OBS.
+> Le plus simple : dans RL-UI, **Overlays → Thèmes → Personnaliser** sur le thème **« Modèle (avec images) »**. Une copie modifiable est créée et son dossier s'ouvre. Chaque fois que tu enregistres un fichier, les overlays se mettent à jour **en direct**, même dans OBS.
 
 ## Contenu d'un thème
 
@@ -36,7 +36,7 @@ Les thèmes perso sont rangés dans le dossier de données de RL-UI (`%APPDATA%\
 
 | Champ | Rôle |
 | --- | --- |
-| `colors` | Couleurs victoire / défaite / overtime, au format `#rrggbb`. Utilisées partout (chiffres, halos, confettis). Désactivables dans RL-UI (« Utiliser les couleurs du thème »). |
+| `colors` | Couleurs victoire / défaite / overtime, au format `#rrggbb`. Utilisées partout (chiffres, halos, confettis), sauf sur le compteur « Boost », qui garde les couleurs réglées dans RL-UI. Désactivables dans RL-UI (« Utiliser les couleurs du thème »). |
 | `translations` | Facultatif : nom et description dans une autre langue, ex. `"translations": { "fr": { "name": "Ma DA", "description": "…" } }` (le nom principal est affiché en anglais). |
 | `sounds` | Sons des alertes. Types : `win`, `loss`, `overtime`, `ot_win`, `ot_loss`, `streak`. Un son perso choisi dans RL-UI reste prioritaire. |
 

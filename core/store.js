@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { makeVault, SECRET_SETTINGS } = require('./vault');
+const { DEFAULT_THEME, RETIRED_THEMES } = require('./themes');
 
 const ALERT_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
 
@@ -17,6 +18,9 @@ const OLD_DEFAULTS = {
 function migrateDefaults(s) {
   if (!['en', 'fr'].includes(s.language)) s.language = 'en';
   if (!['system', 'light', 'dark'].includes(s.app.theme)) s.app.theme = 'system';
+  // thèmes intégrés retirés avec la V2 : retour au thème par défaut (le thème du caster vide = celui des overlays)
+  if (RETIRED_THEMES.includes(s.overlay.themePack)) s.overlay.themePack = DEFAULT_THEME;
+  if (s.caster && RETIRED_THEMES.includes(s.caster.themePack)) s.caster.themePack = '';
   for (const [k, v] of Object.entries(OLD_DEFAULTS.texts)) if (s.alerts.texts[k] === v) s.alerts.texts[k] = '';
   if (s.overlay.labelWin === 'V') s.overlay.labelWin = '';
   if (s.overlay.labelLoss === 'D') s.overlay.labelLoss = '';
@@ -41,7 +45,7 @@ function defaultSettings() {
     mmr: { enabled: true, includeCasual: false, defaultDelta: 10, showInAlerts: true },
     overlay: {
       theme: 'arena', // arena | minimal | broadcast
-      themePack: 'classique', // thème (DA) : intégré ou perso
+      themePack: DEFAULT_THEME, // thème (DA) : intégré ou perso
       themeColors: true, // utiliser les couleurs du thème
       layout: 'horizontal', // horizontal | vertical | boost (collé à la jauge de boost du jeu)
       boostScale: 1, // calibrage de la disposition "boost" (taille du HUD du jeu)
