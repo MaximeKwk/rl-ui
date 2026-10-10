@@ -21,6 +21,9 @@
       .root { position: fixed; inset: 0; opacity: 0; transition: opacity 0.5s; }
       .root.on { opacity: 1; }
       .hide { display: none !important; }
+      /* Thème composé (éditeur visuel) : la toile du thème remplace tout l'overlay */
+      #cmp { position: fixed; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+      #cmp.on { opacity: 1; }
       .c0 { --tc: var(--blue); }
       .c1 { --tc: var(--orange); }
 
@@ -330,6 +333,8 @@
     </style>
   </head>
   <body>
+    <!-- Thème composé : rempli par /static/shared/compose.js -->
+    <div id="cmp" class="hide"></div>
     <div class="root" id="root">
       <div class="boosts c0" id="b0"></div>
       <div class="boosts c1" id="b1"></div>
@@ -358,6 +363,7 @@
     </div>
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
+    <script src="/static/shared/compose.js"></script>
     <script src="/static/overlay/caster.js"></script>
   </body>
 </html>

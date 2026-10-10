@@ -860,6 +860,7 @@ input.switch:checked::after { transform: translateX(16px); }
 .mk-stage { display: grid; place-items: center; min-height: 190px; padding: 16px; border-radius: 12px; overflow: hidden; background: radial-gradient(120% 140% at 20% 110%, rgba(24, 115, 255, 0.3), transparent 60%), radial-gradient(120% 140% at 80% 110%, rgba(255, 138, 42, 0.26), transparent 60%), linear-gradient(#1b2438, #0b1020 55%, #070a12); }
 .mk-stage img { max-width: 100%; border-radius: 8px; display: block; }
 .mk-fit { position: relative; flex: none; overflow: hidden; }
+.mk-fit-in { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .mk-fit .cmp { position: absolute; left: 0; top: 0; }
 .mk-kinds { margin-top: 12px; }
 .mk-live { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0 2px; }

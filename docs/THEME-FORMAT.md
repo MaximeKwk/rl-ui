@@ -51,26 +51,28 @@ Nothing else is allowed in the folder. Images are recognized by their content, n
 | `base` | Look of the overlays the theme does not draw itself: `signature`, `epure` or `contraste`. |
 | `translations` | Optional name and description in `en` or `fr`. |
 | `counter` | The composition of the W/L counter (below). Required for the gallery. |
-| `alerts`, `history`, `summary` | Optional: the composition of the alerts, the recent matches and the session recap. |
+| `boost`, `alerts`, `history`, `summary`, `caster` | Optional: the composition of the "Boost" counter, the alerts, the recent matches, the session recap and the caster overlay. |
 
-A composed theme always draws the **counter**. It can also draw the **alerts**, the **recent matches** and the **session recap**; the ones it does not draw keep the `base` look. The "Boost" layout of the counter and the caster overlay keep their own look with every theme.
+A composed theme always draws the **counter**. It can also draw the **"Boost" counter** (the one that sticks to the game's boost gauge), the **alerts**, the **recent matches**, the **session recap** and the **caster overlay**. The ones it does not draw keep the `base` look; the "Boost" counter then keeps RL-UI's own look, the same with every theme.
 
 ## The composition
 
-A composition is a canvas (`width` 40–1920, `height` 20–1080, in pixels) and up to 80 `elements`, drawn in order (the last one on top). The four overlays use the same elements; only the live values and conditions available differ.
+A composition is a canvas (`width` 40–1920, `height` 20–1080, in pixels) and up to 120 `elements`, drawn in order (the last one on top). The overlays share the same basic elements; what differs is the live values, the conditions, and a few elements of the caster only.
 
 | Composition | Suggested canvas | Notes |
 | --- | --- | --- |
 | `counter` | 1000 × 220 | The size of the OBS source. |
+| `boost` | 480 × 320 | The canvas sits in the **bottom right corner** of a 1920 × 1080 screen: the game's boost gauge has its center 156 px from the right edge and 150 px from the bottom (radius 118). RL-UI's Boost calibration (size, position) applies to it. `gaugeGap` (0–80), when present, cuts out everything closer than this gap to the gauge: a plate placed under it then hugs the gauge. |
 | `alerts` | 1920 × 1080 | One composition for every alert: the `alert…` conditions say which elements appear for which alert. The canvas is fitted and centered in the source. `enter` picks the entrance: `slide`, `rise`, `pop`, `fade` or `none`. |
 | `history` | 700 × 90 | The size of the OBS source. |
 | `summary` | 1920 × 1080 | The canvas is fitted and centered in the source. |
+| `caster` | 1920 × 1080 | One composition for the whole overlay: each block (scorebug, players' boost, followed player, goal banner, action, final scoreboard) is made of the elements carrying its condition. The checkboxes of the Caster tab and `?hide=` in the overlay address still hide the blocks. |
 
 Every element has:
 
 | Field | Values |
 | --- | --- |
-| `type` | `box`, `text`, `value`, `image`, `results`, `bar` |
+| `type` | `box`, `text`, `value`, `image`, `results`, `bar`, `arc`; in the caster `players`, `pips`, `board` instead of `results` and `bar` |
 | `id` | Lowercase letters and digits, unique. Given automatically if missing. |
 | `name` | Layer name shown in the editor (40 characters). |
 | `x`, `y`, `w`, `h` | Position and size in pixels. |
@@ -90,10 +92,15 @@ Every element has:
 | `alertStreak` | for a win streak | alerts |
 | `alertMvp` | when the win comes with the MVP | alerts |
 | `matchScore`, `matchMmr` | when the score, or the MMR change of the match, is known | alerts |
+| `overtime`, `replay`, `ended` | in overtime, during a goal replay, when the match is over | caster |
+| `series` | when a series (or a title) is set in the Caster tab | caster |
+| `boosts`, `target`, `goal`, `feed`, `post` | the blocks: players' boost, followed player, goal banner, statfeed action, final scoreboard | caster |
+
+`match`, `idle`, `overtime`, `winStreak`, `lossStreak` and `mmr` also apply to the "Boost" counter. An element fades in and out when its condition changes.
 
 For each overlay the editor only offers the conditions of its row. A condition written by hand in another overlay breaks nothing, but means nothing there.
 
-Colors are `#rrggbb` or one of: `win`, `loss`, `ot` (the theme's colors), `white`, `black`, for live values `auto` (the win color when rising, the loss color when falling, gold on a win streak, blue on a losing streak), and in alerts `event`: the color of the alert being shown (win, loss, or overtime for an overtime start and a streak).
+Colors are `#rrggbb` or one of: `win`, `loss`, `ot` (the theme's colors), `white`, `black`, for live values `auto` (the win color when rising, the loss color when falling, gold on a win streak, blue on a losing streak), and in alerts `event`: the color of the alert being shown (win, loss, or overtime for an overtime start and a streak). The "Boost" counter has `team`: your team's color during a match, like the game's gauge. The caster has `team0` and `team1` (blue team, orange team, in the colors sent by the game) and `event`: the team the element is about, according to its condition (`target`: the followed player's, `goal`: the scorer's, `feed`: the action's, `post` and `ended`: the winner).
 
 ### `box` — a plate
 
@@ -121,11 +128,25 @@ Typography for both: `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `Archivo`
 | `timePlayed`, `player` | Recap: time played in the session, player name |
 | `goals`, `assists`, `saves`, `goalDiff` | Recap: goals, assists, saves, goal difference |
 
-The session values (the first six rows) exist in every overlay. In an alert, `wins`, `losses`, `record` and `streak` are those at the time of the alert.
+In the caster, the values are those of the match being watched:
+
+| `bind` (caster) | Shows |
+| --- | --- |
+| `teamName0`, `teamName1`, `teamScore0`, `teamScore1` | Name and score of the blue team, of the orange team |
+| `matchClock`, `clockNote` | The clock, and what is written under it: replay, overtime, final |
+| `seriesLine`, `seriesTitle`, `seriesInfo`, `seriesWins0`, `seriesWins1` | Title and series on one line, or separately; games won in the series |
+| `tgName`, `tgTeam`, `tgBoost`, `tgScore`, `tgGoals`, `tgAssists`, `tgSaves`, `tgShots`, `tgDemos` | The player followed by the camera |
+| `goalScorer`, `goalAssist`, `goalSpeed` | The goal shown: scorer, assist, shot speed (km/h or mph, as set in the Caster tab) |
+| `feedLabel`, `feedText` | The statfeed action shown: its name, the players |
+| `finalScore`, `winnerLine` | End of match: the score, "… WINS" |
+
+The session values (the first six rows of the first table) exist in every overlay except the caster. In an alert, `wins`, `losses`, `record` and `streak` are those at the time of the alert.
 
 ### `image`
 
 `src` (a path inside the theme folder, such as `images/logo.png`), `fit` (`contain`, `cover`, `fill`), `radius`. A theme can only show its own images: addresses pointing anywhere else are dropped.
+
+In the caster, `bind` replaces `src` with an image supplied by RL-UI (Caster tab): `teamLogo0`, `teamLogo1` (team logos) or `tgPhoto` (photo of the followed player). The element stays empty when there is none. The theme still chooses no address.
 
 ### `results` — the last matches, as pills
 
@@ -134,6 +155,16 @@ The session values (the first six rows) exist in every overlay. In an alert, `wi
 ### `bar` — the win / loss bar
 
 `radius`, `gap`, `dir`, `colorWin`, `colorLoss`.
+
+### `arc` — an arc, ticks or a gauge
+
+The arc is inscribed in the element's rectangle. `from` and `to` (degrees, 0 at the top, clockwise; 0 → 360 for a full circle), `thickness`, `color`, `cap` (`butt`, `round`), `ticks` (0: a solid line; otherwise that many ticks, `tickW` wide). With `bind` (`winRate`, or `tgBoost` in the caster), the arc fills with the value, from 0 to 100; `track` (0–1) is the opacity of the rest of the arc.
+
+### Caster elements
+
+- **`players`** — a team's players and their boost, one row per player: `team` (0 blue, 1 orange), `side` (`left`, `right`), `rowH`, `gap`, `fill`, `fillOpacity`, `radius`, `stripe` (edge in the team's color), `barH` (0: no bar), `font`, `weight`, `size`, `color`. The followed player is outlined, a demolished player dimmed.
+- **`pips`** — a team's wins in the series, as many cells as games needed to win it: `team`, `gap`, `radius`, `skew`, `color`.
+- **`board`** — the end-of-match table of players (score, goals, assists, saves, shots, demos; MVP and photos): `rowH`, `stripe`, `lines`, `header`, `fill`, `fillOpacity`, `font`, `weight`, `size`, `color`.
 
 ## What happens to anything else
 

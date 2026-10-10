@@ -1,5 +1,5 @@
-// Éditeur de thèmes RL-UI : on compose à la souris le compteur, et si on veut les alertes, les dernières parties
-// et le récap de session (choisir, déplacer, redimensionner, régler) ; le résultat se voit tout de suite. Ce qui est enregistré est une description en données (voir compose.js),
+// Éditeur de thèmes RL-UI : on compose à la souris le compteur, et si on veut le compteur « Boost », les alertes,
+// les dernières parties, le récap de session et l'overlay caster (choisir, déplacer, redimensionner, régler) ; le résultat se voit tout de suite. Ce qui est enregistré est une description en données (voir compose.js),
 // jamais du code : c'est ce qui permet de partager un thème sans risque.
 (function () {
   const KEY = document.querySelector('meta[name="ot-key"]').content;
@@ -16,15 +16,11 @@
   let comp = null; // theme[kind] : la composition de cet overlay (null si le thème ne le redessine pas)
   let sel = []; // identifiants des éléments choisis
   let sample = 'idle';
-  // situations d'aperçu proposées pour chaque overlay (« a:… » : une alerte de ce type)
-  const SAMPLES = {
-    counter: ['idle', 'match', 'overtime', 'cold', 'empty'],
-    alerts: ['a:win', 'a:loss', 'a:overtime', 'a:ot_win', 'a:ot_loss', 'a:streak'],
-    history: ['idle', 'cold', 'empty'],
-    summary: ['idle', 'cold', 'empty'],
-  };
-  // données d'exemple de la situation choisie ; une alerte s'ajoute aux chiffres d'une bonne session
-  const data = () => (sample.startsWith('a:') ? { ...C.sample('idle', t), ...C.alertFields(C.sampleAlert(sample.slice(2), t), t) } : C.sample(sample, t));
+  // situations d'aperçu proposées pour chaque overlay (« a:… » : une alerte de ce type, « c:… » : un moment d'une partie castée)
+  const SAMPLES = C.SAMPLES;
+  const data = () => C.sampleFor(kind, sample, t);
+  // overlays où beaucoup d'éléments n'existent que pour une situation (une alerte, le but, le tableau final) et se superposent
+  const staged = () => kind === 'alerts' || kind === 'caster';
   let zoom = 1;
   let dirty = false;
   let active = false; // ce thème est-il celui des overlays ?
@@ -66,6 +62,10 @@
     image: '<rect x="4" y="5" width="16" height="14" rx="2" /><path d="M4 16l5-4 4 3 3-2 4 3" /><circle cx="9" cy="9" r="1.3" />',
     results: '<rect x="4" y="8" width="4" height="8" rx="1" /><rect x="10" y="8" width="4" height="8" rx="1" /><rect x="16" y="8" width="4" height="8" rx="1" />',
     bar: '<path d="M4 12h10" /><path d="M16 12h4" opacity="0.5" />',
+    arc: '<path d="M5 17a8 8 0 1 1 14 0" />',
+    players: '<path d="M4 7h16M4 12h16M4 17h16" /><path d="M4 9.500h9M4 14.500h5M4 19.500h12" opacity="0.5" />',
+    pips: '<path d="M4 12h3M10.500 12h3M17 12h3" stroke-width="3.2" />',
+    board: '<rect x="4" y="5" width="16" height="14" rx="2" /><path d="M4 10h16M4 14.500h16M10 10v9" />',
     eye: '<path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.500 6-9.500 6S2.500 12 2.500 12z" /><circle cx="12" cy="12" r="2.6" />',
     eyeOff: '<path d="M4 4l16 16M9.5 6.400A9 9 0 0 1 12 6c6 0 9.500 6 9.500 6a16 16 0 0 1-3 3.500M6.200 8A16 16 0 0 0 2.500 12S6 18 12 18a9 9 0 0 0 3-.5" />',
     up: '<path d="M12 18V6M7 11l5-5 5 5" />',
@@ -78,6 +78,7 @@
     if (e.name) return e.name;
     if (e.type === 'text') return e.text || t('e.type.text');
     if (e.type === 'value') return t(`e.bind.${e.bind}`);
+    if (e.type === 'image' && e.bind) return t(`e.ibind.${e.bind}`);
     return t(`e.type.${e.type}`);
   }
 
@@ -124,6 +125,8 @@
     $('#edWrap').classList.toggle('hidden', !comp);
     $('#edHint').classList.toggle('hidden', !comp);
     $('#edHintAlerts').classList.toggle('hidden', !comp || kind !== 'alerts');
+    $('#edHintCaster').classList.toggle('hidden', !comp || kind !== 'caster');
+    $('#edHintBoost').classList.toggle('hidden', !comp || kind !== 'boost');
     renderEmpty();
     if (!comp) {
       mounted = null;
@@ -138,12 +141,20 @@
     for (const k of ['win', 'loss', 'ot']) canvas.style.setProperty(`--${k}`, theme.colors[k] || { win: '#8bd95a', loss: '#f2685f', ot: '#f0b03f' }[k]);
     // alertes : beaucoup d'éléments n'existent que pour un événement et se superposent ; ceux de l'événement
     // affiché restent seuls visibles, les autres ne se montrent (en fantôme) que sélectionnés depuis les calques
-    canvas.classList.toggle('quiet', kind === 'alerts');
+    canvas.classList.toggle('quiet', staged());
+    renderGauge();
     mounted = C.mount(host, comp, { editing: true, animate: false, imageUrl });
     mounted.update(data());
     for (const e of comp.elements) if (e.hidden) mounted.nodes.get(e.id).style.display = 'none';
     renderOverlay();
     $('#zoomFit').textContent = `${Math.round(zoom * 100)} %`;
+  }
+
+  // Compteur « Boost » : la jauge de boost du jeu, dessinée là où elle sera à l'écran (la toile est calée sur le coin bas droit)
+  function renderGauge() {
+    const g = $('#edGauge');
+    g.textContent = '';
+    if (kind === 'boost' && comp) g.appendChild(C.gauge(comp, data().teamColor));
   }
 
   // Overlay non composé : ce qui se passe aujourd'hui, et le bouton pour le dessiner soi-même
@@ -152,7 +163,7 @@
     box.classList.toggle('hidden', !!comp);
     if (comp) return;
     const base = { signature: 'Signature', epure: t('e.base.epure'), contraste: t('e.base.contraste') }[theme.base] || 'Signature';
-    box.innerHTML = `<h2>${esc(t(`e.empty.${kind}`))}</h2><p class="muted">${esc(t('e.empty.text', { b: base }))}</p><button type="button" class="btn primary" id="edCompose">${esc(t('e.empty.go'))}</button><p class="muted small">${esc(t('e.empty.note'))}</p>`;
+    box.innerHTML = `<h2>${esc(t(`e.empty.${kind}`))}</h2><p class="muted">${esc(t(kind === 'boost' ? 'e.empty.textBoost' : 'e.empty.text', { b: base }))}</p><button type="button" class="btn primary" id="edCompose">${esc(t('e.empty.go'))}</button><p class="muted small">${esc(t('e.empty.note'))}</p>`;
   }
 
   // Onglets des overlays : celui qu'on édite, et ceux que le thème redessine (point de couleur)
@@ -161,9 +172,11 @@
     // situations d'aperçu de cet overlay
     const list = SAMPLES[kind];
     if (!list.includes(sample)) sample = list[0];
-    $('#edSample').innerHTML = list.map((k) => `<option value="${k}" ${k === sample ? 'selected' : ''}>${esc(t(k.startsWith('a:') ? `type.${k.slice(2)}` : `e.sample.${k}`))}</option>`).join('');
+    $('#edSample').innerHTML = list.map((k) => `<option value="${k}" ${k === sample ? 'selected' : ''}>${esc(sampleName(k))}</option>`).join('');
     $('#edReplay').classList.toggle('hidden', kind !== 'alerts' || !comp);
   }
+
+  const sampleName = (k) => t(k.startsWith('a:') ? `type.${k.slice(2)}` : k.startsWith('c:') ? `e.sample.c.${k.slice(2)}` : `e.sample.${k}`);
 
   function setKind(k) {
     if (!C.KINDS.includes(k) || k === kind) return;
@@ -228,17 +241,12 @@
 
   // ------------------------------------------------------------------ palette
   function renderPalette() {
-    const groups = [
-      ['box', 'box'],
-      ['text', 'text'],
-      ['value', 'value'],
-      ['image', 'image'],
-      ['results', 'results'],
-      ['bar', 'bar'],
-    ];
+    // les éléments proposés dépendent de l'overlay : ceux de la session, ou ceux d'une partie castée
+    const bindBtn = (b) => `<button type="button" data-addbind="${b}">${esc(t(`e.bind.${b}`))}</button>`;
+    const binds = kind === 'caster' ? C.CASTER_GROUPS.map(([g, list]) => `<b>${esc(t(`e.cgroup.${g}`))}</b>${list.map(bindBtn).join('')}`).join('') : C.BINDS_FOR[kind].map(bindBtn).join('');
     $('#edPalette').innerHTML =
-      groups.map(([type, ic]) => `<button type="button" data-add="${type}" ${type === 'value' ? `aria-expanded="${bindsOpen}"` : ''}>${icon(ic)}<span>${esc(t(`e.type.${type}`))}</span></button>`).join('') +
-      (bindsOpen ? `<div class="ed-binds">${C.BINDS_FOR[kind].map((b) => `<button type="button" data-addbind="${b}">${esc(t(`e.bind.${b}`))}</button>`).join('')}</div>` : '');
+      C.TYPES_FOR[kind].map((type) => `<button type="button" data-add="${type}" ${type === 'value' ? `aria-expanded="${bindsOpen}"` : ''}>${icon(type)}<span>${esc(t(`e.type.${type}`))}</span></button>`).join('') +
+      (bindsOpen ? `<div class="ed-binds">${binds}</div>` : '');
   }
 
   function freeId() {
@@ -265,6 +273,10 @@
     text: () => ({ type: 'text', text: t('e.newText'), w: 180, h: 40, font: 'Onest', size: 22, weight: 600, align: 'center' }),
     results: () => ({ type: 'results', w: 280, h: 32, count: 10, gap: 4, radius: 7 }),
     bar: () => ({ type: 'bar', w: 220, h: 10, radius: 5, gap: 2 }),
+    arc: () => ({ type: 'arc', w: 120, h: 120, from: 0, to: 360, thickness: 8, color: kind === 'boost' ? 'team' : 'white', ...(kind === 'caster' ? { bind: 'tgBoost', track: 0.18, cap: 'round', color: 'event', when: 'target' } : {}) }),
+    players: () => ({ type: 'players', team: 0, w: 330, h: 256, rowH: 58, when: 'boosts' }),
+    pips: () => ({ type: 'pips', team: 0, w: 122, h: 8, when: 'series' }),
+    board: () => ({ type: 'board', w: 1240, h: 315, rowH: 46, when: 'post' }),
   };
 
   // ------------------------------------------------------------------ propriétés
@@ -285,7 +297,7 @@
     pickOf('shadow', 'e.p.shadow', ['none', 'soft', 'outline'].map((a) => [a, t(`e.sh.${a}`)])),
     check('upper', 'e.p.upper'),
     check('italic', 'e.p.italic'),
-    check('fit', 'e.p.fit'),
+    check('fit', 'e.p.fitText'),
   ];
 
   function sections(e) {
@@ -297,7 +309,8 @@
         [pickOf('bind', 'e.p.bind', [...new Set([...C.BINDS_FOR[kind], e.bind])].map((b) => [b, t(`e.bind.${b}`)]), { wide: true }), textF('prefix', 'e.p.prefix', { max: C.LIMITS.affix, wide: false }), textF('suffix', 'e.p.suffix', { max: C.LIMITS.affix, wide: false })],
       ]);
     }
-    if (e.type === 'image') out.push(['e.s.content', [{ kind: 'image', wide: true }, pickOf('fit', 'e.p.fit', ['contain', 'cover', 'fill'].map((a) => [a, t(`e.fit.${a}`)])), num('radius', 'e.p.radius', { min: 0, max: 400 })]]);
+    if (e.type === 'image' && (kind === 'caster' || e.bind)) out.push(['e.s.source', [pickOf('bind', 'e.p.ibind', [['', t('e.ibind.none')], ...C.IMAGE_BINDS.map((b) => [b, t(`e.ibind.${b}`)])], { wide: true }), ...(e.bind ? [{ kind: 'note', lbl: 'e.ibind.note' }] : [])]]);
+    if (e.type === 'image') out.push(['e.s.content', [...(e.bind ? [] : [{ kind: 'image', wide: true }]), pickOf('fit', 'e.p.fit', ['contain', 'cover', 'fill'].map((a) => [a, t(`e.fit.${a}`)])), num('radius', 'e.p.radius', { min: 0, max: 400 })]]);
     if (e.type === 'text' || e.type === 'value') {
       out.push(['e.s.color', [colorF('color', 'e.p.color', e.type === 'value')]]);
       out.push(['e.s.type', TYPO()]);
@@ -313,12 +326,31 @@
         [num('count', 'e.p.count', { min: 1, max: 20 }), num('gap', 'e.p.gap', { min: 0, max: 40 }), num('radius', 'e.p.radius', { min: 0, max: 100 }), pickOf('dir', 'e.p.dir', ['row', 'column'].map((a) => [a, t(`e.dir.${a}`)])), pickOf('font', 'e.p.font', C.FONTS.map((f) => [f, f])), pickOf('weight', 'e.p.weight', [500, 600, 700, 800, 900].map((w) => [w, t(`e.w.${w}`)])), check('letters', 'e.p.letters')],
       ]);
     }
+    const team = () => pickOf('team', 'e.p.team', [[0, t('e.team.0')], [1, t('e.team.1')]]);
+    const fonts = () => [pickOf('font', 'e.p.font', C.FONTS.map((f) => [f, f]), { wide: true }), num('size', 'e.p.size', { min: 8, max: 80 }), pickOf('weight', 'e.p.weight', [500, 600, 700, 800, 900].map((w) => [w, t(`e.w.${w}`)]))];
+    if (e.type === 'arc') {
+      const binds = [...new Set([...C.ARC_BINDS_FOR[kind], ...(e.bind ? [e.bind] : [])])];
+      out.push(['e.s.shape', [num('from', 'e.p.from', { min: -360, max: 360 }), num('to', 'e.p.to', { min: -360, max: 720 }), num('thickness', 'e.p.thickness', { min: 1, max: 200 }), pickOf('cap', 'e.p.cap', ['butt', 'round'].map((a) => [a, t(`e.cap.${a}`)])), num('ticks', 'e.p.ticks', { min: 0, max: 72 }), num('tickW', 'e.p.tickW', { min: 1, max: 20, step: 0.1 })]]);
+      out.push(['e.s.color', [colorF('color', 'e.p.color')]]);
+      out.push(['e.s.gauge', [pickOf('bind', 'e.p.arcBind', [['', t('e.arcBind.none')], ...binds.map((b) => [b, t(`e.bind.${b}`)])], { wide: true }), ...(e.bind ? [range('track', 'e.p.track', 0, 1, 0.01)] : [])]]);
+    }
+    if (e.type === 'players') {
+      out.push(['e.s.content', [team(), pickOf('side', 'e.p.side', ['left', 'right'].map((a) => [a, t(`e.a.${a}`)])), num('rowH', 'e.p.rowH', { min: 20, max: 200 }), num('gap', 'e.p.gap', { min: 0, max: 60 }), num('barH', 'e.p.barH', { min: 0, max: 40 }), num('stripe', 'e.p.stripe', { min: 0, max: 30 })]]);
+      out.push(['e.s.fill', [colorF('fill', 'e.p.fill'), range('fillOpacity', 'e.p.fillOpacity', 0, 1, 0.01), num('radius', 'e.p.radius', { min: 0, max: 100 })]]);
+      out.push(['e.s.type', [...fonts(), colorF('color', 'e.p.color')]]);
+    }
+    if (e.type === 'pips') out.push(['e.s.content', [team(), num('gap', 'e.p.gap', { min: 0, max: 40 }), num('radius', 'e.p.radius', { min: 0, max: 60 }), check('skew', 'e.p.skew'), colorF('color', 'e.p.color')]]);
+    if (e.type === 'board') {
+      out.push(['e.s.content', [num('rowH', 'e.p.rowH', { min: 20, max: 160 }), num('stripe', 'e.p.stripe', { min: 0, max: 30 }), range('lines', 'e.p.lines', 0, 1, 0.01), check('header', 'e.p.header')]]);
+      out.push(['e.s.fill', [colorF('fill', 'e.p.fill'), range('fillOpacity', 'e.p.fillOpacity', 0, 1, 0.01)]]);
+      out.push(['e.s.type', [...fonts(), colorF('color', 'e.p.color')]]);
+    }
     if (e.type === 'bar') out.push(['e.s.content', [colorF('colorWin', 'e.p.colorWin'), colorF('colorLoss', 'e.p.colorLoss'), num('radius', 'e.p.radius', { min: 0, max: 100 }), num('gap', 'e.p.gap', { min: 0, max: 20 }), pickOf('dir', 'e.p.dir', ['row', 'column'].map((a) => [a, t(`e.dir.${a}`)]))]]);
     out.push(['e.s.display', [range('opacity', 'e.p.opacity', 0, 1, 0.01), pickOf('when', 'e.p.when', [...new Set([...C.WHEN_FOR[kind], e.when])].map((w) => [w, t(`e.when.${w}`)]), { wide: true }), textF('name', 'e.p.name', { max: C.LIMITS.name })]]);
     return out;
   }
 
-  const SWATCH = { win: 'var(--win)', loss: 'var(--loss)', ot: 'var(--ot)', white: '#ffffff', black: '#000000', event: 'conic-gradient(var(--win), var(--ot), var(--loss), var(--win))' };
+  const SWATCH = { win: 'var(--win)', loss: 'var(--loss)', ot: 'var(--ot)', white: '#ffffff', black: '#000000', event: 'conic-gradient(var(--win), var(--ot), var(--loss), var(--win))', team: 'linear-gradient(135deg, #3a8fff 50%, #ff7f22 50%)', team0: '#1873ff', team1: '#ff7a1a' };
   function field(f, e) {
     const v = f.k ? e[f.k] : null;
     const wide = f.wide ? ' wide' : '';
@@ -328,15 +360,19 @@
     if (f.kind === 'text') return `<label class="ed-f${wide}"><span>${esc(t(f.lbl))}</span><input type="text" data-k="${f.k}" value="${esc(v)}" maxlength="${f.max}" /></label>`;
     if (f.kind === 'check') return `<label class="ed-check wide"><input type="checkbox" data-k="${f.k}" ${v ? 'checked' : ''} /> ${esc(t(f.lbl))}</label>`;
     if (f.kind === 'color') {
-      // « Alerte » : la couleur de l'alerte affichée (victoire, défaite, overtime) ; proposée pour les alertes seulement
-      const tokens = [...(kind === 'alerts' || v === 'event' ? ['event'] : []), 'win', 'loss', 'ot', 'white', 'black'];
+      // couleurs propres à l'overlay : celle de l'alerte affichée (alertes), de ton équipe (Boost), des équipes (caster)
+      const own = C.TOKENS_FOR[kind];
+      const tokens = [...new Set([...own, ...(C.TOKENS.includes(v) && v !== 'auto' ? [v] : []), ...(kind === 'caster' ? [] : ['win', 'loss', 'ot']), 'white', 'black'])];
+      const tokName = (k) => t(k === 'event' && kind === 'caster' ? 'e.c.eventTeam' : `e.c.${k}`);
+      const tokTip = (k) => (k === 'event' ? t(kind === 'caster' ? 'e.c.eventTeamTip' : 'e.c.eventTip') : k === 'team' ? t('e.c.teamTip') : '');
       const custom = /^#/.test(v);
       return `<div class="ed-f wide"><span>${esc(t(f.lbl))}</span><div class="ed-colors" data-color="${f.k}">
         ${f.auto ? `<button type="button" data-tok="auto" class="${v === 'auto' ? 'on' : ''}" title="${esc(t('e.c.autoTip'))}"><i style="background:conic-gradient(var(--win), #ffcf5a, var(--loss), var(--win))"></i>${esc(t('e.c.auto'))}</button>` : ''}
-        ${tokens.map((k) => `<button type="button" data-tok="${k}" class="${v === k ? 'on' : ''}" ${k === 'event' ? `title="${esc(t('e.c.eventTip'))}"` : ''}><i style="background:${SWATCH[k]}"></i>${esc(t(`e.c.${k}`))}</button>`).join('')}
+        ${tokens.map((k) => `<button type="button" data-tok="${k}" class="${v === k ? 'on' : ''}" ${tokTip(k) ? `title="${esc(tokTip(k))}"` : ''}><i style="background:${k === 'event' && kind === 'caster' ? SWATCH.team : SWATCH[k]}"></i>${esc(tokName(k))}</button>`).join('')}
         <input type="color" data-k="${f.k}" value="${custom ? v : '#2fd2c6'}" title="${esc(t('e.c.custom'))}" aria-label="${esc(t('e.c.custom'))}" class="${custom ? 'on' : ''}" />
       </div></div>`;
     }
+    if (f.kind === 'note') return `<p class="ed-note wide">${esc(t(f.lbl))}</p>`;
     if (f.kind === 'image') return `<div class="ed-f wide"><span>${esc(t('e.p.image'))}</span><div class="ed-img"><i style="${e.src ? `background-image:url('${imageUrl(e.src)}')` : ''}"></i><button type="button" class="btn small" data-do="image">${esc(t(e.src ? 'e.imgChange' : 'e.imgPick'))}</button></div><p class="ed-note">${esc(t('e.imgNote'))}</p></div>`;
     return '';
   }
@@ -405,6 +441,8 @@
           ${kind === 'alerts' ? `<label class="ed-f wide"><span>${esc(t('e.t.enter'))}</span><select data-cv="enter">${C.ENTER.map((k) => `<option value="${k}" ${(comp.enter || 'slide') === k ? 'selected' : ''}>${esc(t(`e.enter.${k}`))}</option>`).join('')}</select></label>` : ''}
         </div>
         <p class="ed-note">${esc(t(kind === 'counter' ? 'e.t.canvasNote' : `e.t.canvasNote.${kind}`))}</p>
+        ${kind === 'boost' ? `<label class="ed-check"><input type="checkbox" data-cv="gaugeCut" ${comp.gaugeGap != null ? 'checked' : ''} /> ${esc(t('e.t.gaugeCut'))}</label>
+        ${comp.gaugeGap != null ? `<div class="ed-grid"><label class="ed-f"><span>${esc(t('e.t.gaugeGap'))}</span><input type="number" data-cv="gaugeGap" value="${comp.gaugeGap}" min="0" max="80" /></label></div>` : ''}` : ''}
         <label class="ed-check"><input type="checkbox" id="edChecker" ${$('#edCanvas').classList.contains('checker') ? 'checked' : ''} /> ${esc(t('e.t.checker'))}</label>
         ${kind === 'counter' ? '' : `<button type="button" class="btn small ghost danger ed-uncompose" data-do="uncompose">${esc(t('e.uncompose'))}</button>`}
       </div>`
@@ -440,6 +478,8 @@
     // on ne redessine que la toile : le champ en cours de saisie garde le curseur
     renderCanvas();
     if (k === 'name' || k === 'text' || k === 'bind' || k === 'when') renderLayers();
+    // (une image liée n'a plus de fichier à choisir, un arc lié gagne son réglage de fond)
+    if (k === 'bind' && list[0].type !== 'value') renderProps();
     if (el && el.type === 'range') {
       const out = el.parentElement.querySelector('output');
       if (out) out.textContent = k === 'rotate' ? `${list[0][k]}°` : `${Math.round(list[0][k] * 100)} %`;
@@ -792,6 +832,19 @@
       change(() => (theme.colors[el.dataset.tc] = el.value), `tc:${el.dataset.tc}`);
       return renderCanvas();
     }
+    if (el.dataset.cv === 'gaugeCut') {
+      change(() => {
+        if (el.checked) comp.gaugeGap = 12;
+        else delete comp.gaugeGap;
+      });
+      renderCanvas();
+      return renderProps();
+    }
+    if (el.dataset.cv === 'gaugeGap') {
+      if (el.value === '') return;
+      change(() => (comp.gaugeGap = clamp(Math.round(Number(el.value)), 0, 80)), 'cv:gaugeGap');
+      return renderCanvas();
+    }
     if (el.dataset.cv === 'enter') {
       change(() => (comp.enter = C.ENTER.includes(el.value) ? el.value : 'slide'));
       if (mounted) mounted.enter(comp.enter);
@@ -931,6 +984,12 @@
       bindsOpen = false;
       // un titre d'alerte : grand, de la couleur de l'alerte, rétréci s'il est long
       if (b === 'alertTitle') return addElement({ type: 'value', bind: b, w: Math.min(900, comp.width - 40), h: 110, size: 88, weight: 800, align: 'left', color: 'event', fit: true });
+      if (kind === 'caster') {
+        const big = /^(teamScore|finalScore|matchClock)/.test(b);
+        const name = /Name|Scorer|Line|Text|Title|Info|Assist|tgTeam/.test(b);
+        const when = (C.CASTER_GROUPS.find((g) => g[1].includes(b)) || [])[0];
+        return addElement({ type: 'value', bind: b, font: 'Barlow Condensed', weight: 900, w: big ? 150 : name ? 300 : 90, h: big ? 78 : 44, size: big ? 60 : name ? 34 : 28, align: name ? 'left' : 'center', fit: name, color: b === 'matchClock' || b === 'clockNote' ? 'auto' : 'white', when: { target: 'target', goal: 'goal', feed: 'feed', post: 'post', series: 'series' }[when] || 'always' });
+      }
       if (b === 'alertDetail' || b === 'player') return addElement({ type: 'value', bind: b, w: 420, h: 40, font: 'Onest', size: 26, weight: 700, align: 'left', fit: true });
       return addElement({ type: 'value', bind: b, w: big ? 150 : 120, h: big ? 64 : 40, size: big ? 44 : 24, weight: 700, align: 'center', color: ['wins', 'losses', 'streak', 'mmrDelta', 'labelWin', 'labelLoss', 'matchMmr', 'goalDiff'].includes(b) ? 'auto' : 'white' });
     }
@@ -941,6 +1000,7 @@
       bindsOpen = !bindsOpen;
       return renderPalette();
     }
+    if (type === 'image' && kind === 'caster') return addElement({ type: 'image', bind: 'teamLogo0', w: 58, h: 58 });
     if (type === 'image') return pickImage(null);
     addElement(DEFAULTS[type]());
   });
@@ -980,6 +1040,7 @@
     sample = ev.target.value;
     renderCanvas();
     if (kind === 'alerts' && mounted && comp) mounted.enter(comp.enter || 'slide');
+    // (en changeant de situation, un élément choisi peut ne plus être à l'écran : ses réglages restent ouverts)
   });
   const zoomTo = (z) => {
     zoom = clamp(Math.round(z * 100) / 100, 0.25, 4);
@@ -1079,6 +1140,7 @@
       const col = (c, tone) => {
         const base = { win: theme.colors.win || '#8bd95a', loss: theme.colors.loss || '#f2685f', ot: theme.colors.ot || '#f0b03f', white: '#ffffff', black: '#000000', hot: '#ffcf5a', cold: '#8fbcff' };
         base.event = base.win; // (hors alerte, « couleur de l'alerte » vaut celle de la victoire)
+        Object.assign(base, { team: '#ff7f22', team0: '#1873ff', team1: '#ff7a1a' });
         if (c === 'auto') return base[tone] || '#ffffff';
         return base[c] || c;
       };
@@ -1179,6 +1241,24 @@
               g.fillText(r.r === 'W' ? d.labelWin : d.labelLoss, cx + cw / 2, cy + ch / 2 + 1);
             }
           }
+        } else if (e.type === 'arc') {
+          const rad = (a) => ((a - 90) * Math.PI) / 180;
+          const p = e.bind ? Math.max(0, Math.min(100, Number(d[e.bind]) || 0)) / 100 : 1;
+          const draw = (to, alpha) => {
+            g.globalAlpha = e.opacity * alpha;
+            g.beginPath();
+            g.ellipse(e.w / 2, e.h / 2, Math.max(0.5, e.w / 2 - e.thickness / 2), Math.max(0.5, e.h / 2 - e.thickness / 2), 0, rad(e.from), rad(to), to < e.from);
+            g.stroke();
+          };
+          g.strokeStyle = col(e.color);
+          g.lineWidth = e.thickness;
+          g.lineCap = e.ticks > 0 ? 'butt' : e.cap;
+          if (e.ticks > 0) {
+            const len = ((Math.min(360, Math.abs(e.to - e.from)) * Math.PI) / 180) * Math.sqrt(((e.w / 2 - e.thickness / 2) ** 2 + (e.h / 2 - e.thickness / 2) ** 2) / 2);
+            g.setLineDash([e.tickW, e.ticks > 1 ? Math.max(0.1, (len - e.tickW * e.ticks) / (e.ticks - 1)) : len + 1]);
+          }
+          if (e.bind && e.track > 0) draw(e.to, e.track);
+          if (p > 0) draw(e.from + (e.to - e.from) * p, 1);
         } else if (e.type === 'bar') {
           const p = d.wins + d.losses ? d.wins / (d.wins + d.losses) : 0.5;
           const row = e.dir === 'row';

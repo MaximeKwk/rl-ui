@@ -409,7 +409,11 @@
     bindThemeNew();
     $('#cmpEdit').addEventListener('click', () => {
       const th = activeTheme();
-      if (th) location.href = editorUrl(th.id);
+      if (th) location.href = `${editorUrl(th.id)}${D.settings.overlay.layout === 'boost' ? '&overlay=boost' : ''}`;
+    });
+    $('#cmpCasterEdit').addEventListener('click', () => {
+      const th = casterTheme();
+      if (th) location.href = `${editorUrl(th.id)}&overlay=caster`;
     });
     $('#cmpAlertEdit').addEventListener('click', () => {
       const th = activeTheme();
@@ -1203,7 +1207,12 @@
     vertical: { w: 340, h: 720, label: '340 × 720', desc: t('o.counterV') },
     boost: { w: 1920, h: 1080, label: t('o.fullscreen'), desc: t('o.counterB') },
   };
-  // Thème actif fait avec l'éditeur : il dessine lui-même le compteur (sauf en disposition Boost)
+  // Thème de l'overlay caster : le sien s'il en a un, sinon celui des autres overlays
+  function casterTheme() {
+    const list = (D.themes && D.themes.list) || [];
+    return list.find((x) => x.id === (D.settings.caster.themePack || D.settings.overlay.themePack || 'signature')) || null;
+  }
+  // Thème actif fait avec l'éditeur : il dessine lui-même le compteur (et le compteur « Boost » s'il le compose aussi)
   function activeTheme() {
     const list = (D.themes && D.themes.list) || [];
     return list.find((x) => x.id === (D.settings.overlay.themePack || 'signature')) || null;
@@ -1214,7 +1223,7 @@
     const layout = D.settings.overlay.layout || 'horizontal';
     $('#boostOpts').classList.toggle('hidden', layout !== 'boost');
     const th = activeTheme();
-    const comp = th && th.compose && th.compose.counter && layout !== 'boost' ? th.compose.counter : null;
+    const comp = th && th.compose ? (layout === 'boost' ? th.compose.boost : th.compose.counter) || null : null;
     // avec un thème composé, ce qui est affiché se règle dans l'éditeur : les options du compteur classique s'effacent
     $('#cmpNote').classList.toggle('hidden', !comp);
     $('#cmpEdit').classList.toggle('hidden', !comp || !th.editable);
@@ -1223,11 +1232,12 @@
     $('#cmpAlertNote').classList.toggle('hidden', !alertComp);
     $('#cmpAlertEdit').classList.toggle('hidden', !alertComp || !th.editable);
     $$('[data-classic-alert]').forEach((el) => el.classList.toggle('hidden', alertComp));
-    $$('#tab-stream [data-ovpane="counter"] .sub-head, #tab-stream [data-ovpane="counter"] .sw-row, #tab-stream [data-ovpane="counter"] details.more-opts').forEach((el) => el.classList.toggle('hidden', !!comp));
+    // (le calibrage de la jauge, lui, sert aussi au compteur « Boost » d'un thème)
+    $$('#tab-stream [data-ovpane="counter"] .sub-head, #tab-stream [data-ovpane="counter"] .sw-row, #tab-stream [data-ovpane="counter"] details.more-opts').forEach((el) => !el.closest('#boostOpts') && el.classList.toggle('hidden', !!comp));
     const seg = $('[data-choice="overlay.layout"]');
     $('[data-val="vertical"]', seg).classList.toggle('hidden', !!comp || (!!th && !!th.compose && layout === 'boost'));
     $('[data-val="horizontal"]', seg).textContent = th && th.compose ? t('d.cmpLayout') : t('h.ctr.sh') === 'h.ctr.sh' ? 'Horizontal' : t('h.ctr.sh');
-    const dims = comp ? { w: comp.width, h: comp.height, label: `${comp.width} × ${comp.height}`, desc: t('o.counterDesc') } : COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
+    const dims = comp && layout !== 'boost' ? { w: comp.width, h: comp.height, label: `${comp.width} × ${comp.height}`, desc: t('o.counterDesc') } : COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
     const ov = $('#tab-stream .ov[data-ov="counter"]');
     if (!ov) return;
     const crop = layout === 'boost' ? '1330,690,590,390' : '';
@@ -1658,6 +1668,11 @@
       list.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
     const cur = D.settings.caster.themePack || '';
     sel.value = list.some((x) => x.id === cur) ? cur : '';
+    // thème qui dessine lui-même l'overlay caster : son apparence se règle dans l'éditeur
+    const th = casterTheme();
+    const drawn = !!(th && th.compose && th.compose.caster);
+    $('#cmpCasterNote').classList.toggle('hidden', !drawn);
+    $('#cmpCasterEdit').classList.toggle('hidden', !drawn || !th.editable);
   }
 
   function renderCasterStatic() {

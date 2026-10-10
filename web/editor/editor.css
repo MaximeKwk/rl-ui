@@ -35,10 +35,12 @@ body.in-app .ed-top { padding-right: 150px; }
 
 /* palette */
 .ed-palette { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ed-palette button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: inherit; font: inherit; font-size: 12.5px; font-weight: 600; text-align: left; cursor: pointer; }
+.ed-palette button { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: inherit; font: inherit; font-size: 12.5px; font-weight: 600; text-align: left; cursor: pointer; }
 .ed-palette button:hover { border-color: var(--accent); background: var(--accent-soft); }
-.ed-palette svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ed-palette svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ed-binds { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 5px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); }
+.ed-binds b { flex: 0 0 100%; margin-top: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ed-binds b:first-child { margin-top: 0; }
 .ed-binds button { flex-direction: row; padding: 4px 9px; border-radius: 999px; font-weight: 500; background: var(--panel); }
 
 /* calques */
@@ -67,6 +69,8 @@ body.in-app .ed-top { padding-right: 150px; }
 .ed-canvas .cmp-el { cursor: move; }
 .ed-canvas .cmp-ghost { opacity: 0.35 !important; outline: 1px dashed rgba(255, 255, 255, 0.5); }
 .ed-canvas.quiet .cmp-ghost:not(.cmp-picked) { opacity: 0 !important; outline: none; pointer-events: none; }
+/* compteur « Boost » : la jauge du jeu, en repère sous la composition */
+.ed-gauge { position: absolute; inset: 0; pointer-events: none; }
 .ed-overlay { position: absolute; inset: 0; pointer-events: none; }
 .ed-sel { position: absolute; box-sizing: border-box; border: 1.5px solid var(--violet); }
 .ed-sel.multi { border-style: dashed; }
@@ -117,6 +121,7 @@ body.in-app .ed-top { padding-right: 150px; }
 .ed-tags label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
 .ed-tags input { position: absolute; opacity: 0; pointer-events: none; }
 .ed-note { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.ed-grid .ed-note { grid-column: 1 / -1; margin: 0; }
 .ed-img { display: flex; align-items: center; gap: 10px; }
 .ed-img i { width: 46px; height: 46px; flex: none; border-radius: 8px; border: 1px solid var(--line); background: var(--well) center / contain no-repeat; }
 .ed-fatal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; gap: 12px; align-content: center; background: var(--desk); text-align: center; padding: 24px; }

@@ -19,8 +19,10 @@
   let liveKind = 'counter'; // overlay montré dans la fenêtre : compteur, alertes, dernières parties ou récap
   let liveTheme = null; // compositions du thème ouvert
   // situations d'aperçu de chaque overlay (« a:… » : une alerte de ce type)
-  const SAMPLES = { counter: ['idle', 'match', 'overtime', 'cold'], alerts: ['a:win', 'a:loss', 'a:overtime', 'a:ot_win', 'a:streak'], history: ['idle', 'cold'], summary: ['idle', 'cold'] };
-  const sampleData = () => (sample.startsWith('a:') ? { ...C.sample('idle', t), ...C.alertFields(C.sampleAlert(sample.slice(2), t), t) } : C.sample(sample, t));
+  // situations d'aperçu de chaque overlay : celles de l'éditeur, sans les plus rares
+  const SAMPLES = Object.fromEntries(Object.entries((C && C.SAMPLES) || {}).map(([k, list]) => [k, list.filter((x) => x !== 'empty' && x !== 'a:ot_loss')]));
+  const sampleData = () => C.sampleFor(liveKind, sample, t);
+  const sampleName = (k) => t(k.startsWith('a:') ? `type.${k.slice(2)}` : k.startsWith('c:') ? `e.sample.c.${k.slice(2)}` : `e.sample.${k}`);
 
   try {
     sort = localStorage.getItem('rlui-mksort') || sort;
@@ -237,14 +239,18 @@
     // l'aperçu cadre ce que le thème dessine, pas toute la toile
     const b = live.bounds;
     const k = Math.min(w / b.w, 260 / b.h, 1.6);
-    live.view.el.style.transform = `translate(${-b.x * k}px, ${-b.y * k}px) scale(${k})`;
+    live.inner.style.width = `${live.comp.width}px`;
+    live.inner.style.height = `${live.comp.height}px`;
+    live.inner.style.transform = `translate(${-b.x * k}px, ${-b.y * k}px) scale(${k})`;
     live.box.style.width = `${b.w * k}px`;
     live.box.style.height = `${b.h * k}px`;
   }
 
   // Rectangle qui contient tous les éléments d'une composition (même ceux qui n'apparaissent qu'en match)
-  function boundsOf(comp) {
+  function boundsOf(comp, kind) {
     const list = comp.elements.filter((e) => !e.hidden);
+    // (compteur « Boost » : la jauge du jeu reste dans le cadre)
+    if (kind === 'boost') list.push({ x: comp.width - C.GAUGE.right - C.GAUGE.radius, y: comp.height - C.GAUGE.bottom - C.GAUGE.radius, w: C.GAUGE.radius * 2, h: C.GAUGE.radius * 2 });
     if (!list.length) return { x: 0, y: 0, w: comp.width, h: comp.height };
     const x = Math.max(0, Math.min(...list.map((e) => e.x)) - 12);
     const y = Math.max(0, Math.min(...list.map((e) => e.y)) - 12);
@@ -281,8 +287,13 @@
     stage.innerHTML = '<div class="mk-fit"></div>';
     const box = stage.firstChild;
     for (const k of ['win', 'loss', 'ot']) if (r.colors && r.colors[k]) box.style.setProperty(`--${k}`, r.colors[k]);
-    const view = C.mount(box, comp, { imageUrl: (src) => fileUrl(open, src) });
-    live = { view, box, comp, bounds: boundsOf(comp), destroy: () => view.destroy() };
+    // (un calque intermédiaire porte l'échelle : la jauge du jeu d'un compteur « Boost » y est posée sous la composition)
+    const inner = document.createElement('div');
+    inner.className = 'mk-fit-in';
+    box.appendChild(inner);
+    if (liveKind === 'boost') inner.appendChild(C.gauge(comp));
+    const view = C.mount(inner, comp, { imageUrl: (src) => fileUrl(open, src) });
+    live = { view, box, inner, comp, bounds: boundsOf(comp, liveKind), destroy: () => inner.remove() };
     if (!SAMPLES[liveKind].includes(sample)) sample = SAMPLES[liveKind][0];
     view.update(sampleData());
     fit();
@@ -291,7 +302,7 @@
     const kinds = C.KINDS.filter((k) => r.compose && r.compose[k]);
     $('#mkmKinds').classList.toggle('hidden', kinds.length < 2);
     $('#mkmKinds').innerHTML = kinds.map((k) => `<button data-kind="${k}" class="${k === liveKind ? 'on' : ''}">${esc(t(`e.kind.${k}`))}</button>`).join('');
-    $('#mkmSample').innerHTML = SAMPLES[liveKind].map((k) => `<button data-sample="${k}" class="${k === sample ? 'on' : ''}">${esc(t(k.startsWith('a:') ? `type.${k.slice(2)}` : `e.sample.${k}`))}</button>`).join('');
+    $('#mkmSample').innerHTML = SAMPLES[liveKind].map((k) => `<button data-sample="${k}" class="${k === sample ? 'on' : ''}">${esc(sampleName(k))}</button>`).join('');
   }
 
   function renderModal() {

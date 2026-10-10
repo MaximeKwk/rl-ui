@@ -51,26 +51,28 @@ Rien d'autre n'est permis dans le dossier. Les images sont reconnues à leur con
 | `base` | Habillage des overlays que le thème ne dessine pas lui-même : `signature`, `epure` ou `contraste`. |
 | `translations` | Nom et description facultatifs en `en` ou `fr`. |
 | `counter` | La composition du compteur V/D (ci-dessous). Obligatoire pour la galerie. |
-| `alerts`, `history`, `summary` | Facultatifs : la composition des alertes, des dernières parties et du récap de session. |
+| `boost`, `alerts`, `history`, `summary`, `caster` | Facultatifs : la composition du compteur « Boost », des alertes, des dernières parties, du récap de session et de l'overlay caster. |
 
-Un thème composé dessine toujours le **compteur**. Il peut aussi dessiner les **alertes**, les **dernières parties** et le **récap de session** ; ceux qu'il ne dessine pas gardent l'habillage `base`. La disposition « Boost » du compteur et l'overlay caster gardent leur propre habillage avec tous les thèmes.
+Un thème composé dessine toujours le **compteur**. Il peut aussi dessiner le **compteur « Boost »** (celui qui se colle à la jauge de boost du jeu), les **alertes**, les **dernières parties**, le **récap de session** et l'**overlay caster**. Ceux qu'il ne dessine pas gardent l'habillage `base` ; le compteur « Boost », lui, garde alors l'habillage de RL-UI, le même avec tous les thèmes.
 
 ## La composition
 
-Une composition est une toile (`width` 40–1920, `height` 20–1080, en pixels) et jusqu'à 80 `elements`, dessinés dans l'ordre (le dernier au-dessus). Les quatre overlays utilisent les mêmes éléments ; seules changent les valeurs en direct et les conditions disponibles.
+Une composition est une toile (`width` 40–1920, `height` 20–1080, en pixels) et jusqu'à 120 `elements`, dessinés dans l'ordre (le dernier au-dessus). Les overlays partagent les mêmes éléments de base ; changent les valeurs en direct, les conditions, et quelques éléments propres au caster.
 
 | Composition | Toile proposée | Remarques |
 | --- | --- | --- |
 | `counter` | 1000 × 220 | La taille de la source OBS. |
+| `boost` | 480 × 320 | La toile est posée dans le **coin bas droit** d'un écran 1920 × 1080 : la jauge de boost du jeu y a son centre à 156 px du bord droit et 150 px du bas (rayon 118). Le calibrage Boost de RL-UI (taille, position) s'y applique. `gaugeGap` (0–80), s'il est présent, découpe tout ce qui est à moins de cet écart de la jauge : une plaque posée dessous épouse alors la jauge. |
 | `alerts` | 1920 × 1080 | Une seule composition pour toutes les alertes : les conditions `alert…` disent quels éléments apparaissent pour quelle alerte. La toile est ajustée et centrée dans la source. `enter` choisit l'entrée en scène : `slide`, `rise`, `pop`, `fade` ou `none`. |
 | `history` | 700 × 90 | La taille de la source OBS. |
 | `summary` | 1920 × 1080 | La toile est ajustée et centrée dans la source. |
+| `caster` | 1920 × 1080 | Une seule composition pour tout l'overlay : chaque bloc (tableau des scores, boost des joueurs, joueur suivi, bannière de but, action, tableau final) est fait des éléments qui portent sa condition. Les cases de l'onglet Caster et `?hide=` dans l'adresse de l'overlay masquent toujours les blocs. |
 
 Chaque élément a :
 
 | Champ | Valeurs |
 | --- | --- |
-| `type` | `box`, `text`, `value`, `image`, `results`, `bar` |
+| `type` | `box`, `text`, `value`, `image`, `results`, `bar`, `arc` ; dans le caster `players`, `pips`, `board` à la place de `results` et `bar` |
 | `id` | Lettres minuscules et chiffres, unique. Donné automatiquement s'il manque. |
 | `name` | Nom du calque dans l'éditeur (40 caractères). |
 | `x`, `y`, `w`, `h` | Position et taille en pixels. |
@@ -90,10 +92,15 @@ Chaque élément a :
 | `alertStreak` | pour une série de victoires | alertes |
 | `alertMvp` | quand la victoire vient avec le MVP | alertes |
 | `matchScore`, `matchMmr` | quand le score, ou la variation de MMR de la partie, est connu | alertes |
+| `overtime`, `replay`, `ended` | en overtime, pendant le ralenti d'un but, quand la partie est finie | caster |
+| `series` | quand une série (ou un titre) est réglée dans l'onglet Caster | caster |
+| `boosts`, `target`, `goal`, `feed`, `post` | les blocs : boost des joueurs, joueur suivi, bannière de but, action du statfeed, tableau final | caster |
+
+`match`, `idle`, `overtime`, `winStreak`, `lossStreak` et `mmr` valent aussi pour le compteur « Boost ». Un élément apparaît et disparaît en fondu quand sa condition change.
 
 L'éditeur ne propose pour chaque overlay que les conditions de sa ligne. Une condition écrite à la main dans un autre overlay ne casse rien, mais n'y a pas de sens.
 
-Une couleur est un `#rrggbb` ou l'un de ces noms : `win`, `loss`, `ot` (les couleurs du thème), `white`, `black`, pour les valeurs en direct `auto` (la couleur de victoire en hausse, celle de défaite en baisse, doré en série de victoires, bleu en série de défaites), et dans les alertes `event` : la couleur de l'alerte affichée (victoire, défaite, ou overtime pour un début d'overtime et une série).
+Une couleur est un `#rrggbb` ou l'un de ces noms : `win`, `loss`, `ot` (les couleurs du thème), `white`, `black`, pour les valeurs en direct `auto` (la couleur de victoire en hausse, celle de défaite en baisse, doré en série de victoires, bleu en série de défaites), et dans les alertes `event` : la couleur de l'alerte affichée (victoire, défaite, ou overtime pour un début d'overtime et une série). Le compteur « Boost » a `team` : la couleur de ton équipe pendant une partie, comme la jauge du jeu. Le caster a `team0` et `team1` (équipe bleue, équipe orange, aux couleurs envoyées par le jeu) et `event` : l'équipe concernée par l'élément selon sa condition (`target` : celle du joueur suivi, `goal` : celle du buteur, `feed` : celle de l'action, `post` et `ended` : le vainqueur).
 
 ### `box` — une plaque
 
@@ -121,11 +128,25 @@ Typographie pour les deux : `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `A
 | `timePlayed`, `player` | Récap : temps de jeu de la session, pseudo |
 | `goals`, `assists`, `saves`, `goalDiff` | Récap : buts, passes, arrêts, différence de buts |
 
-Les valeurs de la session (les six premières lignes) existent dans tous les overlays. Dans une alerte, `wins`, `losses`, `record` et `streak` sont ceux du moment de l'alerte.
+Dans le caster, les valeurs sont celles de la partie observée :
+
+| `bind` (caster) | Affiche |
+| --- | --- |
+| `teamName0`, `teamName1`, `teamScore0`, `teamScore1` | Nom et score de l'équipe bleue, de l'équipe orange |
+| `matchClock`, `clockNote` | Le chrono, et ce qui s'écrit dessous : ralenti, overtime, final |
+| `seriesLine`, `seriesTitle`, `seriesInfo`, `seriesWins0`, `seriesWins1` | Le titre et la série sur une ligne, ou séparément ; les manches gagnées |
+| `tgName`, `tgTeam`, `tgBoost`, `tgScore`, `tgGoals`, `tgAssists`, `tgSaves`, `tgShots`, `tgDemos` | Le joueur suivi par la caméra |
+| `goalScorer`, `goalAssist`, `goalSpeed` | Le but affiché : buteur, passeur, vitesse du tir (km/h ou mph selon l'onglet Caster) |
+| `feedLabel`, `feedText` | L'action du statfeed affichée : son nom, les joueurs |
+| `finalScore`, `winnerLine` | Fin de partie : le score, « VICTOIRE DE … » |
+
+Les valeurs de la session (les six premières lignes du premier tableau) existent dans tous les overlays sauf le caster. Dans une alerte, `wins`, `losses`, `record` et `streak` sont ceux du moment de l'alerte.
 
 ### `image`
 
 `src` (un chemin dans le dossier du thème, comme `images/logo.png`), `fit` (`contain`, `cover`, `fill`), `radius`. Un thème ne peut afficher que ses propres images : toute adresse qui pointe ailleurs est retirée.
+
+Dans le caster, `bind` remplace `src` par une image fournie par RL-UI (onglet Caster) : `teamLogo0`, `teamLogo1` (logos des équipes) ou `tgPhoto` (photo du joueur suivi). L'élément reste vide quand il n'y en a pas. Le thème ne choisit toujours aucune adresse.
 
 ### `results` — les dernières parties, en pastilles
 
@@ -134,6 +155,16 @@ Les valeurs de la session (les six premières lignes) existent dans tous les ove
 ### `bar` — la barre victoires / défaites
 
 `radius`, `gap`, `dir`, `colorWin`, `colorLoss`.
+
+### `arc` — un arc de cercle, des graduations ou une jauge
+
+L'arc est inscrit dans le rectangle de l'élément. `from` et `to` (degrés, 0 en haut, dans le sens des aiguilles d'une montre ; 0 → 360 pour un cercle), `thickness`, `color`, `cap` (`butt`, `round`), `ticks` (0 : un trait continu ; sinon ce nombre de graduations, larges de `tickW`). Avec `bind` (`winRate`, ou `tgBoost` dans le caster), l'arc se remplit selon la valeur, de 0 à 100 ; `track` (0–1) est l'opacité du reste de l'arc.
+
+### Éléments du caster
+
+- **`players`** — les joueurs d'une équipe et leur boost, une ligne par joueur : `team` (0 bleue, 1 orange), `side` (`left`, `right`), `rowH`, `gap`, `fill`, `fillOpacity`, `radius`, `stripe` (liseré de la couleur de l'équipe), `barH` (0 : pas de barre), `font`, `weight`, `size`, `color`. Le joueur suivi est entouré, un joueur démoli estompé.
+- **`pips`** — les manches gagnées d'une équipe, autant de cases que de manches à gagner : `team`, `gap`, `radius`, `skew`, `color`.
+- **`board`** — le tableau des joueurs en fin de partie (score, buts, passes, arrêts, tirs, démos ; MVP et photos) : `rowH`, `stripe`, `lines`, `header`, `fill`, `fillOpacity`, `font`, `weight`, `size`, `color`.
 
 ## Ce qui arrive à tout le reste
 

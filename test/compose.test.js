@@ -52,7 +52,7 @@ test('composition : ce qui est hors format est ramené dans les clous ou retiré
   // nettoyer deux fois ne change plus rien
   assert.deepStrictEqual(Compose.clean(c), c);
   assert.throws(() => Compose.clean({ elements: 'x' }));
-  assert.throws(() => Compose.clean({ elements: Array.from({ length: 81 }, () => ({ type: 'box' })) }), /too-many/);
+  assert.throws(() => Compose.clean({ elements: Array.from({ length: Compose.LIMITS.elements + 1 }, () => ({ type: 'box' })) }), /too-many/);
 });
 
 test('valeurs en direct : texte, teinte et visibilité', () => {
@@ -243,18 +243,18 @@ test('récap : temps de jeu, buts, passes, arrêts, différence de buts, joueur'
   assert.ok(!Compose.BINDS_FOR.counter.includes('alertTitle') && Compose.BINDS_FOR.alerts.includes('alertTitle') && Compose.BINDS_FOR.summary.includes('timePlayed'));
 });
 
-test('thème : les quatre overlays composés, nettoyés et contrôlés comme le compteur', () => {
+test('thème : les autres overlays composés, nettoyés et contrôlés comme le compteur', () => {
   const base = { format: 2, name: 'Complet', author: 'Moi', description: 'Tout est dessiné.', counter: { width: 400, height: 100, elements: [{ type: 'value', bind: 'wins', x: 0, y: 0, w: 100, h: 40 }] } };
   const t = themeFormat.cleanTheme({
     ...base,
     alerts: { width: 1920, height: 1080, enter: 'pop', elements: [{ type: 'value', bind: 'alertTitle', color: 'event', fit: 'oui', x: 0, y: 0, w: 900, h: 100, onload: 'x()' }, { type: 'box', fill: 'event', x: 0, y: 0, w: 10, h: 10 }, { type: 'script' }] },
     history: { width: 700, height: 90, enter: 'explosion', elements: [{ type: 'results', x: 0, y: 0, w: 300, h: 30 }] },
-    caster: { width: 100, height: 100, elements: [] },
+    scoreboard: { width: 100, height: 100, elements: [] },
   });
   assert.deepStrictEqual([t.alerts.enter, t.alerts.elements.length, t.alerts.elements[0].color, t.alerts.elements[0].fit, t.alerts.elements[1].fill], ['pop', 2, 'event', true, 'event']);
   assert.ok(!('onload' in t.alerts.elements[0]));
   assert.ok(!('enter' in t.history), 'une entrée inconnue est retirée');
-  assert.ok(!('caster' in t), 'un overlay qui n\'est pas dans le format est ignoré');
+  assert.ok(!('scoreboard' in t), 'un overlay qui n\'est pas dans le format est ignoré');
   // (une composition illisible rend le thème inutilisable : il n'est pas à moitié chargé)
   assert.throws(() => themeFormat.cleanTheme({ ...base, alerts: { elements: 'x' } }));
   assert.throws(() => themeFormat.cleanTheme({ ...base, summary: 'pas une composition' }));
@@ -272,8 +272,8 @@ test('thème : les quatre overlays composés, nettoyés et contrôlés comme le 
   assert.ok(themeFormat.check({ ...clean, counter: null }, []).problems.includes('empty'));
 });
 
-test('points de départ des alertes, des dernières parties et du récap : valides, dans les deux langues', () => {
-  assert.deepStrictEqual(OVERLAY_STARTERS, ['alerts', 'history', 'summary']);
+test('points de départ des autres overlays (Boost, alertes, dernières parties, récap, caster) : valides, dans les deux langues', () => {
+  assert.deepStrictEqual([...OVERLAY_STARTERS].sort(), Compose.KINDS.filter((k) => k !== 'counter').sort());
   for (const lang of ['en', 'fr']) {
     const tr = (k) => I.tl(lang, k);
     for (const kind of OVERLAY_STARTERS) {
@@ -284,14 +284,18 @@ test('points de départ des alertes, des dernières parties et du récap : valid
       // chaque valeur et chaque condition est de celles que l'éditeur propose pour cet overlay
       for (const e of c.elements) {
         if (e.type === 'value') assert.ok(Compose.BINDS_FOR[kind].includes(e.bind), `${kind} ${e.bind}`);
+        assert.ok(Compose.TYPES_FOR[kind].includes(e.type), `${kind} ${e.type}`);
+        for (const k of ['color', 'fill', 'borderColor']) if (Compose.TOKENS.includes(e[k]) && !['win', 'loss', 'ot', 'white', 'black', 'auto'].includes(e[k])) assert.ok(Compose.TOKENS_FOR[kind].includes(e[k]), `${kind} : couleur ${e[k]}`);
         assert.ok(Compose.WHEN_FOR[kind].includes(e.when), `${kind} ${e.when}`);
         assert.ok(e.x >= 0 && e.y >= 0 && e.x + e.w <= c.width && e.y + e.h <= c.height, `${kind} : « ${e.name} » tient dans la toile`);
-        assert.ok(e.name && !/^(cmp|ov|al)\./.test(e.name) && !/^(cmp|ov|al)\./.test(e.text || ''), `${lang} ${kind} : ${e.name}`);
+        assert.ok(e.name && !/^(cmp|ov|al|e|c)\./.test(e.name) && !/^(cmp|ov|al|e|c)\./.test(e.text || ''), `${lang} ${kind} : ${e.name}`);
       }
     }
     assert.strictEqual(overlayStarter('alerts', tr).enter, 'slide');
   }
-  assert.strictEqual(overlayStarter('caster', (k) => k), null);
+  assert.strictEqual(overlayStarter('boost', (k) => k).gaugeGap, 12, 'le compteur Boost de départ épouse la jauge du jeu');
+  assert.ok(Compose.clean(overlayStarter('caster', (k) => k)).elements.length <= Compose.LIMITS.elements);
+  assert.strictEqual(overlayStarter('counter', (k) => k), null);
   assert.strictEqual(overlayStarter('constructor', (k) => k), null);
 });
 
@@ -316,4 +320,97 @@ test('thème composé : enregistrer et relire les autres overlays ; images gard�
   tm.saveSource(id, { ...tm.source(id).theme, alerts: null });
   assert.deepStrictEqual(Object.keys(tm.get(id).compose), ['counter', 'summary']);
   assert.ok(!fs.existsSync(path.join(dir, img.src)));
+});
+
+test('éléments du Boost et du caster : arc, joueurs, manches, tableau ; ramenés dans les clous', () => {
+  const c = Compose.clean({
+    width: 480,
+    height: 320,
+    gaugeGap: 500,
+    elements: [
+      { type: 'arc', x: 0, y: 0, w: 100, h: 100, from: -900, to: 9000, thickness: 0, color: 'team', cap: 'pointu', ticks: 500, tickW: 0, bind: 'wins', track: 7 },
+      { type: 'arc', x: 0, y: 0, w: 100, h: 100, bind: 'tgBoost', track: 0.2 },
+      { type: 'players', team: '1', rowH: 5, gap: -3, stripe: 99, font: 'Comic Sans', onclick: 'x()' },
+      { type: 'players', team: 0, side: 'right' },
+      { type: 'pips', team: 7, skew: false, color: 'javascript:1' },
+      { type: 'board', rowH: 999, lines: 4, header: false },
+      { type: 'image', bind: 'teamLogo1', src: 'https://exemple.test/logo.png' },
+      { type: 'image', bind: 'document.cookie', src: 'images/a.png' },
+    ],
+  });
+  assert.strictEqual(c.gaugeGap, 80);
+  const [arc, ring, pl1, pl0, pips, board, logo, img] = c.elements;
+  assert.deepStrictEqual([arc.from, arc.to, arc.thickness, arc.color, arc.cap, arc.ticks, arc.tickW, arc.bind, arc.track], [-360, 720, 1, 'team', 'butt', 72, 1, '', 1]);
+  assert.deepStrictEqual([ring.bind, ring.track, ring.from, ring.to], ['tgBoost', 0.2, 0, 270]);
+  assert.deepStrictEqual([pl1.team, pl1.side, pl1.rowH, pl1.gap, pl1.stripe, pl1.font, 'onclick' in pl1], [1, 'right', 20, 0, 30, 'Barlow Condensed', false]);
+  assert.deepStrictEqual([pl0.team, pl0.side], [0, 'right'], 'le côté peut être choisi à part de l\'équipe');
+  assert.deepStrictEqual([pips.team, pips.skew, pips.color], [0, false, 'team0']);
+  assert.deepStrictEqual([board.rowH, board.lines, board.header], [160, 1, false]);
+  // une image liée vient de l'app (logo d'équipe, photo) : jamais d'une adresse choisie par le thème
+  assert.deepStrictEqual([logo.bind, logo.src, img.bind, img.src], ['teamLogo1', '', undefined, 'images/a.png']);
+  assert.deepStrictEqual(Compose.clean(c), c, 'nettoyer deux fois ne change plus rien');
+  assert.ok(!('gaugeGap' in Compose.clean({ elements: [] })));
+  // chaque type est proposé pour au moins un overlay, et le caster n'a pas ceux de la session
+  for (const ty of Compose.TYPES) assert.ok(Compose.KINDS.some((k) => Compose.TYPES_FOR[k].includes(ty)), ty);
+  assert.ok(!Compose.TYPES_FOR.caster.includes('results') && !Compose.TYPES_FOR.counter.includes('players'));
+  for (const k of Compose.KINDS) assert.ok(Compose.SIZES[k] && Compose.BINDS_FOR[k].length && Compose.WHEN_FOR[k].length && Compose.SAMPLES[k].length && Compose.TOKENS_FOR[k] && Compose.ARC_BINDS_FOR[k], k);
+});
+
+test('caster : ce que l\'overlay affiche à partir de l\'état du mode caster', () => {
+  const tr = (k, v) => (v ? `${k}(${Object.values(v).join(',')})` : k);
+  const players = [
+    { key: '0:Nova', name: 'Nova', team: 0, boost: 72.4, score: 300, goals: 2, shots: 4, assists: 0, saves: 1, demos: 0 },
+    { key: '0:Kuro', name: 'Kuro', team: 0, boost: 140, demolished: true, score: 520, goals: 0, shots: 1, assists: 2, saves: 3, demos: 1 },
+    { key: '1:Blaze', name: 'Blaze', team: 1, boost: -5, supersonic: true, score: 100, goals: 1, shots: 2, assists: 0, saves: 0, demos: 0, photo: '/caster/photo/blaze.png' },
+  ];
+  const st = {
+    match: { active: true, time: 187, overtime: false, replay: false, ended: false, winner: null, mvp: '0:Kuro', target: '0:Nova', teams: [{ num: 0, name: 'Nova Esports', score: 2, color: '#1873ff', logo: '/caster/logo/0.png' }, { num: 1, name: 'Apex', score: 1, color: '' }], players },
+    series: { title: 'Cup', bestOf: 5, need: 3, wins: [2, 1], game: 4 },
+    options: { showSeries: true, showBoosts: true, showTarget: true, showGoals: true, showFeed: true, showPostgame: true, speedUnit: 'mph' },
+  };
+  const d = Compose.casterData(st, tr);
+  const val = (b, x = d) => Compose.valueOf(b, x).text;
+  assert.deepStrictEqual(['teamName0', 'teamScore1', 'matchClock', 'clockNote', 'seriesLine', 'seriesWins0', 'tgName', 'tgTeam', 'tgBoost', 'tgGoals'].map((b) => val(b)), ['Nova Esports', '1', '3:07', '', 'Cup · c.game(4) · c.bestOf(5)', '2', 'Nova', 'Nova Esports', '72', '2']);
+  assert.deepStrictEqual([d.teamLogo0, d.teamLogo1, d.teamColor1, d.seriesNeed], ['/caster/logo/0.png', '', '#ff7a1a', 3]);
+  assert.notStrictEqual(d.teamColor0, '#1873ff', 'la couleur du jeu est éclaircie');
+  // boost des joueurs : borné, par équipe ; démoli, supersonique, suivi
+  assert.deepStrictEqual(d.roster.map((l) => l.map((p) => [p.name, p.boost, p.dead, p.fast, p.target])), [[['Nova', 72, false, false, true], ['Kuro', 100, true, false, false]], [['Blaze', 0, false, true, false]]]);
+  // blocs visibles
+  const vis = (x) => ['always', 'series', 'boosts', 'target', 'goal', 'feed', 'post', 'replay', 'ended', 'overtime'].filter((w) => Compose.visible(w, x));
+  assert.deepStrictEqual(vis(d), ['always', 'series', 'boosts', 'target']);
+  // but : la bannière, pendant le ralenti (plus de joueur suivi)
+  const g = Compose.casterData({ ...st, match: { ...st.match, replay: true } }, tr, { goal: { team: 1, scorer: 'Blaze', assister: 'Echo', speed: 100 }, feed: { label: 'Save', team: 0, main: 'Kuro', secondary: 'Blaze' } });
+  assert.deepStrictEqual(vis(g), ['always', 'series', 'boosts', 'goal', 'feed', 'replay']);
+  assert.deepStrictEqual(['goalScorer', 'goalAssist', 'goalSpeed', 'feedLabel', 'feedText', 'clockNote'].map((b) => val(b, g)), ['Blaze', 'c.assist(Echo)', '62 c.mph', 'Save', 'Kuro → Blaze', 'c.replay']);
+  assert.deepStrictEqual([Compose.eventTeam('goal', g), Compose.eventTeam('feed', g), Compose.eventTeam('target', d), Compose.eventTeam('always', d)], [1, 0, 0, null]);
+  // fin de partie : tableau trié par équipe puis score, MVP, meilleur score ; le vainqueur donne sa couleur
+  const end = { ...st, match: { ...st.match, ended: true, winner: 0, overtime: true }, series: { ...st.series, wins: [3, 1] } };
+  assert.deepStrictEqual(vis(Compose.casterData(end, tr)), ['always', 'series', 'boosts', 'ended', 'overtime'], 'le tableau final attend que l\'overlay le demande');
+  const p = Compose.casterData(end, tr, { post: true });
+  assert.ok(Compose.visible('post', p));
+  assert.deepStrictEqual([val('finalScore', p), val('winnerLine', p), val('matchClock', p), Compose.valueOf('matchClock', p).tone, Compose.eventTeam('post', p)], ['2 - 1', 'c.seriesWin(Nova Esports)', '+3:07', 'ot', 0]);
+  assert.deepStrictEqual(p.board.map((r) => [r.name, r.team, r.mvp, r.best, r.cells.join(' ')]), [['Kuro', 0, true, true, '520 0 2 3 1 1'], ['Nova', 0, false, false, '300 2 0 1 4 0'], ['Blaze', 1, false, false, '100 1 0 0 2 0']]);
+  assert.strictEqual(p.board[2].photo, '/caster/photo/blaze.png');
+  assert.strictEqual(val('winnerLine', Compose.casterData({ ...end, series: { ...st.series, wins: [2, 1] } }, tr, { post: true })), 'c.wins(Nova Esports)');
+  // réglages de l'onglet Caster : un bloc décoché n'apparaît pas ; ?hide= masque aussi le tableau des scores
+  const off = Compose.casterData({ ...end, options: { showSeries: false, showBoosts: false, showTarget: false, showGoals: false, showFeed: false, showPostgame: false } }, tr, { post: true, goal: { team: 0, scorer: 'x' }, feed: { label: 'y', team: 0, main: 'z' } });
+  assert.deepStrictEqual(vis(off), ['always', 'series', 'ended', 'overtime'], '(le titre seul garde la ligne de la série)');
+  assert.deepStrictEqual([off.seriesNeed, val('seriesLine', off), val('seriesInfo', off)], [0, 'Cup', '']);
+  assert.deepStrictEqual(vis(Compose.casterData(st, tr, { hide: ['bug', 'target'] })), ['boosts']);
+  // un état vide ou abîmé ne fait rien planter
+  for (const bad of [null, {}, { match: { players: 'x', teams: null } }]) assert.strictEqual(Compose.casterData(bad, tr).teamScore0, '0');
+  // les situations d'aperçu de l'éditeur
+  assert.deepStrictEqual(Compose.SAMPLES.caster.map((k) => vis(Compose.sampleFor('caster', k)).join(' ')), ['always series boosts target feed', 'always series boosts goal feed replay', 'always series boosts target feed overtime', 'always series boosts post ended']);
+  assert.strictEqual(Compose.sampleFor('boost', 'match').teamColor, '#ff7f22');
+  assert.strictEqual(Compose.sampleFor('alerts', 'a:win').alert, 'win');
+});
+
+test('thème : le compteur Boost et l\'overlay caster se composent comme les autres', () => {
+  const base = { format: 2, name: 'Complet', author: 'Moi', description: 'Tout est dessiné.', counter: { width: 400, height: 100, elements: [{ type: 'value', bind: 'wins', x: 0, y: 0, w: 100, h: 40 }] } };
+  const t = themeFormat.cleanTheme({ ...base, boost: overlayStarter('boost', (k) => k), caster: overlayStarter('caster', (k) => k) });
+  assert.deepStrictEqual([t.boost.gaugeGap, t.boost.width, t.caster.width, t.caster.elements.filter((e) => e.type === 'players').length], [12, 480, 1920, 2]);
+  const clean = JSON.parse(JSON.stringify(t));
+  assert.deepStrictEqual(themeFormat.check(clean, ['theme.json']).problems, []);
+  clean.caster.elements[0].team = 3;
+  assert.deepStrictEqual(themeFormat.check(clean, ['theme.json']).problems, ['adjusted:caster.e1.team']);
 });

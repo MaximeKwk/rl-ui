@@ -271,6 +271,9 @@
       #cmp { flex: none; }
       #cmp .cmp { transform: scale(var(--s)); opacity: 0; transition: opacity 0.4s; }
       #cmp.ready .cmp { opacity: 1; }
+      /* le thème dessine le compteur « Boost » : toile calée sur le coin bas droit de l'écran */
+      #cmp.boost { position: absolute; transform-origin: 100% 100%; }
+      #cmp.boost .cmp { transform: none; }
       .hidden { display: none !important; }
     </style>
   </head>

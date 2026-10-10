@@ -45,6 +45,7 @@
       <main class="ed-stage" id="edStage" tabindex="0" aria-label="Canvas">
         <div class="ed-wrap" id="edWrap">
           <div class="ed-canvas" id="edCanvas">
+            <div id="edGauge" class="ed-gauge" aria-hidden="true"></div>
             <div id="edComp"></div>
             <div id="edOverlay" class="ed-overlay"></div>
           </div>
@@ -53,6 +54,8 @@
         <div class="ed-hint muted small" id="edHint">
           <span data-i18n="h.e.hint">Click an element to select it, drag to move it, pull a handle to resize it. Arrows nudge by 1 px (10 with Shift).</span>
           <span class="hidden" id="edHintAlerts" data-i18n="h.e.hintAlerts">You only see the elements of the alert chosen in "Preview with". To edit an element made for another alert, pick it in the layers or change the preview.</span>
+          <span class="hidden" id="edHintCaster" data-i18n="h.e.hintCaster">You only see what the overlay shows in the moment chosen in "Preview with" (in play, goal, overtime, final scoreboard). To edit an element of another moment, pick it in the layers or change the preview.</span>
+          <span class="hidden" id="edHintBoost" data-i18n="h.e.hintBoost">The dial is the game's boost gauge, drawn where it will be on screen: place your elements around it.</span>
         </div>
       </main>
 

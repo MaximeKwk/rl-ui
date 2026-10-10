@@ -1,5 +1,6 @@
 // Compositions RL-UI : un overlay décrit par des données (une toile, des éléments posés dessus), jamais par du code.
-// Un thème peut composer quatre overlays : le compteur, les alertes, les dernières parties et le récap de session.
+// Un thème peut composer six overlays : le compteur, le compteur « Boost » (collé à la jauge du jeu), les alertes,
+// les dernières parties, le récap de session et l'overlay caster.
 // Ce fichier est partagé : l'app le charge pour valider un thème (require), les pages pour l'afficher (window.Compose).
 //
 // Un élément est un rectangle posé sur la toile : { id, type, x, y, w, h, … }. Types :
@@ -9,41 +10,79 @@
 //   image    image du dossier du thème
 //   results  les dernières parties, en pastilles
 //   bar      barre victoires / défaites
+//   arc      arc de cercle (trait, graduations, ou jauge qui suit une valeur)
+//   players  caster : les joueurs d'une équipe et leur boost
+//   pips     caster : les manches gagnées d'une équipe dans la série
+//   board    caster : le tableau des joueurs en fin de partie
 // Tout ce qui n'est pas dans ces listes est refusé ou ramené à une valeur permise : un thème ne peut rien exécuter.
 (function (root) {
   const FORMAT = 2;
-  const TYPES = ['box', 'text', 'value', 'image', 'results', 'bar'];
+  const TYPES = ['box', 'text', 'value', 'image', 'results', 'bar', 'arc', 'players', 'pips', 'board'];
+  // éléments proposés pour chaque overlay (ceux de la session n'ont pas de sens dans le caster, et inversement)
+  const CASTER_TYPES = ['box', 'text', 'value', 'image', 'arc', 'players', 'pips', 'board'];
+  const SESSION_TYPES = ['box', 'text', 'value', 'image', 'results', 'bar', 'arc'];
   const FONTS = ['Unbounded', 'Onest', 'Barlow Condensed', 'Archivo'];
   // overlays qu'un thème peut composer, et la toile proposée pour chacun
-  const KINDS = ['counter', 'alerts', 'history', 'summary'];
-  const SIZES = { counter: [1000, 220], alerts: [1920, 1080], history: [700, 90], summary: [1920, 1080] };
+  const KINDS = ['counter', 'boost', 'alerts', 'history', 'summary', 'caster'];
+  const SIZES = { counter: [1000, 220], boost: [480, 320], alerts: [1920, 1080], history: [700, 90], summary: [1920, 1080], caster: [1920, 1080] };
+  const TYPES_FOR = { counter: SESSION_TYPES, boost: SESSION_TYPES, alerts: SESSION_TYPES, history: SESSION_TYPES, summary: SESSION_TYPES, caster: CASTER_TYPES };
+  // Jauge de boost du jeu sur un écran 1920 × 1080 : distance de son centre aux bords droit et bas, rayon extérieur.
+  // La toile du compteur « Boost » est posée dans le coin bas droit de l'écran : la jauge y est donc à (largeur − right, hauteur − bottom).
+  const GAUGE = { right: 156, bottom: 150, radius: 118 };
   // valeurs en direct qu'un élément « value » peut afficher : la session…
   const SESSION_BINDS = ['wins', 'losses', 'record', 'winRate', 'streak', 'bestStreak', 'otRecord', 'mmr', 'mmrDelta', 'played', 'mvps', 'labelWin', 'labelLoss'];
   // … la partie en cours (compteur), l'alerte affichée (alertes), le bilan (récap)
   const LIVE_BINDS = ['mode', 'clock', 'score'];
   const ALERT_BINDS = ['alertTitle', 'alertDetail', 'matchScore', 'matchMmr', 'matchOt'];
   const RECAP_BINDS = ['timePlayed', 'goals', 'assists', 'saves', 'goalDiff', 'player'];
-  const BINDS = [...SESSION_BINDS, ...LIVE_BINDS, ...ALERT_BINDS, ...RECAP_BINDS];
+  // … et pour l'overlay caster : la partie observée, rangée par bloc (c'est aussi l'ordre du choix dans l'éditeur)
+  const CASTER_GROUPS = [
+    ['match', ['teamName0', 'teamName1', 'teamScore0', 'teamScore1', 'matchClock', 'clockNote']],
+    ['series', ['seriesLine', 'seriesTitle', 'seriesInfo', 'seriesWins0', 'seriesWins1']],
+    ['target', ['tgName', 'tgTeam', 'tgBoost', 'tgScore', 'tgGoals', 'tgAssists', 'tgSaves', 'tgShots', 'tgDemos']],
+    ['goal', ['goalScorer', 'goalAssist', 'goalSpeed']],
+    ['feed', ['feedLabel', 'feedText']],
+    ['post', ['finalScore', 'winnerLine']],
+  ];
+  const CASTER_BINDS = CASTER_GROUPS.flatMap((g) => g[1]);
+  const BINDS = [...SESSION_BINDS, ...LIVE_BINDS, ...ALERT_BINDS, ...RECAP_BINDS, ...CASTER_BINDS];
+  // images fournies par l'app (onglet Caster), qu'un élément « image » peut afficher à la place d'une image du thème
+  const IMAGE_BINDS = ['teamLogo0', 'teamLogo1', 'tgPhoto'];
+  // valeurs de 0 à 100 qu'un arc peut suivre
+  const ARC_BINDS = ['winRate', 'tgBoost'];
+  const ARC_BINDS_FOR = { counter: ['winRate'], boost: ['winRate'], alerts: ['winRate'], history: ['winRate'], summary: ['winRate'], caster: ['tgBoost'] };
   const BINDS_FOR = {
     counter: [...SESSION_BINDS, ...LIVE_BINDS],
+    boost: [...SESSION_BINDS, ...LIVE_BINDS],
+    caster: CASTER_BINDS,
     alerts: [...ALERT_BINDS, ...SESSION_BINDS],
     history: [...SESSION_BINDS],
     summary: [...SESSION_BINDS, ...RECAP_BINDS],
   };
   // quand un élément est visible
   const ALERT_WHEN = ['alertWin', 'alertLoss', 'alertOt', 'alertOtEnd', 'alertStreak', 'alertMvp', 'matchScore', 'matchMmr'];
-  const WHEN = ['always', 'match', 'idle', 'overtime', 'winStreak', 'lossStreak', 'mmr', ...ALERT_WHEN];
+  // caster : chaque bloc de l'overlay a sa condition (ralenti, fin de partie, série, boost des joueurs, joueur suivi,
+  // bannière de but, action du statfeed, tableau final)
+  const CASTER_WHEN = ['replay', 'ended', 'series', 'boosts', 'target', 'goal', 'feed', 'post'];
+  const WHEN = ['always', 'match', 'idle', 'overtime', 'winStreak', 'lossStreak', 'mmr', ...ALERT_WHEN, ...CASTER_WHEN];
+  // bloc du caster auquel appartient une condition (pour ?hide=bug,boosts,target,goals,feed,post dans l'adresse de l'overlay)
+  const CASTER_PART = { always: 'bug', overtime: 'bug', replay: 'bug', ended: 'bug', series: 'bug', boosts: 'boosts', target: 'target', goal: 'goals', feed: 'feed', post: 'post' };
   const WHEN_FOR = {
     counter: ['always', 'match', 'idle', 'overtime', 'winStreak', 'lossStreak', 'mmr'],
+    boost: ['always', 'match', 'idle', 'overtime', 'winStreak', 'lossStreak', 'mmr'],
+    caster: ['always', 'overtime', ...CASTER_WHEN],
     alerts: ['always', ...ALERT_WHEN, 'winStreak'],
     history: ['always', 'winStreak', 'lossStreak', 'mmr'],
     summary: ['always', 'winStreak', 'lossStreak', 'mmr'],
   };
   // entrée en scène d'une alerte
   const ENTER = ['slide', 'rise', 'pop', 'fade', 'none'];
-  // « event » : la couleur de l'alerte affichée (victoire, défaite, overtime)
-  const TOKENS = ['win', 'loss', 'ot', 'white', 'black', 'auto', 'event'];
-  const LIMITS = { minW: 40, maxW: 1920, minH: 20, maxH: 1080, elements: 80, text: 80, affix: 12, name: 40 };
+  // « event » : la couleur de l'alerte affichée (victoire, défaite, overtime) ; dans le caster, celle de l'équipe
+  // concernée par l'élément (joueur suivi, buteur, auteur de l'action, vainqueur, selon sa condition)
+  // « team » : ton équipe, comme la jauge de boost du jeu · « team0 », « team1 » : les deux équipes du caster
+  const TOKENS = ['win', 'loss', 'ot', 'white', 'black', 'auto', 'event', 'team', 'team0', 'team1'];
+  const TOKENS_FOR = { counter: [], boost: ['team'], alerts: ['event'], history: [], summary: [], caster: ['team0', 'team1', 'event'] };
+  const LIMITS = { minW: 40, maxW: 1920, minH: 20, maxH: 1080, elements: 120, text: 80, affix: 12, name: 40 };
   const IMAGE_EXT = /\.(png|jpe?g|webp|gif)$/i;
 
   const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -121,6 +160,7 @@
       Object.assign(out, typography(e), { bind: pick(e.bind, BINDS, 'wins'), prefix: str(e.prefix, LIMITS.affix), suffix: str(e.suffix, LIMITS.affix) });
     } else if (e.type === 'image') {
       Object.assign(out, { src: imagePath(e.src), fit: pick(e.fit, ['contain', 'cover', 'fill'], 'contain'), radius: num(e.radius, 0, 0, 400) });
+      if (IMAGE_BINDS.includes(e.bind)) out.bind = e.bind;
     } else if (e.type === 'results') {
       Object.assign(out, {
         count: num(e.count, 8, 1, 20),
@@ -133,6 +173,52 @@
       });
     } else if (e.type === 'bar') {
       Object.assign(out, { radius: num(e.radius, 4, 0, 100), gap: num(e.gap, 2, 0, 20), dir: pick(e.dir, ['row', 'column'], 'row'), colorWin: color(e.colorWin, 'win'), colorLoss: color(e.colorLoss, 'loss') });
+    } else if (e.type === 'arc') {
+      // angles en degrés, 0 en haut, dans le sens des aiguilles d'une montre
+      Object.assign(out, {
+        from: num(e.from, 0, -360, 360),
+        to: num(e.to == null ? 270 : e.to, 270, -360, 720),
+        thickness: num(e.thickness, 8, 1, 200),
+        color: color(e.color, 'white'),
+        cap: pick(e.cap, ['butt', 'round'], 'butt'),
+        ticks: num(e.ticks, 0, 0, 72), // 0 : un trait continu ; sinon ce nombre de graduations
+        tickW: num(e.tickW, 2, 1, 20, false),
+        bind: pick(e.bind, ARC_BINDS, ''), // '' : arc entier ; sinon l'arc se remplit avec cette valeur
+        track: num(e.track == null ? 0 : e.track, 0, 0, 1, false), // opacité du reste de l'arc, derrière
+      });
+    } else if (e.type === 'players') {
+      const team = Number(e.team) === 1 ? 1 : 0;
+      Object.assign(out, {
+        team,
+        side: pick(e.side, ['left', 'right'], team ? 'right' : 'left'),
+        rowH: num(e.rowH, 62, 20, 200),
+        gap: num(e.gap == null ? 8 : e.gap, 8, 0, 60),
+        fill: color(e.fill, '#080b14'),
+        fillOpacity: num(e.fillOpacity == null ? 0.9 : e.fillOpacity, 0.9, 0, 1, false),
+        radius: num(e.radius == null ? 10 : e.radius, 10, 0, 100),
+        stripe: num(e.stripe == null ? 5 : e.stripe, 5, 0, 30),
+        barH: num(e.barH == null ? 8 : e.barH, 8, 0, 40),
+        font: pick(e.font, FONTS, 'Barlow Condensed'),
+        weight: num(Math.round(Number(e.weight) / 100) * 100, 800, 100, 900),
+        size: num(e.size, 22, 8, 80),
+        color: color(e.color, 'white'),
+      });
+    } else if (e.type === 'pips') {
+      const team = Number(e.team) === 1 ? 1 : 0;
+      Object.assign(out, { team, gap: num(e.gap == null ? 6 : e.gap, 6, 0, 40), radius: num(e.radius == null ? 3 : e.radius, 3, 0, 60), skew: e.skew !== false, color: color(e.color, team ? 'team1' : 'team0') });
+    } else if (e.type === 'board') {
+      Object.assign(out, {
+        font: pick(e.font, FONTS, 'Barlow Condensed'),
+        weight: num(Math.round(Number(e.weight) / 100) * 100, 800, 100, 900),
+        size: num(e.size, 24, 8, 80),
+        color: color(e.color, 'white'),
+        rowH: num(e.rowH, 48, 20, 160),
+        fill: color(e.fill, 'white'),
+        fillOpacity: num(e.fillOpacity == null ? 0 : e.fillOpacity, 0, 0, 1, false),
+        stripe: num(e.stripe == null ? 6 : e.stripe, 6, 0, 30),
+        lines: num(e.lines == null ? 0.12 : e.lines, 0.12, 0, 1, false),
+        header: e.header !== false,
+      });
     }
     return out;
   }
@@ -146,6 +232,8 @@
       width: num(comp.width, 1000, LIMITS.minW, LIMITS.maxW),
       height: num(comp.height, 220, LIMITS.minH, LIMITS.maxH),
       ...(ENTER.includes(comp.enter) ? { enter: comp.enter } : {}),
+      // compteur « Boost » : tout ce qui est à moins de cet écart de la jauge du jeu est découpé (la plaque épouse la jauge)
+      ...(comp.gaugeGap != null && Number.isFinite(Number(comp.gaugeGap)) ? { gaugeGap: num(comp.gaugeGap, 12, 0, 80) } : {}),
       elements: comp.elements.map((e, i) => cleanElement(e, i, seen)).filter(Boolean),
     };
   }
@@ -240,6 +328,152 @@
       mvp: false,
     };
     return alert ? Object.assign(d, alertFields(alert, tr)) : d;
+  }
+
+  // Les couleurs d'équipe du jeu sont sombres : un peu éclaircies pour l'écran
+  function brighten(hex, k = 0.12) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+    if (!m) return '';
+    return `#${[0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)).map((v) => Math.min(255, Math.round(v + (255 - v) * k)).toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  // Overlay caster. st : l'état du mode caster tel que l'app l'envoie ({ match, series, options }).
+  // now : ce qui est à l'écran en ce moment et que l'état ne dit pas : { goal, feed, post, hide }
+  //   goal  le but dont la bannière est affichée ({ team, scorer, assister, speed })
+  //   feed  l'action du statfeed affichée ({ label, team, main, secondary })
+  //   post  le tableau final est affiché
+  //   hide  blocs masqués par l'adresse de l'overlay : bug, boosts, target, goals, feed, post
+  function casterData(st, tr = (k) => k, now = {}) {
+    const m = (st && st.match) || {};
+    const ser = (st && st.series) || {};
+    const o = (st && st.options) || {};
+    const teams = [0, 1].map((n) => (m.teams || []).find((t) => t.num === n) || { num: n, name: '', score: 0 });
+    const players = Array.isArray(m.players) ? m.players : [];
+    const tp = m.target ? players.find((p) => p.key === m.target) : null;
+    const series = o.showSeries !== false && ser.bestOf > 1;
+    const goal = o.showGoals !== false && now.goal ? now.goal : null;
+    const feed = o.showFeed !== false && now.feed ? now.feed : null;
+    const decided = m.winner === 0 || m.winner === 1;
+    const post = !!now.post && !!m.ended && decided && o.showPostgame !== false;
+    const wins = Array.isArray(ser.wins) ? ser.wins : [0, 0];
+    const done = decided && ser.bestOf > 1 && wins[m.winner] >= ser.need;
+    const mph = o.speedUnit === 'mph';
+    const sorted = [...players].sort((a, b) => a.team - b.team || (b.score || 0) - (a.score || 0));
+    const best = Math.max(0, ...sorted.map((p) => p.score || 0));
+    const n = (v) => String(Number(v) || 0);
+    const def = ['#1873ff', '#ff7a1a'];
+    return Object.assign(dataFrom(null, {}, tr), {
+      caster: true,
+      hide: Array.isArray(now.hide) ? now.hide : [],
+      inMatch: !!m.active,
+      overtime: !!m.overtime,
+      replay: !!m.replay,
+      ended: !!m.ended,
+      teamName0: teams[0].name || '',
+      teamName1: teams[1].name || '',
+      teamScore0: n(teams[0].score),
+      teamScore1: n(teams[1].score),
+      teamLogo0: teams[0].logo || '',
+      teamLogo1: teams[1].logo || '',
+      teamColor0: (teams[0].color && teams[0].color !== '#' && brighten(teams[0].color)) || def[0],
+      teamColor1: (teams[1].color && teams[1].color !== '#' && brighten(teams[1].color)) || def[1],
+      matchClock: fmtClock(Number(m.time) || 0, !!m.overtime),
+      clockNote: m.replay ? tr('c.replay') : m.ended ? tr('c.final') : m.overtime ? tr('c.ot') : '',
+      series,
+      seriesTitle: ser.title || '',
+      seriesInfo: series ? `${tr('c.game', { n: ser.game })} · ${tr('c.bestOf', { n: ser.bestOf })}` : '',
+      // titre et série sur une ligne, comme sous le tableau des scores
+      seriesLine: [ser.title || '', series ? `${tr('c.game', { n: ser.game })} · ${tr('c.bestOf', { n: ser.bestOf })}` : ''].filter(Boolean).join(' · '),
+      seriesNeed: series ? Math.max(1, Math.min(4, Number(ser.need) || 1)) : 0,
+      seriesWins0: n(wins[0]),
+      seriesWins1: n(wins[1]),
+      // boost des joueurs, équipe par équipe
+      boosts: o.showBoosts !== false,
+      roster: [0, 1].map((t) => players.filter((p) => p.team === t).map((p) => ({ key: p.key, name: p.name || '', boost: Math.max(0, Math.min(100, Math.round(Number(p.boost) || 0))), dead: !!p.demolished, fast: !!p.supersonic, target: p.key === m.target }))),
+      demolished: tr('c.demolished'),
+      // joueur suivi par la caméra
+      target: !!tp && o.showTarget !== false && !m.replay && !m.ended,
+      targetTeam: tp ? tp.team : null,
+      tgName: tp ? tp.name || '' : '',
+      tgTeam: tp && teams[tp.team] ? teams[tp.team].name || '' : '',
+      tgBoost: tp ? Math.max(0, Math.min(100, Math.round(Number(tp.boost) || 0))) : 0,
+      tgPhoto: tp ? tp.photo || '' : '',
+      tgScore: tp ? n(tp.score) : '',
+      tgGoals: tp ? n(tp.goals) : '',
+      tgAssists: tp ? n(tp.assists) : '',
+      tgSaves: tp ? n(tp.saves) : '',
+      tgShots: tp ? n(tp.shots) : '',
+      tgDemos: tp ? n(tp.demos) : '',
+      // bannière de but
+      goal: !!goal,
+      goalTeam: goal ? (Number(goal.team) === 1 ? 1 : 0) : null,
+      goalScorer: goal ? goal.scorer || '' : '',
+      goalAssist: goal && goal.assister ? tr('c.assist', { n: goal.assister }) : '',
+      goalSpeed: goal && goal.speed > 0 ? `${Math.round(mph ? goal.speed * 0.621371 : goal.speed)} ${tr(mph ? 'c.mph' : 'c.kmh')}` : '',
+      // action du statfeed
+      feed: !!feed,
+      feedTeam: feed ? (Number(feed.team) === 1 ? 1 : 0) : null,
+      feedLabel: feed ? feed.label || '' : '',
+      feedText: feed ? `${feed.main || ''}${feed.secondary ? ` → ${feed.secondary}` : ''}` : '',
+      // tableau final
+      post,
+      winner: decided ? m.winner : null,
+      finalScore: `${n(teams[0].score)} - ${n(teams[1].score)}`,
+      winnerLine: decided && m.ended ? tr(done ? 'c.seriesWin' : 'c.wins', { n: teams[m.winner].name || '' }) : '',
+      board: sorted.map((p) => ({ name: p.name || '', team: p.team === 1 ? 1 : 0, photo: p.photo || '', mvp: !!m.mvp && p.key === m.mvp, best: best > 0 && (p.score || 0) === best, cells: [p.score, p.goals, p.assists, p.saves, p.shots, p.demos].map(n) })),
+      boardCols: ['c.score', 'c.goals', 'c.assists', 'c.saves', 'c.shots', 'c.demos'].map((k) => tr(k)),
+    });
+  }
+
+  // Une partie d'exemple vue par l'overlay caster : live (en jeu), goal (but, ralenti), overtime, post (tableau final)
+  function sampleCaster(kind = 'live', tr = (k) => k) {
+    const names = [['Nova', 'Flick', 'Kuro'], ['Blaze', 'Echo', 'Rift']];
+    const mk = (team, name, i) => ({ key: `${team}:${name}`, name, team, boost: [72, 100, 34, 58, 12, 86][i], supersonic: i === 1, demolished: i === 4, score: 520 - i * 70, goals: [2, 1, 0, 1, 0, 0][i], shots: [4, 3, 1, 3, 2, 1][i], assists: [0, 1, 1, 0, 1, 0][i], saves: [1, 0, 3, 2, 1, 2][i], demos: i % 2 });
+    const post = kind === 'post';
+    const ot = kind === 'overtime';
+    const st = {
+      match: {
+        active: true,
+        time: ot ? 37 : post ? 0 : 187,
+        overtime: ot,
+        replay: kind === 'goal',
+        ended: post,
+        winner: post ? 0 : null,
+        mvp: '0:Nova',
+        target: '0:Flick',
+        teams: [
+          { num: 0, name: 'Nova Esports', score: ot ? 2 : 3, color: '#1873ff' },
+          { num: 1, name: 'Apex Rising', score: ot ? 2 : 1, color: '#c26418' },
+        ],
+        players: [...names[0].map((p, i) => mk(0, p, i)), ...names[1].map((p, i) => mk(1, p, i + 3))],
+      },
+      series: { title: 'RL-UI Cup', bestOf: 5, need: 3, wins: [post ? 3 : 2, 1], game: 4 },
+      options: {},
+    };
+    return casterData(st, tr, {
+      goal: kind === 'goal' ? { team: 0, scorer: 'Nova', assister: 'Kuro', speed: 118 } : null,
+      feed: kind === 'live' || ot ? { label: tr('c.epicSave'), team: 0, main: 'Kuro' } : kind === 'goal' ? { label: tr('c.demoFeed'), team: 1, main: 'Blaze', secondary: 'Flick' } : null,
+      post,
+    });
+  }
+
+  // Situations d'aperçu de chaque overlay (éditeur, galerie) : « a:… » une alerte de ce type, « c:… » un moment de la partie castée
+  const SAMPLES = {
+    counter: ['idle', 'match', 'overtime', 'cold', 'empty'],
+    boost: ['match', 'overtime', 'idle', 'cold', 'empty'],
+    alerts: ['a:win', 'a:loss', 'a:overtime', 'a:ot_win', 'a:ot_loss', 'a:streak'],
+    history: ['idle', 'cold', 'empty'],
+    summary: ['idle', 'cold', 'empty'],
+    caster: ['c:live', 'c:goal', 'c:overtime', 'c:post'],
+  };
+  function sampleFor(kind, key, tr = (k) => k) {
+    const k = String(key || '');
+    if (k.startsWith('a:')) return { ...sample('idle', tr), ...alertFields(sampleAlert(k.slice(2), tr), tr) };
+    if (k.startsWith('c:')) return sampleCaster(k.slice(2), tr);
+    const d = sample(k, tr);
+    // compteur « Boost » : la couleur de ton équipe (dans l'overlay, elle est neutre entre deux parties)
+    if (kind === 'boost') d.teamColor = '#ff7f22';
+    return d;
   }
 
   // Jeux de données d'exemple, pour l'éditeur et les aperçus
@@ -344,13 +578,40 @@
         return { text: sign(d.goalDiff), tone: d.goalDiff > 0 ? 'win' : d.goalDiff < 0 ? 'loss' : '' };
       case 'player':
         return { text: d.player, tone: '' };
+      // ---- caster
+      case 'matchClock':
+        return { text: d.matchClock || '', tone: d.overtime ? 'ot' : '' };
+      case 'clockNote':
+        return { text: d.clockNote || '', tone: d.replay ? 'loss' : d.overtime ? 'ot' : '' };
+      case 'tgBoost':
+        return { text: d.caster ? String(d.tgBoost) : '', tone: '' };
       default:
+        if (CASTER_BINDS.includes(bind)) return { text: d[bind] == null ? '' : String(d[bind]), tone: '' };
         return { text: '', tone: '' };
     }
   }
 
   function visible(when, d) {
+    // caster : un bloc masqué par l'adresse de l'overlay emporte tous ses éléments
+    if (d.caster && d.hide.length && d.hide.includes(CASTER_PART[when])) return false;
     switch (when) {
+      case 'replay':
+        return !!d.replay;
+      case 'ended':
+        return !!d.ended;
+      case 'series':
+        // (la série, ou seulement un titre : la ligne sous le tableau des scores a quelque chose à dire)
+        return !!d.series || !!d.seriesLine;
+      case 'boosts':
+        return !!d.boosts;
+      case 'target':
+        return !!d.target;
+      case 'goal':
+        return d.goal === true;
+      case 'feed':
+        return !!d.feed;
+      case 'post':
+        return !!d.post;
       case 'match':
         return d.inMatch;
       case 'idle':
@@ -386,17 +647,24 @@
 
   // Couleur de l'alerte affichée : celle du jeton « event »
   const eventTone = (alert) => (alert === 'loss' || alert === 'ot_loss' ? 'loss' : alert === 'overtime' || alert === 'streak' ? 'ot' : 'win');
+  // Caster : équipe (0, 1 ou null) qui donne sa couleur « event » à un élément, d'après sa condition
+  const eventTeam = (when, d) => (when === 'target' ? d.targetTeam : when === 'goal' ? d.goalTeam : when === 'feed' ? d.feedTeam : when === 'post' || when === 'ended' ? d.winner : null);
 
-  const api = { FORMAT, TYPES, FONTS, KINDS, SIZES, BINDS, BINDS_FOR, WHEN, WHEN_FOR, ENTER, TOKENS, LIMITS, clean, cleanElement, images, imagePath, dataFrom, alertFields, sample, sampleAlert, valueOf, visible, eventTone };
+  const api = { FORMAT, TYPES, TYPES_FOR, FONTS, KINDS, SIZES, GAUGE, BINDS, BINDS_FOR, CASTER_GROUPS, IMAGE_BINDS, ARC_BINDS, ARC_BINDS_FOR, WHEN, WHEN_FOR, ENTER, TOKENS, TOKENS_FOR, LIMITS, SAMPLES, clean, cleanElement, images, imagePath, dataFrom, alertFields, casterData, sample, sampleAlert, sampleCaster, sampleFor, valueOf, visible, eventTone, eventTeam };
 
   // ------------------------------------------------------------------ affichage (pages seulement)
   if (typeof document !== 'undefined') {
     // « event » suit la couleur de l'alerte affichée (posée sur la composition : --event) ; hors alerte, c'est celle de la victoire
     const TONES = { win: 'var(--win)', loss: 'var(--loss)', ot: 'var(--ot)', hot: '#ffcf5a', cold: '#8fbcff', event: 'var(--event, var(--win))' };
+    // couleur avec une opacité (fond d'une ligne de joueur, d'une ligne du tableau)
+    const cssA = (c, a) => (a >= 1 ? css(c) : `color-mix(in srgb, ${css(c)} ${Math.round(a * 100)}%, transparent)`);
     const css = (c, tone) => {
       if (c === 'auto') return TONES[tone] || '#ffffff';
       if (c === 'event') return TONES.event;
       if (c === 'win' || c === 'loss' || c === 'ot') return `var(--${c})`;
+      if (c === 'team') return 'var(--team, #cfd8e3)';
+      if (c === 'team0') return 'var(--team0, #1873ff)';
+      if (c === 'team1') return 'var(--team1, #ff7a1a)';
       if (c === 'white') return '#ffffff';
       if (c === 'black') return '#000000';
       return c;
@@ -419,6 +687,41 @@
 .cmp-res i.rn { background: rgba(255, 255, 255, 0.12); }
 .cmp-bar { display: flex; overflow: hidden; }
 .cmp-bar i { display: block; flex: 0 0 auto; transition: flex-basis 0.5s ease; }
+.cmp-arc svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; display: block; }
+.cmp-arc path { fill: none; }
+.cmp-gauge { position: absolute; pointer-events: none; }
+.cmp-gauge svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.cmp-gauge .cmp-g-core { fill: rgba(0, 0, 0, 0.35); stroke: rgba(255, 255, 255, 0.35); stroke-width: 1.5; }
+.cmp-gauge .cmp-g-ring { fill: none; stroke: var(--team, #ff7f22); stroke-width: 3; opacity: 0.55; }
+.cmp-gauge .cmp-g-seg { fill: none; stroke: var(--team, #ff7f22); stroke-width: 15; stroke-dasharray: 7 3; opacity: 0.9; }
+.cmp-gauge text { fill: var(--team, #ff7f22); font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-style: italic; }
+.cmp-show { animation: cmp-show 0.3s ease-out; }
+.cmp-el.cmp-hide { opacity: 0 !important; transition: opacity 0.22s ease-in; }
+@keyframes cmp-show { from { opacity: 0; } }
+.cmp-players { display: flex; flex-direction: column; line-height: 1; }
+.cmp-pl { position: relative; box-sizing: border-box; flex: none; display: flex; flex-direction: column; justify-content: center; padding: 0 12px; overflow: hidden; outline: 2px solid transparent; outline-offset: -2px; transition: opacity 0.25s, outline-color 0.25s; }
+.cmp-pl.cmp-tgt { outline-color: rgba(255, 255, 255, 0.85); }
+.cmp-pl.cmp-dead { opacity: 0.45; }
+.cmp-pl-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cmp-pl.cmp-r .cmp-pl-top { flex-direction: row-reverse; }
+.cmp-pl-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.cmp-pl-bv { font-size: 1.1em; font-weight: 900; font-variant-numeric: tabular-nums; }
+.cmp-pl-bv.cmp-dm { font-size: 0.6em; letter-spacing: 0.12em; color: #ff5a6a; }
+.cmp-pl-bar { margin-top: 5px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.cmp-pl-bar i { display: block; height: 100%; width: 0; background: var(--tc); transition: width 0.2s linear; }
+.cmp-pl.cmp-r .cmp-pl-bar i { margin-left: auto; }
+.cmp-pl.cmp-fast .cmp-pl-bar i { background: color-mix(in srgb, var(--tc) 55%, white 45%); }
+.cmp-pips { display: flex; }
+.cmp-pips i { flex: 1 1 0; min-width: 0; background: rgba(255, 255, 255, 0.14); }
+.cmp-pips.cmp-skew i { transform: skewX(-20deg); }
+.cmp-board { display: flex; flex-direction: column; line-height: 1; font-variant-numeric: tabular-nums; }
+.cmp-bd-hr, .cmp-bd-rw { box-sizing: border-box; flex: none; display: grid; grid-template-columns: minmax(0, 1fr) repeat(6, 11%); align-items: center; }
+.cmp-bd-hr { font-size: 0.55em; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.5; }
+.cmp-board span { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cmp-bd-rw > span:first-child { display: flex; align-items: center; gap: 10px; text-align: left; padding-left: 24px; }
+.cmp-bd-rw.cmp-best { background-image: linear-gradient(rgba(255, 211, 90, 0.08), rgba(255, 211, 90, 0.08)); }
+.cmp-board img { flex: none; width: 1.25em; height: 1.25em; border-radius: 50%; object-fit: cover; }
+.cmp-board b { flex: none; font-size: 0.55em; padding: 3px 8px; border-radius: 6px; background: #ffd35a; color: #1b1000; font-weight: 900; letter-spacing: 0.1em; }
 .cmp.in-slide { animation: cmp-in-slide 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .cmp.in-rise { animation: cmp-in-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .cmp.in-pop { animation: cmp-in-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.35) both; }
@@ -429,7 +732,7 @@
 @keyframes cmp-in-pop { from { transform: scale(0.88); opacity: 0; } }
 @keyframes cmp-in-fade { from { opacity: 0; } }
 @keyframes cmp-out { to { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .cmp-pop > span { animation: none; } .cmp-bar i { transition: none; } .cmp.in-slide, .cmp.in-rise, .cmp.in-pop { animation-name: cmp-in-fade; } }`;
+@media (prefers-reduced-motion: reduce) { .cmp-show { animation: none; } .cmp-pop > span { animation: none; } .cmp-bar i { transition: none; } .cmp.in-slide, .cmp.in-rise, .cmp.in-pop { animation-name: cmp-in-fade; } }`;
 
     function ensureStyle() {
       if (document.getElementById('cmp-style')) return;
@@ -467,9 +770,26 @@
 
     const NS = 'http://www.w3.org/2000/svg';
 
+    // Tracé d'un arc inscrit dans w × h (trait d'épaisseur th), de l'angle a0 à a1 : 0 en haut, sens des aiguilles d'une montre
+    function arcPath(w, h, th, a0, a1) {
+      const rx = Math.max(0.5, w / 2 - th / 2);
+      const ry = Math.max(0.5, h / 2 - th / 2);
+      const pt = (a) => {
+        const r = ((a - 90) * Math.PI) / 180;
+        return `${(w / 2 + rx * Math.cos(r)).toFixed(2)} ${(h / 2 + ry * Math.sin(r)).toFixed(2)}`;
+      };
+      const span = a1 - a0;
+      const cw = span >= 0 ? 1 : 0;
+      // tour complet : deux demi-arcs (un arc qui revient à son point de départ ne se dessine pas)
+      if (Math.abs(span) >= 359.99) return `M${pt(a0)} A${rx} ${ry} 0 1 ${cw} ${pt(a0 + 180)} A${rx} ${ry} 0 1 ${cw} ${pt(a0)}`;
+      return `M${pt(a0)} A${rx} ${ry} 0 ${Math.abs(span) > 180 ? 1 : 0} ${cw} ${pt(a1)}`;
+    }
+    const arcLength = (w, h, th, a0, a1) => ((Math.min(360, Math.abs(a1 - a0)) * Math.PI) / 180) * Math.sqrt(((w / 2 - th / 2) ** 2 + (h / 2 - th / 2) ** 2) / 2);
+    const cssUrl = (u) => `url("${String(u).replace(/["\\\n]/g, encodeURIComponent)}")`;
+
     function build(e, opts) {
       const el = document.createElement('div');
-      el.className = `cmp-el cmp-${e.type === 'value' ? 'txt cmp-value' : e.type === 'text' ? 'txt' : e.type === 'image' ? 'img' : e.type === 'results' ? 'res' : e.type}`;
+      el.className = `cmp-el cmp-${e.type === 'value' ? 'txt cmp-value' : e.type === 'text' ? 'txt' : e.type === 'image' ? 'img' : e.type === 'results' ? 'res' : e.type}${e.type === 'pips' && e.skew ? ' cmp-skew' : ''}`;
       el.dataset.id = e.id;
       const st = el.style;
       st.left = `${e.x}px`;
@@ -514,7 +834,8 @@
         span.textContent = e.type === 'text' ? e.text : '';
         el.appendChild(span);
       } else if (e.type === 'image') {
-        if (e.src) st.backgroundImage = `url("${(opts.imageUrl || ((s) => s))(e.src).replace(/"/g, '%22')}")`;
+        // (une image liée — logo d'équipe, photo du joueur — vient de l'app : elle est posée à chaque mise à jour)
+        if (e.src && !e.bind) st.backgroundImage = `url("${(opts.imageUrl || ((s) => s))(e.src).replace(/"/g, '%22')}")`;
         st.backgroundSize = e.fit === 'fill' ? '100% 100%' : e.fit;
         st.borderRadius = `${e.radius}px`;
       } else if (e.type === 'results') {
@@ -531,8 +852,163 @@
           i.style.background = css(e[`color${k}`]);
           el.appendChild(i);
         }
+      } else if (e.type === 'arc') {
+        const s = document.createElementNS(NS, 'svg');
+        s.setAttribute('viewBox', `0 0 ${e.w} ${e.h}`);
+        const len = arcLength(e.w, e.h, e.thickness, e.from, e.to);
+        // deux tracés : le fond (arc entier, estompé) quand l'arc suit une valeur, puis l'arc lui-même
+        for (const k of ['track', 'fg']) {
+          if (k === 'track' && !(e.bind && e.track > 0)) continue;
+          const p = document.createElementNS(NS, 'path');
+          p.setAttribute('class', `cmp-arc-${k}`);
+          p.setAttribute('d', arcPath(e.w, e.h, e.thickness, e.from, e.to));
+          p.setAttribute('stroke', css(e.color));
+          p.setAttribute('stroke-width', String(e.thickness));
+          if (k === 'track') p.setAttribute('stroke-opacity', String(e.track));
+          if (e.ticks > 0) p.setAttribute('stroke-dasharray', `${e.tickW} ${e.ticks > 1 ? Math.max(0.1, (len - e.tickW * e.ticks) / (e.ticks - 1)) : len + 1}`);
+          else if (e.cap === 'round') p.setAttribute('stroke-linecap', 'round');
+          s.appendChild(p);
+        }
+        el.appendChild(s);
+      } else if (e.type === 'players') {
+        st.gap = `${e.gap}px`;
+        st.fontFamily = `'${e.font}', sans-serif`;
+        st.fontWeight = String(e.weight);
+        st.fontSize = `${e.size}px`;
+        st.color = css(e.color);
+        st.setProperty('--tc', `var(--team${e.team})`);
+      } else if (e.type === 'pips') {
+        st.gap = `${e.gap}px`;
+      } else if (e.type === 'board') {
+        st.fontFamily = `'${e.font}', sans-serif`;
+        st.fontWeight = String(e.weight);
+        st.fontSize = `${e.size}px`;
+        st.color = css(e.color);
       }
       return el;
+    }
+
+    // Caster : les joueurs d'une équipe et leur boost. Les lignes ne sont refaites que si la liste des joueurs change.
+    function updatePlayers(n, e, d) {
+      const list = d.caster && d.boosts ? d.roster[e.team] || [] : [];
+      const sig = list.map((p) => `${p.key}\u0001${p.name}`).join('\u0002');
+      if (n.dataset.sig !== sig) {
+        n.dataset.sig = sig;
+        n.textContent = '';
+        for (const p of list) {
+          const row = document.createElement('div');
+          row.className = `cmp-pl${e.side === 'right' ? ' cmp-r' : ''}`;
+          row.style.height = `${e.rowH}px`;
+          row.style.borderRadius = `${e.radius}px`;
+          row.style.background = cssA(e.fill, e.fillOpacity);
+          if (e.stripe > 0) row.style[e.side === 'right' ? 'borderRight' : 'borderLeft'] = `${e.stripe}px solid var(--tc)`;
+          const top = document.createElement('div');
+          top.className = 'cmp-pl-top';
+          const nm = document.createElement('span');
+          nm.className = 'cmp-pl-nm';
+          nm.textContent = p.name;
+          const bv = document.createElement('span');
+          bv.className = 'cmp-pl-bv';
+          top.append(nm, bv);
+          row.appendChild(top);
+          if (e.barH > 0) {
+            const bar = document.createElement('div');
+            bar.className = 'cmp-pl-bar';
+            bar.style.height = `${e.barH}px`;
+            bar.appendChild(document.createElement('i'));
+            row.appendChild(bar);
+          }
+          n.appendChild(row);
+        }
+      }
+      list.forEach((p, i) => {
+        const row = n.children[i];
+        row.classList.toggle('cmp-tgt', p.target);
+        row.classList.toggle('cmp-dead', p.dead);
+        row.classList.toggle('cmp-fast', p.fast);
+        const bv = row.firstChild.lastChild;
+        const txt = p.dead ? d.demolished : String(p.boost);
+        if (bv.textContent !== txt) bv.textContent = txt;
+        bv.classList.toggle('cmp-dm', p.dead);
+        if (e.barH > 0) row.lastChild.firstChild.style.width = `${p.boost}%`;
+      });
+    }
+
+    // Caster : les manches gagnées d'une équipe (autant de cases que de manches à gagner)
+    function updatePips(n, e, d) {
+      const need = d.caster ? d.seriesNeed : 0;
+      const wins = Number(d[`seriesWins${e.team}`]) || 0;
+      const sig = `${need}|${wins}`;
+      if (n.dataset.sig === sig) return;
+      n.dataset.sig = sig;
+      n.textContent = '';
+      for (let i = 0; i < need; i++) {
+        const c = document.createElement('i');
+        c.style.borderRadius = `${e.radius}px`;
+        if (i < wins) c.style.background = css(e.color);
+        n.appendChild(c);
+      }
+    }
+
+    // Caster : le tableau des joueurs en fin de partie
+    function updateBoard(n, e, d) {
+      const rows = d.caster ? d.board : [];
+      const sig = JSON.stringify([rows, d.boardCols]);
+      if (n.dataset.sig === sig) return;
+      n.dataset.sig = sig;
+      n.textContent = '';
+      const cell = (txt) => {
+        const s = document.createElement('span');
+        s.textContent = txt;
+        return s;
+      };
+      if (e.header && rows.length) {
+        const hr = document.createElement('div');
+        hr.className = 'cmp-bd-hr';
+        hr.style.height = `${Math.round(e.rowH * 0.8)}px`;
+        hr.append(cell(''), ...d.boardCols.map(cell));
+        n.appendChild(hr);
+      }
+      for (const p of rows) {
+        const rw = document.createElement('div');
+        rw.className = `cmp-bd-rw${p.best ? ' cmp-best' : ''}`;
+        rw.style.height = `${e.rowH}px`;
+        rw.style.backgroundColor = cssA(e.fill, e.fillOpacity);
+        rw.style.borderTop = `1px solid rgba(255, 255, 255, ${e.lines})`;
+        if (e.stripe > 0) rw.style.borderLeft = `${e.stripe}px solid var(--team${p.team})`;
+        const who = document.createElement('span');
+        if (p.photo) {
+          const im = document.createElement('img');
+          im.src = p.photo;
+          im.alt = '';
+          who.appendChild(im);
+        }
+        who.appendChild(document.createTextNode(p.name));
+        if (p.mvp) {
+          const b = document.createElement('b');
+          b.textContent = 'MVP';
+          who.appendChild(b);
+        }
+        rw.append(who, ...p.cells.map(cell));
+        n.appendChild(rw);
+      }
+    }
+
+    // La jauge de boost du jeu, dessinée là où elle est à l'écran par rapport à la toile d'un compteur « Boost » :
+    // un décor pour l'éditeur et les aperçus (à poser sous la composition, dans le même repère). Rien de tel dans l'overlay.
+    function gauge(comp, color) {
+      ensureStyle();
+      const D = GAUGE.radius * 2;
+      const c = GAUGE.radius;
+      const g = document.createElement('div');
+      g.className = 'cmp-gauge';
+      g.style.left = `${comp.width - GAUGE.right - c}px`;
+      g.style.top = `${comp.height - GAUGE.bottom - c}px`;
+      g.style.width = g.style.height = `${D}px`;
+      if (color) g.style.setProperty('--team', color);
+      const pt = (r, a) => `${(c + r * Math.cos((a * Math.PI) / 180)).toFixed(1)} ${(c + r * Math.sin((a * Math.PI) / 180)).toFixed(1)}`;
+      g.innerHTML = `<svg viewBox="0 0 ${D} ${D}"><circle class="cmp-g-core" cx="${c}" cy="${c}" r="94"/><path class="cmp-g-seg" d="M ${pt(106, 100)} A 106 106 0 0 1 ${pt(106, 232)}"/><circle class="cmp-g-ring" cx="${c}" cy="${c}" r="94"/><text x="${c + 4}" y="${c + 16}" text-anchor="middle" font-size="68">54</text><text x="${c}" y="${c + 44}" text-anchor="middle" font-size="17" font-style="normal">BOOST</text></svg>`;
+      return g;
     }
 
     // Charge les polices dont une composition a besoin (au plus 1,5 s d'attente). À appeler avant d'afficher une alerte :
@@ -564,7 +1040,16 @@
       el.className = 'cmp';
       el.style.width = `${comp.width}px`;
       el.style.height = `${comp.height}px`;
+      // compteur « Boost » : la toile est percée autour de la jauge du jeu
+      if (comp.gaugeGap != null) {
+        const r = GAUGE.radius + comp.gaugeGap;
+        const mask = `radial-gradient(circle at ${comp.width - GAUGE.right}px ${comp.height - GAUGE.bottom}px, transparent ${r - 0.5}px, #000 ${r + 0.5}px)`;
+        el.style.webkitMaskImage = mask;
+        el.style.maskImage = mask;
+      }
       const nodes = new Map();
+      const shown = new Map(); // élément -> était-il visible à la mise à jour précédente
+      const hiding = new Map();
       for (const e of comp.elements) {
         const n = build(e, opts);
         nodes.set(e.id, n);
@@ -586,13 +1071,58 @@
         // couleur de l'alerte affichée, pour les éléments de couleur « event »
         if (d.alert) el.style.setProperty('--event', `var(--${eventTone(d.alert)})`);
         else el.style.removeProperty('--event');
+        // couleurs d'équipe : la tienne (compteur « Boost »), les deux du match (caster)
+        if (d.teamColor) el.style.setProperty('--team', d.teamColor);
+        else el.style.removeProperty('--team');
+        if (d.caster) {
+          el.style.setProperty('--team0', d.teamColor0);
+          el.style.setProperty('--team1', d.teamColor1);
+        }
         for (const e of comp.elements) {
           const n = nodes.get(e.id);
           // dans l'éditeur, un élément conditionnel reste visible (estompé) pour pouvoir être sélectionné
           const on = !e.hidden && visible(e.when, d);
-          n.classList.toggle('cmp-off', !on && !opts.editing);
           if (opts.editing) n.classList.toggle('cmp-ghost', !on);
-          if (e.type === 'value') {
+          else if (first || opts.animate === false) n.classList.toggle('cmp-off', !on);
+          else if (on !== shown.get(e.id)) {
+            // un élément qui apparaît ou disparaît en cours de route le fait en fondu
+            clearTimeout(hiding.get(e.id));
+            n.classList.remove('cmp-show', 'cmp-hide');
+            if (on) {
+              n.classList.remove('cmp-off');
+              void n.offsetWidth;
+              n.classList.add('cmp-show');
+            } else {
+              n.classList.add('cmp-hide');
+              hiding.set(e.id, setTimeout(() => {
+                n.classList.add('cmp-off');
+                n.classList.remove('cmp-hide');
+              }, 230));
+            }
+          }
+          shown.set(e.id, on);
+          if (d.caster) {
+            const tm = eventTeam(e.when, d);
+            if (tm === 0 || tm === 1) n.style.setProperty('--event', `var(--team${tm})`);
+            else n.style.setProperty('--event', '#ffffff');
+          }
+          if (e.type === 'image' && e.bind) {
+            const u = d[e.bind] || '';
+            if (n.dataset.src !== u) {
+              n.dataset.src = u;
+              n.style.backgroundImage = u ? cssUrl(u) : 'none';
+            }
+          } else if (e.type === 'arc') {
+            if (e.bind) {
+              const p = Math.max(0, Math.min(100, Number(d[e.bind]) || 0)) / 100;
+              const fg = n.querySelector('.cmp-arc-fg');
+              fg.setAttribute('d', arcPath(e.w, e.h, e.thickness, e.from, e.from + (e.to - e.from) * p));
+              fg.style.visibility = p > 0 ? 'visible' : 'hidden';
+            }
+          } else if (e.type === 'players' || e.type === 'pips' || e.type === 'board') {
+            // (un bloc qui n'est pas à l'écran n'est pas tenu à jour : le boost des joueurs change vingt fois par seconde)
+            if (on || opts.editing) (e.type === 'players' ? updatePlayers : e.type === 'pips' ? updatePips : updateBoard)(n, e, d);
+          } else if (e.type === 'value') {
             const v = valueOf(e.bind, d);
             const text = v.text === '' ? '' : `${e.prefix}${v.text}${e.suffix}`;
             const span = n.firstChild;
@@ -649,6 +1179,7 @@
 
     api.mount = mount;
     api.loadFonts = loadFonts;
+    api.gauge = gauge;
     api.boxPath = boxPath;
     api.cssColor = css;
   }
