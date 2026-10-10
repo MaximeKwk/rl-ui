@@ -111,8 +111,13 @@ class Market {
     if (!Array.isArray(d.market.favorites)) d.market.favorites = [];
   }
 
+  // Adresse du catalogue : celle du site officiel, sauf essai (réglage market.url, ou variable RLUI_MARKET au lancement)
+  get custom() {
+    return (this.store.settings.market && this.store.settings.market.url) || process.env.RLUI_MARKET || '';
+  }
+
   get url() {
-    return (this.store.settings.market && this.store.settings.market.url) || defaultUrl();
+    return this.custom || defaultUrl();
   }
 
   async _get(url, limit, opts = {}) {
@@ -185,7 +190,7 @@ class Market {
     try {
       host = new URL(this.url).host;
     } catch {}
-    return { ok: cat.ok, error: cat.error || '', themes, site: cat.site || '', submit: cat.submit || '', host, official: !(this.store.settings.market && this.store.settings.market.url), appVersion: this.version, fetchedAt: cat.fetchedAt };
+    return { ok: cat.ok, error: cat.error || '', themes, site: cat.site || '', submit: cat.submit || '', host, official: !this.custom, appVersion: this.version, fetchedAt: cat.fetchedAt };
   }
 
   // Télécharge un thème du catalogue, vérifie chaque fichier (taille, empreinte), contrôle le thème, puis l'installe.
