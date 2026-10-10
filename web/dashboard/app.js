@@ -407,6 +407,7 @@
     // Thèmes
     $('#themeGrid').addEventListener('click', onThemeClick);
     bindThemeNew();
+    $('#supportBtn').addEventListener('click', () => D.donate && window.RLUI.openUrl(D.donate));
     $('#cmpEdit').addEventListener('click', () => {
       const th = activeTheme();
       if (th) location.href = `${editorUrl(th.id)}${D.settings.overlay.layout === 'boost' ? '&overlay=boost' : ''}`;
@@ -1898,6 +1899,7 @@
       applyTheme(D.settings.app.theme);
     }
     renderChips();
+    $('#supportLine').classList.toggle('hidden', !D.donate);
     if (changed('setup', [D.status.rlConfig, D.status.logFound, D.status.overlays])) renderSetup();
     if (changed('identity', D.live && D.live.needsIdentity ? D.live.players : null)) renderIdentity();
     renderLive();

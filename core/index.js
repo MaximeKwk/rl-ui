@@ -34,6 +34,8 @@ const i18n = require('./i18n');
 const { t: tr, tn } = i18n;
 
 const SOUND_EXT = new Set(['mp3', 'wav', 'ogg', 'm4a']);
+// Page de dons du développeur (un pourboire libre : RL-UI reste gratuit, rien n'est réservé aux donateurs)
+const DONATE_URL = 'https://ko-fi.com/maximekwk';
 
 class Core extends EventEmitter {
   constructor({ dataDir, documentsDir, webDir, logPath, version = '1.0.0', hooks = {} }) {
@@ -623,6 +625,11 @@ class Core extends EventEmitter {
     };
   }
 
+  // (pas de lien de don dans la version du Microsoft Store : ses règles encadrent les paiements proposés depuis une app)
+  donateUrl() {
+    return this.hooks.noDonate ? null : DONATE_URL;
+  }
+
   dashboardState() {
     const s = this.store.settings;
     const all = this.store.data.matches;
@@ -630,6 +637,7 @@ class Core extends EventEmitter {
     delete allStats.last;
     return {
       version: this.version,
+      donate: this.donateUrl(),
       settings: s,
       port: this.server.port,
       lanAddresses: this.server.lan ? this.server.lanAddresses() : [],
@@ -1189,7 +1197,7 @@ class Core extends EventEmitter {
       return false;
     }
     if (target === 'url' && typeof url === 'string') {
-      const ok = /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url) || /^https:\/\/(www\.)?twitch\.tv\/activate/.test(url);
+      const ok = url === this.donateUrl() || /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url) || /^https:\/\/(www\.)?twitch\.tv\/activate/.test(url);
       // (et les pages que le site de la galerie donne à ouvrir : son accueil, la page d'un thème, celle pour publier)
       if ((ok || (/^https:\/\//.test(url) && this.market.canOpen(url))) && this.hooks.openExternal) {
         await this.hooks.openExternal(url);

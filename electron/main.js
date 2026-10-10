@@ -212,6 +212,7 @@ app.whenReady().then(async () => {
         : null,
       openPath: async (p) => !(await shell.openPath(p)),
       openExternal: (url) => shell.openExternal(url),
+      noDonate: !!process.windowsStore,
       onSettingsChanged: (s, prev) => {
         if (JSON.stringify(s.hotkeys) !== JSON.stringify(prev.hotkeys)) registerHotkeys();
         if (s.app.startWithWindows !== prev.app.startWithWindows) applyLoginItem();

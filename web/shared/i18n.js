@@ -2688,6 +2688,8 @@
     'h.faq.q8': "D'où vient le MMR ?",
     'h.faq.a8':
       "Du journal du jeu : quand tu lances une recherche de partie (seul ou chef de groupe), Rocket League y écrit ton MMR pour ce mode. La variation d'un match est donc connue à la recherche suivante ; en attendant, l'app affiche une estimation basée sur tes vraies variations récentes (marquée ≈ dans le tableau de bord). Si c'est ton mate qui lance la recherche, seule l'estimation est disponible.",
+    'h.support': "RL-UI est gratuit et le reste. S'il t'aide sur ton stream, tu peux laisser un pourboire pour soutenir son développement.",
+    'h.supportBtn': 'Laisser un pourboire sur Ko-fi',
     'h.legal':
       "RL-UI — créé par Zoxam. Non affilié à Psyonix LLC ni à Epic Games, Inc. Rocket League est une marque de Psyonix LLC. Le suivi fonctionne en local : tes parties et tes statistiques ne quittent pas ton PC. La galerie de thèmes est lue en ligne quand tu l'ouvres.",
     'h.mk.tab': 'Galerie',

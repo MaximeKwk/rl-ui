@@ -347,3 +347,5 @@ Polices [Unbounded](web/assets/fonts/OFL-Unbounded.txt), [Onest](web/assets/font
 ## À propos
 
 Créé par **Zoxam**. Une idée, un bug ? Ouvre une [issue](https://github.com/MaximeKwk/rl-ui/issues).
+
+RL-UI est gratuit et le reste. S'il t'aide sur ton stream, tu peux [laisser un pourboire sur Ko-fi](https://ko-fi.com/maximekwk) pour soutenir son développement.

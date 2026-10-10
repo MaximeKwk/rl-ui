@@ -348,3 +348,5 @@ RL-UI is an independent project. It is not affiliated with, endorsed or sponsore
 ## About
 
 Made by **Zoxam**. An idea, a bug? Open an [issue](https://github.com/MaximeKwk/rl-ui/issues).
+
+RL-UI is free and stays free. If it helps your stream, you can [leave a tip on Ko-fi](https://ko-fi.com/maximekwk) to support its development.

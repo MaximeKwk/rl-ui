@@ -788,6 +788,7 @@ input.switch:checked::after { transform: translateX(16px); }
 .help-page details { padding: 12px 0; border-bottom: 1px solid var(--line); }
 .help-page details summary { color: var(--text); font-size: 14px; }
 .help-page details p { margin: 8px 0 0; color: var(--muted); }
+#tab-help .support { margin: 0 0 10px; max-width: 110ch; }
 #tab-help .legal { margin: 0; color: var(--faint); max-width: 110ch; }
 
 /* ------------------------------------------------------------ modale + messages */
