@@ -93,7 +93,7 @@ flowchart LR
    (ou la version portable, sans installation).
 2. **Lance Rocket League** et joue une partie. La Stats API est activée d'office dans les versions récentes du jeu ; sinon
    *Réglages → Activer / réparer l'API* puis redémarre le jeu.
-3. **Ajoute les overlays** dans OBS ou Streamlabs : *Sources → + → Navigateur*, colle l'URL (voir ci-dessous).
+3. **Ajoute les overlays** dans OBS ou Streamlabs. Le plus simple : dans l'onglet Overlays, glisse le bouton **Glisser dans OBS** sur la fenêtre d'OBS, ou clique **Ajouter à OBS** une fois OBS connecté dans l'onglet Stream. À la main : *Sources → + → Navigateur*, colle l'URL (voir ci-dessous).
 
 L'application est en anglais par défaut : passe-la en français dans *Settings → Language · Langue*.
 

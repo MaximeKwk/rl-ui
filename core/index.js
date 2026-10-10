@@ -963,6 +963,39 @@ class Core extends EventEmitter {
     return ok;
   }
 
+  // Overlays ajoutables en un clic : nom de la source (fixe, pour la retrouver et la mettre à jour) et taille
+  static get OVERLAY_SOURCES() {
+    return {
+      counter: { name: 'RL-UI Counter', width: 1000, height: 220 },
+      alerts: { name: 'RL-UI Alerts', width: 1920, height: 1080, canvas: true, audio: true },
+      history: { name: 'RL-UI Matches', width: 700, height: 90 },
+      summary: { name: 'RL-UI Recap', width: 1920, height: 1080, canvas: true },
+    };
+  }
+
+  // Adresse d'un overlay vue depuis le logiciel de stream (autre PC = adresse du réseau local)
+  overlayUrl(id) {
+    const s = this.store.settings;
+    const local = !s.obs.host || /^(127\.0\.0\.1|localhost|::1)$/i.test(s.obs.host);
+    const lan = !local && s.lanAccess ? this.server.lanAddresses()[0] : null;
+    return `http://${lan || '127.0.0.1'}:${this.server.port || s.port}/overlay/${id}`;
+  }
+
+  // Ajoute un overlay dans la scène affichée du logiciel de stream connecté (ou met à jour la source qui existe)
+  async obsAddOverlay(id) {
+    const def = Core.OVERLAY_SOURCES[id];
+    if (!def) return { ok: false, error: tr('s.unknownType') };
+    try {
+      // le compteur collé à la jauge de boost se pose en plein écran
+      const canvas = !!def.canvas || (id === 'counter' && this.store.settings.overlay.layout === 'boost');
+      const r = await this.obs.addBrowserSource({ ...def, canvas, url: this.overlayUrl(id) });
+      this.log(tr(r.created ? 's.obsAdded' : 's.obsUpdated', { n: def.name, c: r.scene, s: this.obs.status.name }));
+      return { ok: true, ...r, name: def.name, software: this.obs.status.name };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
   async obsScenes() {
     try {
       return { ok: true, ...(await this.obs.listScenes()) };

@@ -365,6 +365,11 @@ class AppServer extends EventEmitter {
       }
       if (p === '/api/statsapi/refresh' && method === 'POST') return this._json(res, 200, await this.core.refreshRlConfig());
       if (p === '/api/obs/scenes') return this._json(res, 200, await this.core.obsScenes());
+      if (p === '/api/obs/add-overlay' && method === 'POST') {
+        const b = await this._body(req, true);
+        const r = await this.core.obsAddOverlay(String(b.id || ''));
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
       m = /^\/api\/sounds\/([a-z_]+)$/.exec(p);
       if (m && method === 'POST') {
         const buf = await this._body(req, false, 8 * 1024 * 1024);

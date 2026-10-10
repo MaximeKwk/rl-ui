@@ -18,6 +18,12 @@
         <span class="brand-sub" data-i18n="h.by">by Zoxam</span>
       </div>
       <div class="chips" id="statusChips"></div>
+      <div class="search nodrag">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></svg>
+        <input id="searchInput" type="text" role="combobox" aria-expanded="false" aria-controls="searchList" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Search settings" data-i18n-ph="h.search.ph" aria-label="Search settings" data-i18n-aria="h.search.ph" />
+        <kbd aria-hidden="true">Ctrl K</kbd>
+        <div id="searchList" class="search-list hidden" role="listbox"></div>
+      </div>
       <div id="updateBar" class="update-bar hidden nodrag"></div>
       <button id="pauseBtn" class="btn small ghost nodrag" data-act="toggle-pause">Pause</button>
     </header>
@@ -293,8 +299,9 @@
           </div>
 
           <p class="muted small ov-foot" data-i18n="h.ov.intro">
-            In OBS: <b>Sources → + → Browser</b>, paste the URL and set the size shown. For alerts, tick
-            <b>“Control audio via OBS”</b> so the sound plays on stream. Works in Streamlabs too.
+            Three ways to put an overlay on stream: <b>Add to OBS</b> in one click once OBS is connected (Stream tab), <b>drag the button</b> into
+            the OBS window, or copy the URL into <b>Sources → + → Browser</b> with the size shown. For alerts added by hand, tick
+            <b>“Control audio via OBS”</b> so the sound plays on stream. Streamlabs: one click or copy the URL.
           </p>
         </section>
 
@@ -410,6 +417,18 @@
 
         <!-- ============================== OBS ============================== -->
         <section id="tab-obs" class="tab">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.sm.title">Stream</h2>
+              <p class="muted" data-i18n="h.sm.sub">What RL-UI does in your streaming software and in your chat.</p>
+            </div>
+            <div class="seg big" data-panes="stream">
+              <button data-pane="software" class="on" data-i18n="h.sm.tabSoftware">Streaming software</button>
+              <button data-pane="twitch" data-i18n="h.sm.tabTwitch">Twitch chat</button>
+            </div>
+          </div>
+
+          <div class="ov-pane" data-pane-of="stream" data-pane-id="software">
           <div class="card">
             <div class="card-head"><h2 data-i18n="h.obs.title">Streaming software</h2><span id="obsState" class="pill"></span></div>
             <div class="form cols">
@@ -454,11 +473,9 @@
             </p>
             <div class="obs-table" id="obsTable"></div>
           </div>
+          </div>
 
-        </section>
-
-        <!-- ============================== TWITCH ============================== -->
-        <section id="tab-twitch" class="tab" data-with="obs">
+          <div class="ov-pane hidden" data-pane-of="stream" data-pane-id="twitch">
           <div class="card" id="chatCard">
             <div class="card-head">
               <h2 data-i18n="h.tw.title">Twitch chat commands</h2>
@@ -477,8 +494,10 @@
             <div class="chat-table" id="chatTable"></div>
             <div class="actions"><button class="btn small ghost" id="chatAdd" data-i18n="h.tw.add">Add a command</button></div>
           </div>
+          </div>
         </section>
 
+        <!-- ============================== TWITCH ============================== -->
         <!-- ============================== CASTER ============================== -->
         <section id="tab-caster" class="tab">
           <div class="card">
@@ -574,7 +593,19 @@
 
         <!-- ============================== SETTINGS ============================== -->
         <section id="tab-settings" class="tab">
-          <div class="grid-2">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.nav.settings">Settings</h2>
+              <p class="muted" data-i18n="h.set.sub">Everything is saved as you go.</p>
+            </div>
+            <div class="seg big" data-panes="settings">
+              <button data-pane="general" class="on" data-i18n="h.set.tabGeneral">General</button>
+              <button data-pane="tracking" data-i18n="h.set.tabTracking">Match tracking</button>
+              <button data-pane="links" data-i18n="h.set.tabLinks">Game and tools</button>
+            </div>
+          </div>
+
+          <div class="grid-2" data-pane-of="settings" data-pane-id="general">
             <div class="card lang-card">
               <h3>Language (langue)</h3>
               <div class="form">
@@ -600,6 +631,32 @@
               </div>
             </div>
 
+            <div class="card">
+              <h3 data-i18n="h.set.hotkeys">Global hotkeys</h3>
+              <p class="muted" data-i18n="h.set.hotkeysHelp">Work even in game. Click a field then press the key combination (Delete to clear).</p>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="hotkeys.enabled" /> <span data-i18n="h.set.hotkeysOn">Enable hotkeys</span></label>
+                <label><span data-i18n="h.plusWin">+1 win</span> <input class="hotkey" data-set="hotkeys.win" readonly /></label>
+                <label><span data-i18n="h.plusLoss">+1 loss</span> <input class="hotkey" data-set="hotkeys.loss" readonly /></label>
+                <label><span data-i18n="h.undo">Undo last match</span> <input class="hotkey" data-set="hotkeys.undo" readonly /></label>
+              </div>
+              <div id="hotkeyErrors" class="warn-text"></div>
+            </div>
+
+            <div class="card" id="appCard">
+              <h3>Application</h3>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="app.minimizeToTray" /> <span data-i18n="h.set.tray">Close = minimize to the system tray (tracking keeps running)</span></label>
+                <label class="check" id="startWinRow"><input type="checkbox" data-set="app.startWithWindows" /> <span data-i18n="h.set.startWin">Start with Windows</span></label>
+                <label class="check"><input type="checkbox" data-set="app.startMinimized" /> <span data-i18n="h.set.startMin">Start minimized</span></label>
+                <label class="check" id="autoUpdateRow"><input type="checkbox" data-set="app.autoUpdate" /> <span data-i18n="h.set.autoUpdate">Check for updates automatically</span></label>
+              </div>
+              <div class="update-info" id="updateInfo"></div>
+              <div class="actions"><button class="btn ghost small" id="openDataDir" data-i18n="h.set.openData">Open data folder</button></div>
+            </div>
+          </div>
+
+          <div class="grid-2 hidden" data-pane-of="settings" data-pane-id="tracking">
             <div class="card">
               <h3 data-i18n="h.set.counted">Counted matches</h3>
               <div class="form" id="countingForm"></div>
@@ -650,7 +707,9 @@
                 </label>
               </div>
             </div>
+          </div>
 
+          <div class="grid-2 hidden" data-pane-of="settings" data-pane-id="links">
             <div class="card">
               <h3>Rocket League Stats API</h3>
               <div id="rlInfo" class="info-box"></div>
@@ -677,15 +736,12 @@
             </div>
 
             <div class="card">
-              <h3 data-i18n="h.set.hotkeys">Global hotkeys</h3>
-              <p class="muted" data-i18n="h.set.hotkeysHelp">Work even in game. Click a field then press the key combination (Delete to clear).</p>
+              <h3 data-i18n="h.set.server">Local server</h3>
               <div class="form">
-                <label class="check"><input type="checkbox" data-set="hotkeys.enabled" /> <span data-i18n="h.set.hotkeysOn">Enable hotkeys</span></label>
-                <label><span data-i18n="h.plusWin">+1 win</span> <input class="hotkey" data-set="hotkeys.win" readonly /></label>
-                <label><span data-i18n="h.plusLoss">+1 loss</span> <input class="hotkey" data-set="hotkeys.loss" readonly /></label>
-                <label><span data-i18n="h.undo">Undo last match</span> <input class="hotkey" data-set="hotkeys.undo" readonly /></label>
+                <label><span data-i18n="h.set.port">Overlays port</span> <input type="number" data-set="port" /></label>
+                <label class="check"><input type="checkbox" data-set="lanAccess" /> <span data-i18n="h.set.lan">Reachable from the local network (2-PC setup)</span></label>
               </div>
-              <div id="hotkeyErrors" class="warn-text"></div>
+              <div id="lanInfo" class="muted small"></div>
             </div>
 
             <div class="card">
@@ -707,27 +763,6 @@
                 <label><span data-i18n="h.set.dir">Folder (empty = default)</span> <input data-set="text.dir" placeholder="" /></label>
               </div>
               <div class="actions"><button class="btn ghost small" id="openTextDir" data-i18n="h.set.openDir">Open folder</button><span class="muted small" id="textDir"></span></div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="h.set.server">Local server</h3>
-              <div class="form">
-                <label><span data-i18n="h.set.port">Overlays port</span> <input type="number" data-set="port" /></label>
-                <label class="check"><input type="checkbox" data-set="lanAccess" /> <span data-i18n="h.set.lan">Reachable from the local network (2-PC setup)</span></label>
-              </div>
-              <div id="lanInfo" class="muted small"></div>
-            </div>
-
-            <div class="card" id="appCard">
-              <h3>Application</h3>
-              <div class="form">
-                <label class="check"><input type="checkbox" data-set="app.minimizeToTray" /> <span data-i18n="h.set.tray">Close = minimize to the system tray (tracking keeps running)</span></label>
-                <label class="check" id="startWinRow"><input type="checkbox" data-set="app.startWithWindows" /> <span data-i18n="h.set.startWin">Start with Windows</span></label>
-                <label class="check"><input type="checkbox" data-set="app.startMinimized" /> <span data-i18n="h.set.startMin">Start minimized</span></label>
-                <label class="check" id="autoUpdateRow"><input type="checkbox" data-set="app.autoUpdate" /> <span data-i18n="h.set.autoUpdate">Check for updates automatically</span></label>
-              </div>
-              <div class="update-info" id="updateInfo"></div>
-              <div class="actions"><button class="btn ghost small" id="openDataDir" data-i18n="h.set.openData">Open data folder</button></div>
             </div>
           </div>
         </section>
@@ -776,33 +811,63 @@
         </section>
 
         <section id="tab-help" class="tab">
-          <div class="card help">
-            <div class="card-head"><h2 data-i18n="h.help.start">Get started in 3 steps</h2><button class="btn small primary" id="onbReopen" data-i18n="h.help.guide">Open the guided setup</button></div>
-            <ol class="steps">
-              <li data-i18n="h.help.s1">
-                <b>Rocket League Stats API.</b> It is enabled by default in recent versions of the game. Otherwise: Settings →
-                “Enable / repair the API”, then restart Rocket League. No mods, no BakkesMod, EAC-compatible.
-              </li>
-              <li data-i18n="h.help.s2">
-                <b>Play.</b> The app recognizes your account from the game log, then counts every win / loss, overtimes, the
-                mode (2v2 ranked, 3v3…), MVPs and early leaves.
-              </li>
-              <li data-i18n="h.help.s3">
-                <b>Add the overlays in OBS or Streamlabs</b> (Overlays tab): the counter (horizontal, vertical or next to the boost
-                gauge), full-screen alerts, recent matches and the end-of-stream recap.
-              </li>
-            </ol>
-            <h2 data-i18n="h.help.faq">FAQ</h2>
-            <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Open Diagnostic: every match the game reported is listed there with the reason it was counted or not (excluded mode, tracking paused, account not recognized…), and a button to count it afterwards with its real score.</p></details>
-            <details><summary data-i18n="h.faq.q2">“Stats API: closed” while the game is running</summary><p data-i18n="h.faq.a2">The game only opens the API when started with PacketSendRate &gt; 0. Click “Enable / repair the API” in Settings, then fully restart Rocket League (also after a game update).</p></details>
-            <details><summary data-i18n="h.faq.q3">Alerts have no sound on stream</summary><p data-i18n="h.faq.a3">In the OBS browser source properties, tick “Control audio via OBS”, then set the source volume in the audio mixer.</p></details>
-            <details><summary data-i18n="h.faq.q4">The “Boost” counter isn't aligned with my gauge</summary><p data-i18n="h.faq.a4">Overlays → Counter: turn on “Show the gauge guide”, then adjust the HUD size and offsets until the guide covers your gauge in the OBS preview. Then turn the guide off. The source must be the size of your canvas (e.g. 1920 × 1080).</p></details>
-            <details><summary data-i18n="h.faq.q5">Automatic actions with Streamlabs</summary><p data-i18n="h.faq.a5">Stream tab → Software: Streamlabs Desktop. In Streamlabs: Settings → Remote Control → click the QR code → Show details → copy the API token.</p></details>
-            <details><summary data-i18n="h.faq.q6">2-PC setup</summary><p data-i18n="h.faq.a6">Turn on “Reachable from the local network” (Settings → Local server) and use the gaming PC's IP address in the overlay URLs on the streaming PC. Allow the app in the Windows firewall if asked.</p></details>
-            <details><summary data-i18n="h.faq.q7">I play duos, does it count for me?</summary><p data-i18n="h.faq.a7">Yes: the app follows your own account (the Steam/Epic ID read from the game log), not your teammate's.</p></details>
-            <details><summary data-i18n="h.faq.q8">Where does the MMR come from?</summary><p data-i18n="h.faq.a8">From the game log: when you start a matchmaking search (solo or party leader), Rocket League writes your MMR for that mode. So the change of a match is known at the next search; meanwhile, the app shows an estimate based on your recent real changes (marked ≈ in the dashboard). If your teammate starts the search, only the estimate is available.</p></details>
-            <p class="legal" data-i18n="h.legal">RL-UI — made by Zoxam. Not affiliated with Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC. Everything runs locally: no data is sent over the Internet.</p>
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.nav.help">Help</h2>
+              <p class="muted" data-i18n="h.help.sub">Get started, find a feature, fix a problem.</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" data-go="diag" data-i18n="h.help.toDiag">Something not working? Open Diagnostic</button>
+              <button class="btn primary" id="onbReopen" data-i18n="h.help.guide">Open the guided setup</button>
+            </div>
           </div>
+
+          <div class="card">
+            <div class="card-head"><h3 data-i18n="h.disc.title">What RL-UI can do</h3><span class="muted small" data-i18n="h.disc.sub">Click a card to go there</span></div>
+            <div class="disc-grid">
+              <button type="button" class="disc-card" data-go="stream/counter"><b data-i18n="h.disc.counter">W/L counter</b><span data-i18n="h.disc.counterText">Wins, losses, streak and MMR live on your stream.</span></button>
+              <button type="button" class="disc-card" data-go="stream/alerts"><b data-i18n="h.disc.alerts">Alerts</b><span data-i18n="h.disc.alertsText">A full-screen announcement for every win, loss and overtime.</span></button>
+              <button type="button" class="disc-card" data-go="stream/themes"><b data-i18n="h.disc.themes">Themes</b><span data-i18n="h.disc.themesText">Change the look of all your overlays in one click.</span></button>
+              <button type="button" class="disc-card" data-go="history/overview"><b data-i18n="h.disc.stats">Statistics</b><span data-i18n="h.disc.statsText">Your streaks, your MMR curve and your sessions compared.</span></button>
+              <button type="button" class="disc-card" data-go="diag"><b data-i18n="h.disc.diag">Diagnostic</b><span data-i18n="h.disc.diagText">Why a match was counted or not, and how to fix it.</span></button>
+              <button type="button" class="disc-card" data-go="obs/software"><b data-i18n="h.disc.obs">Actions in OBS</b><span data-i18n="h.disc.obsText">Switch scene or show a source on every win or overtime.</span></button>
+              <button type="button" class="disc-card" data-go="obs/twitch"><b data-i18n="h.disc.chat">Twitch chat commands</b><span data-i18n="h.disc.chatText">!wl, !mmr… RL-UI answers in your chat.</span></button>
+              <button type="button" class="disc-card" data-go="caster"><b data-i18n="h.disc.caster">Caster mode</b><span data-i18n="h.disc.casterText">Scores, boost and players to commentate a match.</span></button>
+              <button type="button" class="disc-card" data-go="settings/links"><b data-i18n="h.disc.deck">Stream Deck and hotkeys</b><span data-i18n="h.disc.deckText">+1 win, pause or new session from a single key.</span></button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card help-page">
+              <div class="card-head"><h3 data-i18n="h.help.start">Get started in 3 steps</h3></div>
+              <ol class="steps">
+                <li data-i18n="h.help.s1">
+                  <b>Rocket League Stats API.</b> It is enabled by default in recent versions of the game. Otherwise: Settings →
+                  “Enable / repair the API”, then restart Rocket League. No mods, no BakkesMod, EAC-compatible.
+                </li>
+                <li data-i18n="h.help.s2">
+                  <b>Play.</b> The app recognizes your account from the game log, then counts every win / loss, overtimes, the
+                  mode (2v2 ranked, 3v3…), MVPs and early leaves.
+                </li>
+                <li data-i18n="h.help.s3">
+                  <b>Add the overlays in OBS or Streamlabs</b> (Overlays tab): the counter (horizontal, vertical or next to the boost
+                  gauge), full-screen alerts, recent matches and the end-of-stream recap.
+                </li>
+              </ol>
+            </div>
+            <div class="card help-page">
+              <div class="card-head"><h3 data-i18n="h.help.faq">FAQ</h3></div>
+              <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Open Diagnostic: every match the game reported is listed there with the reason it was counted or not (excluded mode, tracking paused, account not recognized…), and a button to count it afterwards with its real score.</p></details>
+              <details><summary data-i18n="h.faq.q2">“Stats API: closed” while the game is running</summary><p data-i18n="h.faq.a2">The game only opens the API when started with PacketSendRate &gt; 0. Click “Enable / repair the API” in Settings, then fully restart Rocket League (also after a game update).</p></details>
+              <details><summary data-i18n="h.faq.q3">Alerts have no sound on stream</summary><p data-i18n="h.faq.a3">In the OBS browser source properties, tick “Control audio via OBS”, then set the source volume in the audio mixer.</p></details>
+              <details><summary data-i18n="h.faq.q4">The “Boost” counter isn't aligned with my gauge</summary><p data-i18n="h.faq.a4">Overlays → Counter: turn on “Show the gauge guide”, then adjust the HUD size and offsets until the guide covers your gauge in the OBS preview. Then turn the guide off. The source must be the size of your canvas (e.g. 1920 × 1080).</p></details>
+              <details><summary data-i18n="h.faq.q5">Automatic actions with Streamlabs</summary><p data-i18n="h.faq.a5">Stream tab → Software: Streamlabs Desktop. In Streamlabs: Settings → Remote Control → click the QR code → Show details → copy the API token.</p></details>
+              <details><summary data-i18n="h.faq.q6">2-PC setup</summary><p data-i18n="h.faq.a6">Turn on “Reachable from the local network” (Settings → Local server) and use the gaming PC's IP address in the overlay URLs on the streaming PC. Allow the app in the Windows firewall if asked.</p></details>
+              <details><summary data-i18n="h.faq.q7">I play duos, does it count for me?</summary><p data-i18n="h.faq.a7">Yes: the app follows your own account (the Steam/Epic ID read from the game log), not your teammate's.</p></details>
+              <details><summary data-i18n="h.faq.q8">Where does the MMR come from?</summary><p data-i18n="h.faq.a8">From the game log: when you start a matchmaking search (solo or party leader), Rocket League writes your MMR for that mode. So the change of a match is known at the next search; meanwhile, the app shows an estimate based on your recent real changes (marked ≈ in the dashboard). If your teammate starts the search, only the estimate is available.</p></details>
+            </div>
+          </div>
+          <p class="legal muted small" data-i18n="h.legal">RL-UI — made by Zoxam. Not affiliated with Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC. Everything runs locally: no data is sent over the Internet.</p>
         </section>
       </main>
     </div>
@@ -827,5 +892,6 @@
     <script src="/static/shared/client.js"></script>
     <script src="/static/dashboard/app.js"></script>
     <script src="/static/dashboard/stats.js"></script>
+    <script src="/static/dashboard/search.js"></script>
   </body>
 </html>

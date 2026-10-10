@@ -115,7 +115,7 @@
   const baseUrl = () => `http://127.0.0.1:${D ? D.port : location.port}`;
 
   // Outils communs aux autres scripts du tableau de bord (stats.js)
-  window.RLUI = { $, $$, esc, t, tn, api, toast, confirmBox, pad, fmtHour, fmtDate, fmtDur, LW, LL, key: KEY, resPill: (r) => resPill(r), state: () => D };
+  window.RLUI = { $, $$, esc, t, tn, api, toast, confirmBox, pad, fmtHour, fmtDate, fmtDur, LW, LL, key: KEY, resPill: (r) => resPill(r), state: () => D, go: (target) => showTab(target) };
 
   function resPill(r) {
     const cls = ['res', r.result, r.ot || r.overtime ? 'ot' : '', r.abandon ? 'ab' : '', r.manual ? 'man' : ''].join(' ');
@@ -127,7 +127,37 @@
   // ------------------------------------------------------------------ onglets
   // Une entrée du menu peut réunir plusieurs sections : une section porte data-with="<entrée>"
   // (les commandes Twitch sont rangées sous « Stream », avec les actions OBS).
-  function showTab(name) {
+  // Une cible peut viser un volet d'une page : « settings/tracking », « obs/twitch », « stream/themes », « history/sessions ».
+  const TAB_ALIAS = { twitch: 'obs/twitch' };
+  const PANE_GROUP = { settings: 'settings', obs: 'stream' };
+  function showPane(group, id) {
+    const panes = $$(`[data-pane-of="${group}"]`);
+    if (!panes.some((p) => p.dataset.paneId === id)) id = panes.length ? panes[0].dataset.paneId : id;
+    $$(`[data-panes="${group}"] button`).forEach((b) => b.classList.toggle('on', b.dataset.pane === id));
+    panes.forEach((p) => p.classList.toggle('hidden', p.dataset.paneId !== id));
+    try {
+      localStorage.setItem(`rlui-pane-${group}`, id);
+    } catch {}
+  }
+  $$('[data-panes]').forEach((seg) => {
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-pane]');
+      if (b) showPane(seg.dataset.panes, b.dataset.pane);
+    });
+    let id = null;
+    try {
+      id = localStorage.getItem(`rlui-pane-${seg.dataset.panes}`);
+    } catch {}
+    if (id) showPane(seg.dataset.panes, id);
+  });
+
+  function showTab(target) {
+    const [name, pane] = String(TAB_ALIAS[target] || target).split('/');
+    if (pane) {
+      if (name === 'stream') showOvTab(pane);
+      else if (name === 'history' && window.RLUI.stats) window.RLUI.stats.open(pane);
+      else if (PANE_GROUP[name]) showPane(PANE_GROUP[name], pane);
+    }
     const own = $(`#tab-${name}`);
     const entry = (own && own.dataset.with) || name;
     // tous les onglets partagent la même zone de défilement : on repart du haut en changeant d'onglet
@@ -154,6 +184,11 @@
     if (own && entry !== name) own.scrollIntoView({ block: 'start' });
   }
   $$('.side button[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  // n'importe quel bouton ou carte peut mener à une page ou à un volet : data-go="settings/tracking"
+  document.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-go]');
+    if (g) showTab(g.dataset.go);
+  });
 
   // ------------------------------------------------------------------ menu réduit / déplié
   function setNav(open) {
@@ -341,10 +376,13 @@
         <div class="body">
           <div class="title"><b>${esc(o.name)}</b><span>${o.w} × ${o.h}</span></div>
           <div class="desc">${esc(o.desc)} <span class="live-dot" data-live="${o.id}"></span></div>
-          <div class="url"><input readonly data-url="${o.id}" /><button class="btn small primary" data-copy="${o.id}">${esc(t('d.copy'))}</button><button class="btn small ghost" data-open="${o.id}">${esc(t('d.open'))}</button></div>
+          <div class="ov-add">${obsAddHtml(o)}</div>
+          <div class="url"><input readonly data-url="${o.id}" aria-label="URL" /><button class="btn small" data-copy="${o.id}">${esc(t('d.copy'))}</button><button class="btn small ghost" data-open="${o.id}">${esc(t('d.open'))}</button></div>
         </div>
       </div>`;
     });
+    document.addEventListener('click', onObsAdd);
+    document.addEventListener('dragstart', onObsDrag);
     $('#tab-stream').addEventListener('click', (e) => {
       const c = e.target.closest('[data-copy]');
       if (c) copy($(`[data-url="${c.dataset.copy}"]`).value);
@@ -843,6 +881,58 @@
       .join('');
   }
 
+  // ------------------------------------------------------------------ ajouter un overlay dans OBS
+  // Deux chemins sans copier-coller : un clic si le logiciel de stream est connecté (onglet Stream),
+  // sinon un lien à glisser dans la fenêtre d'OBS (il crée la source navigateur à la bonne taille).
+  const OBS_NAMES = { counter: 'RL-UI Counter', alerts: 'RL-UI Alerts', history: 'RL-UI Matches', summary: 'RL-UI Recap' };
+  const dragUrl = (o) => `${baseUrl()}/overlay/${o.id}?layer-name=${encodeURIComponent(OBS_NAMES[o.id] || `RL-UI ${o.id}`)}&layer-width=${o.w}&layer-height=${o.h}`;
+  function obsAddHtml(o) {
+    return `<button class="btn small primary hidden" data-obsadd="${o.id}"></button>
+      <a class="ov-drag" draggable="true" data-obsdrag="${o.id}" href="#" title="${esc(t('d.obsDragTip'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" /></svg>${esc(t('d.obsDrag'))}</a>
+      <button class="link hidden" data-obsconnect>${esc(t('d.obsConnect'))}</button>`;
+  }
+  // (re)règle les boutons selon l'état du logiciel de stream : un clic s'il est connecté, sinon le lien à glisser
+  function syncObsAdd() {
+    const obs = D.status.obs || {};
+    const on = obs.state === 'connected';
+    $$('[data-obsadd]').forEach((b) => {
+      b.classList.toggle('hidden', !on);
+      b.textContent = t('d.obsAdd', { s: obs.name || 'OBS' });
+    });
+    $$('[data-obsconnect]').forEach((b) => b.classList.toggle('hidden', on));
+    $$('[data-obsdrag]').forEach((a) => {
+      const o = OVERLAYS.find((x) => x.id === a.dataset.obsdrag);
+      if (o) a.href = dragUrl(o);
+      // Streamlabs ne crée pas de source à partir d'un lien glissé
+      a.classList.toggle('hidden', obs.software === 'streamlabs' && D.settings.obs.enabled);
+    });
+  }
+  async function onObsAdd(e) {
+    const drag = e.target.closest('[data-obsdrag]');
+    if (drag) {
+      // un simple clic ne fait rien d'utile : on explique le geste
+      e.preventDefault();
+      return toast(t('d.obsDragHow'));
+    }
+    if (e.target.closest('[data-obsconnect]')) {
+      if (onbStep >= 0) onbClose(false);
+      return showTab('obs/software');
+    }
+    const b = e.target.closest('[data-obsadd]');
+    if (!b) return;
+    b.disabled = true;
+    const r = await post('/api/obs/add-overlay', { id: b.dataset.obsadd });
+    b.disabled = false;
+    toast(r.ok ? t(r.created ? 'd.obsAdded' : 'd.obsUpdated', { c: r.scene, s: r.software }) : r.error || t('d.failed'), r.ok ? 'ok' : 'err');
+  }
+  function onObsDrag(e) {
+    const a = e.target.closest && e.target.closest('[data-obsdrag]');
+    if (!a) return;
+    e.dataTransfer.setData('text/uri-list', a.href);
+    e.dataTransfer.setData('text/plain', a.href);
+    e.dataTransfer.effectAllowed = 'copyLink';
+  }
+
   // ------------------------------------------------------------------ diagnostic
   const DG_ICON = {
     ok: '<path d="M7 12.5l3.2 3.2L17 9" />',
@@ -1012,7 +1102,7 @@
       if (act === 'enable-api') enableApi();
       else if (act === 'resume') post('/api/action/resume');
       else if (act === 'overlays') showTab('stream');
-      else showTab('settings');
+      else showTab('settings/tracking');
     });
     $('#noticeCard').addEventListener('click', (e) => {
       const b = e.target.closest('[data-dgnotice]');
@@ -1130,6 +1220,7 @@
       const el = $(`[data-live="${o.id}"]`);
       if (el) el.textContent = ovs[o.id] ? tn('o.sources', ovs[o.id]) : '';
     });
+    syncObsAdd();
     // accueil : le compteur est-il affiché dans OBS ?
     const live = ovs.counter > 0;
     const pill = $('#homeObs');
@@ -1314,7 +1405,14 @@
     const cfg = st.rlConfig;
     const ok = (v, yes, no) => `<div class="onb-check ${v ? 'ok' : 'todo'}"><i>${v ? '✓' : '•'}</i><span>${yes && v ? yes : no}</span></div>`;
     const url = (id, extra = '') => `${baseUrl()}/overlay/${id}${extra}`;
-    const urlRow = (label, u, size) => `<div class="onb-url"><b>${esc(label)}</b><span class="muted small">${esc(size)}</span><input readonly value="${esc(u)}" /><button class="btn small" data-onbcopy="${esc(u)}">${esc(t('d.copy'))}</button></div>`;
+    const ovs = st.overlays || {};
+    const urlRow = (id, label, u, size) => {
+      const o = OVERLAYS.find((x) => x.id === id);
+      return `<div class="onb-ov ${ovs[id] ? 'ok' : ''}">
+        <div class="onb-ov-head"><i>${ovs[id] ? '✓' : '•'}</i><b>${esc(label)}</b><span class="muted small">${esc(ovs[id] ? t('d.inObs') : size)}</span><span class="ov-add">${obsAddHtml(o)}</span></div>
+        <div class="onb-url"><input readonly value="${esc(u)}" aria-label="URL" /><button class="btn small" data-onbcopy="${esc(u)}">${esc(t('d.copy'))}</button></div>
+      </div>`;
+    };
     let html = '';
     switch (onbStep) {
       case 0:
@@ -1334,8 +1432,8 @@
       }
       case 2:
         html = `<h2>${esc(t('o.obsTitle'))}</h2><p>${t('o.obsText')}</p>
-          ${urlRow(t('o.counter'), url('counter'), '1000 × 220')}
-          ${urlRow(t('o.alerts'), url('alerts'), '1920 × 1080')}
+          ${urlRow('counter', t('o.counter'), url('counter'), '1000 × 220')}
+          ${urlRow('alerts', t('o.alerts'), url('alerts'), '1920 × 1080')}
           <p class="muted small">${t('o.obsAudio')}</p>`;
         break;
       case 3: {
@@ -1351,11 +1449,13 @@
       }
       case 4:
         html = `<h2>${esc(t('o.doneTitle'))}</h2><p>${esc(t('o.doneText'))}</p>
-          <div class="onb-more">
-            <button class="onb-card" data-onbtab="caster"><b>${esc(t('o.moreCaster'))}</b><span>${esc(t('o.moreCasterText'))}</span></button>
-            <button class="onb-card" data-onbtab="twitch"><b>${esc(t('o.moreChat'))}</b><span>${esc(t('o.moreChatText'))}</span></button>
-            <button class="onb-card" data-onbtab="settings"><b>${esc(t('o.moreDeck'))}</b><span>${esc(t('o.moreDeckText'))}</span></button>
-          </div>`;
+          <div class="onb-more">${['stream/themes', 'history/overview', 'diag', 'obs/twitch', 'caster', 'settings/links']
+            .map((go) => {
+              // les mêmes cartes que sur la page Aide (« ce que RL-UI sait faire »), déjà dans la bonne langue
+              const c = $(`.disc-card[data-go="${go}"]`);
+              return c ? `<button class="onb-card" data-onbtab="${go}"><b>${esc($('b', c).textContent)}</b><span>${esc($('span', c).textContent)}</span></button>` : '';
+            })
+            .join('')}</div>`;
         break;
     }
     $('#onbBody').innerHTML = html;
@@ -1366,6 +1466,7 @@
     $('#onbNext').textContent = t(onbStep === ONB_STEPS - 1 ? 'o.finish' : 'o.next');
     const b = $('#onbApi');
     if (b) b.onclick = enableApi;
+    if (onbStep === 2) syncObsAdd();
   }
 
   // ------------------------------------------------------------------ commandes du chat
@@ -1697,7 +1798,7 @@
     if (changed('dgNotice', D.diag.notice)) renderNotice();
     // le journal des parties vues se relit quand il a bougé, si la page Diagnostic est à l'écran
     if (D.diag.rev !== dgRev && $('#tab-diag').classList.contains('active')) loadDiag();
-    if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds])) renderStream();
+    if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds, D.status.obs, D.settings.obs.enabled])) renderStream();
     if (changed('layout', D.settings.overlay.layout)) renderLayout();
     if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
     if (changed('casterTheme', [D.themes, D.settings.overlay.themePack, D.settings.caster.themePack, D.settings.language])) renderCasterTheme();
