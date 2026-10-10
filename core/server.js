@@ -344,6 +344,18 @@ class AppServer extends EventEmitter {
         const b = await this._body(req, true);
         return this._json(res, 200, { ok: this.core.dismissNotice(b.id) });
       }
+      if (p === '/api/stats') return this._json(res, 200, this.core.statsOverview({ range: url.searchParams.get('range') || 'session', mode: url.searchParams.get('mode') || 'all' }));
+      if (p === '/api/stats/mmr') return this._json(res, 200, this.core.mmrSeries({ range: url.searchParams.get('range') || 'all' }));
+      if (p === '/api/sessions') return this._json(res, 200, this.core.sessionList(Math.min(500, Number(url.searchParams.get('limit')) || 100)));
+      m = /^\/api\/sessions\/([\w-]+)$/.exec(p);
+      if (m) {
+        const d = this.core.sessionDetail(m[1]);
+        return d ? this._json(res, 200, d) : this._json(res, 404, { ok: false });
+      }
+      if (p === '/api/history.csv') {
+        res.writeHead(200, { ...this._headers('text/csv; charset=utf-8'), 'Content-Disposition': 'attachment; filename="rl-ui-matches.csv"' });
+        return res.end(this.core.historyCsv(url.searchParams.get('scope') || 'all'));
+      }
       if (p === '/api/history') {
         return this._json(res, 200, this.core.history(url.searchParams.get('scope') || 'session', Number(url.searchParams.get('limit')) || 500));
       }

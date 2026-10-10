@@ -114,6 +114,9 @@
   const LL = () => (D && D.settings.overlay.labelLoss) || t('lbl.l');
   const baseUrl = () => `http://127.0.0.1:${D ? D.port : location.port}`;
 
+  // Outils communs aux autres scripts du tableau de bord (stats.js)
+  window.RLUI = { $, $$, esc, t, tn, api, toast, confirmBox, pad, fmtHour, fmtDate, fmtDur, LW, LL, key: KEY, resPill: (r) => resPill(r), state: () => D };
+
   function resPill(r) {
     const cls = ['res', r.result, r.ot || r.overtime ? 'ot' : '', r.abandon ? 'ab' : '', r.manual ? 'man' : ''].join(' ');
     const lbl = r.result === 'W' ? (D && D.settings.overlay.labelWin) || t('lbl.w') : (D && D.settings.overlay.labelLoss) || t('lbl.l');
@@ -140,7 +143,10 @@
     try {
       localStorage.setItem('rlui-tab', entry);
     } catch {}
-    if (entry === 'history') loadHistory();
+    if (entry === 'history') {
+      loadHistory();
+      if (window.RLUI.stats) window.RLUI.stats.show();
+    }
     if (entry === 'diag') loadDiag();
     if (entry === 'stream' || entry === 'session') layoutPreviews();
     if (entry === 'caster') layoutCasterPv();
@@ -488,12 +494,23 @@
       $$('#histScope button').forEach((x) => x.classList.toggle('on', x === b));
       loadHistory(true);
     });
+    $('#homeRecap').addEventListener('click', () => {
+      if (window.RLUI.stats) window.RLUI.stats.open('sessions');
+      showTab('history');
+    });
+    $('#histCsv').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = `/api/history.csv?scope=${historyScope}&key=${encodeURIComponent(KEY)}`;
+      a.download = 'rl-ui-matches.csv';
+      a.click();
+    });
     document.addEventListener('click', async (e) => {
       const d = e.target.closest('[data-del]');
       if (!d) return;
       if (await confirmBox(t('d.deleteMatchQ'), t('d.delete'))) {
         await api(`/api/matches/${encodeURIComponent(d.dataset.del)}`, { method: 'DELETE' });
         historyDirty = true;
+        if (window.RLUI.stats) window.RLUI.stats.dirty();
         loadHistory(true);
       }
     });
@@ -1573,13 +1590,6 @@
     if (!force && !historyDirty) return;
     historyDirty = false;
     const h = await api(`/api/history?scope=${historyScope}&limit=1000`);
-    const a = D.allTime;
-    $('#allTime').innerHTML = `
-      <div class="kpi"><span>${esc(t('d.totalAll'))}</span><b>${a.wins}${esc(LW())} - ${a.losses}${esc(LL())}</b></div>
-      <div class="kpi"><span>${esc(t('d.globalWr'))}</span><b>${a.played ? `${a.winRate}%` : '—'}</b></div>
-      <div class="kpi ot"><span>${esc(t('d.otwl'))}</span><b>${a.otWins}-${a.otLosses}</b></div>
-      <div class="kpi"><span>${esc(t('d.best'))}</span><b>${a.bestWinStreak}</b></div>
-      <div class="bypl">${a.byPlaylist.map((p) => `<span class="pl-chip"><b>${esc(p.name)}</b> ${p.wins}${esc(LW())}-${p.losses}${esc(LL())} · ${p.winRate}%</span>`).join('')}</div>`;
     const rows = (h.matches || []).map((m) => {
       const tags = `${m.overtime ? '<span class="tag ot">OT</span>' : ''}${m.mvp ? '<span class="tag mvp">MVP</span>' : ''}${m.abandon ? `<span class="tag">${esc(t('d.tagAbandon'))}</span>` : ''}`;
       const me = m.me ? `${m.me.goals} · ${m.me.assists} · ${m.me.saves} · ${m.me.shots}` : '';
@@ -1705,9 +1715,11 @@
   OT.on('dashboard', (d) => {
     if (d.settings.language && d.settings.language !== OT.lang) return location.reload();
     const n = d.sessionMatches.length + (d.allTime ? d.allTime.played : 0);
-    if (n !== lastMatches) historyDirty = true;
+    const moved = n !== lastMatches;
+    if (moved) historyDirty = true;
     lastMatches = n;
     D = d;
+    if (moved && window.RLUI.stats) window.RLUI.stats.dirty();
     renderAll();
   });
   OT.on('caster', (c) => {

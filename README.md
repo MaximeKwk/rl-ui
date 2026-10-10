@@ -185,6 +185,8 @@ OBS source: `http://127.0.0.1:5757/overlay/caster` in **full screen**. To split 
 | **Themes** | Ready-made or custom looks (images, font, colors, sounds), installable and shareable as .zip |
 | **Counter** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical or next to the boost gauge, live OVERTIME badge |
 | **Sessions and history** | New session automatically after 6 h without playing, full history per mode, manual corrections |
+| **Statistics** | Overview of a period (session, 7 days, 30 days, all time) per game mode, MMR curve, streaks, win rate after a win or a loss and as the session goes on, sessions compared with each other or with your average, session recap as an image to share, CSV export |
+| **Diagnostic** | Every match seen with the reason it was counted or not, one-click correction, health check of the detection, report to copy |
 | **Chat commands** | `!wl`, `!mmr`, `!last`, `!streak`… answered in your Twitch chat, plus your own commands |
 | **Automatic updates** | New versions download in the background; one click to install |
 | **Languages** | English by default, French available (interface, overlays, alerts, mode names) |

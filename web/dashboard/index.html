@@ -28,7 +28,7 @@
         <button data-tab="stream"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l8 4-8 4-8-4z" /><path d="M4 12l8 4 8-4" /><path d="M4 16l8 4 8-4" /></svg><span class="lbl" data-i18n="h.nav.stream">Overlays</span></button>
         <button data-tab="obs"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14" /></svg><span class="lbl" data-i18n="h.nav.obs">Stream</span></button>
         <button data-tab="caster"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg><span class="lbl" data-i18n="h.nav.caster">Caster</span></button>
-        <button data-tab="history"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg><span class="lbl" data-i18n="h.nav.history">History</span></button>
+        <button data-tab="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7" /></svg><span class="lbl" data-i18n="h.nav.history">Stats</span></button>
         <div class="side-end">
           <button data-tab="diag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21" /></svg><span class="lbl" data-i18n="h.nav.diag">Diagnostic</span><i class="nav-dot" aria-hidden="true"></i></button>
           <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg><span class="lbl" data-i18n="h.nav.settings">Settings</span></button>
@@ -115,7 +115,7 @@
           </div>
 
           <div class="card">
-            <div class="card-head"><h3 data-i18n="h.sessMatches">Session matches</h3><span class="muted" id="sessCount"></span></div>
+            <div class="card-head"><h3 data-i18n="h.sessMatches">Session matches</h3><span class="muted"><span id="sessCount"></span> <button class="link" id="homeRecap" data-i18n="h.home.recap">Session recap</button></span></div>
             <div id="sessionList" class="match-list"></div>
           </div>
         </section>
@@ -300,27 +300,110 @@
 
         <!-- ============================== HISTORY ============================== -->
         <section id="tab-history" class="tab">
-          <div class="card">
-            <div class="card-head">
-              <h2 data-i18n="h.nav.history">History</h2>
-              <div class="seg" id="histScope">
-                <button data-scope="session" class="on">Session</button>
-                <button data-scope="all" data-i18n="h.hist.all">All</button>
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.st.title">Statistics</h2>
+              <p class="muted" data-i18n="h.st.sub">Your matches, streaks and MMR, beyond the stream.</p>
+            </div>
+            <div class="seg big" id="stTabs">
+              <button data-sttab="overview" class="on" data-i18n="h.st.tabOverview">Overview</button>
+              <button data-sttab="sessions" data-i18n="h.st.tabSessions">Sessions</button>
+              <button data-sttab="matches" data-i18n="h.st.tabMatches">Matches</button>
+            </div>
+          </div>
+
+          <!-- ............................ vue d'ensemble ............................ -->
+          <div class="ov-pane" data-stpane="overview">
+            <div class="st-filters">
+              <div class="seg" id="stRange">
+                <button data-range="session" data-i18n="h.st.rSession">This session</button>
+                <button data-range="7d" data-i18n="h.st.r7">7 days</button>
+                <button data-range="30d" class="on" data-i18n="h.st.r30">30 days</button>
+                <button data-range="all" data-i18n="h.st.rAll">All time</button>
+              </div>
+              <select id="stMode" aria-label="Game mode" data-i18n-aria="h.st.mode"></select>
+              <span class="muted small" id="stScope"></span>
+            </div>
+
+            <div id="stEmpty" class="card empty hidden"></div>
+            <div id="stBody" class="ov-pane">
+              <div class="st-tiles" id="stTiles"></div>
+
+              <div class="split">
+                <div>
+                  <div class="card">
+                    <div class="card-head">
+                      <h3><span data-i18n="h.st.mmr">MMR over time</span> <button type="button" class="help" data-tip="One point per match. Real values are read from the game when you start a search; the last points can be estimates (≈) until then." data-i18n-tip="h.tip.stMmr">?</button></h3>
+                      <select id="stMmrMode" class="hidden" aria-label="Mode shown" data-i18n-aria="h.st.mmrMode"></select>
+                    </div>
+                    <div id="stMmr"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="card">
+                    <div class="card-head"><h3 data-i18n="h.st.streaks">Streaks</h3><span class="muted small" id="stStreakNow"></span></div>
+                    <div id="stStreaks"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="card">
+                  <div class="card-head"><h3 data-i18n="h.st.byMode">By game mode</h3><span class="muted small" data-i18n="h.st.byModeSub">Share of matches won</span></div>
+                  <div id="stModes"></div>
+                </div>
+                <div class="card">
+                  <div class="card-head">
+                    <h3><span data-i18n="h.st.byPos">As the session goes on</span> <button type="button" class="help" data-tip="Share of matches won depending on when the match comes in your session: the first three, the next three, and so on." data-i18n-tip="h.tip.stPos">?</button></h3>
+                  </div>
+                  <div id="stPos"></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h3 data-i18n="h.st.perMatch">Your play, per match</h3></div>
+                <div class="st-tiles small" id="stPerMatch"></div>
               </div>
             </div>
-            <div id="allTime" class="alltime"></div>
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th data-i18n="h.hist.date">Date</th><th data-i18n="h.hist.result">Result</th><th>Score</th>
-                    <th title="≈ = estimate waiting for the real value" data-i18n-title="h.hist.mmrTip">MMR</th><th data-i18n="h.hist.mode">Mode</th>
-                    <th data-i18n="h.hist.map">Map</th><th data-i18n="h.hist.duration">Duration</th>
-                    <th title="Goals · assists · saves · shots" data-i18n-title="h.hist.youTip" data-i18n="h.hist.you">You</th><th></th>
-                  </tr>
-                </thead>
-                <tbody id="histBody"></tbody>
-              </table>
+          </div>
+
+          <!-- ............................ sessions ............................ -->
+          <div class="ov-pane hidden" data-stpane="sessions">
+            <div class="st-sess">
+              <div class="card">
+                <div class="card-head"><h3 data-i18n="h.st.tabSessions">Sessions</h3><span class="muted small" id="stSessCount"></span></div>
+                <div id="stSessList" class="sess-list"></div>
+              </div>
+              <div id="stSessDetail" class="ov-pane"></div>
+            </div>
+          </div>
+
+          <!-- ............................ parties ............................ -->
+          <div class="ov-pane hidden" data-stpane="matches">
+            <div class="card">
+              <div class="card-head">
+                <h3 data-i18n="h.st.tabMatches">Matches</h3>
+                <div class="head-actions">
+                  <div class="seg" id="histScope">
+                    <button data-scope="session" class="on">Session</button>
+                    <button data-scope="all" data-i18n="h.hist.all">All</button>
+                  </div>
+                  <button class="btn small" id="histCsv" data-i18n="h.st.csv">Export (CSV)</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="h.hist.date">Date</th><th data-i18n="h.hist.result">Result</th><th>Score</th>
+                      <th title="≈ = estimate waiting for the real value" data-i18n-title="h.hist.mmrTip">MMR</th><th data-i18n="h.hist.mode">Mode</th>
+                      <th data-i18n="h.hist.map">Map</th><th data-i18n="h.hist.duration">Duration</th>
+                      <th title="Goals · assists · saves · shots" data-i18n-title="h.hist.youTip" data-i18n="h.hist.you">You</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="histBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -725,11 +808,24 @@
     </div>
 
     <div id="modal" class="modal hidden"><div class="modal-box"><p id="modalText"></p><div class="actions"><button class="btn ghost" id="modalNo" data-i18n="h.cancel">Cancel</button><button class="btn primary" id="modalYes">Confirm</button></div></div></div>
+    <div id="shareModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <div class="modal-box share-box">
+        <div class="card-head"><h3 id="shareTitle" data-i18n="h.st.shareTitle">Image to share</h3><button class="btn small ghost" id="shareClose" data-i18n="h.close">Close</button></div>
+        <div class="share-stage"><canvas id="shareCanvas" width="1200" height="630"></canvas></div>
+        <div class="share-opts">
+          <label class="check"><input type="checkbox" id="shareName" checked /> <span data-i18n="h.st.shareName">Show my name</span></label>
+          <label class="check"><input type="checkbox" id="shareMmr" checked /> <span data-i18n="h.st.shareMmr">Show my MMR</span></label>
+          <div class="seg" id="shareLook"><button data-look="dark" class="on" data-i18n="h.set.themeDark">Dark</button><button data-look="light" data-i18n="h.set.themeLight">Light</button></div>
+        </div>
+        <div class="actions"><button class="btn" id="shareSave" data-i18n="h.st.shareSave">Save the image</button><button class="btn primary" id="shareCopy" data-i18n="h.st.shareCopy">Copy the image</button></div>
+      </div>
+    </div>
     <div id="toasts"></div>
     <div id="onb" class="onb hidden"><div class="onb-box"><div class="onb-dots" id="onbDots"></div><div class="onb-body" id="onbBody"></div><div class="onb-nav"><button class="btn ghost" id="onbSkip"></button><div class="grow"></div><button class="btn ghost" id="onbBack"></button><button class="btn primary" id="onbNext"></button></div></div></div>
 
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
     <script src="/static/dashboard/app.js"></script>
+    <script src="/static/dashboard/stats.js"></script>
   </body>
 </html>

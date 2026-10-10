@@ -131,6 +131,18 @@ function cleanup(code) {
   ok(report.includes('RL-UI') && report.includes('decision: counted') && !report.includes(settings.apiKey), 'rapport de diagnostic sans la clé d\'accès');
   ok((await get('/api/diagnostic')).status === 401, 'diagnostic protégé sans clé');
 
+  // Statistiques : vue d'ensemble de la session, sessions, courbe de MMR, export
+  const stv = JSON.parse((await get(`/api/stats?range=session&key=${settings.apiKey}`)).body);
+  ok(stv.overview.played === 4 && stv.overview.wins === 2 && stv.overview.overtime.played === 1 && stv.modes[0].played === 4, `statistiques : vue d'ensemble de la session (${stv.overview.wins}-${stv.overview.losses})`);
+  const sl = JSON.parse((await get(`/api/sessions?key=${settings.apiKey}`)).body);
+  ok(sl.sessions.length === 1 && sl.sessions[0].current && sl.sessions[0].played === 4 && Math.round(sl.sessions[0].mmrDelta) === 4, 'statistiques : la session et sa variation de MMR');
+  const sd = JSON.parse((await get(`/api/sessions/${sl.sessions[0].id}?key=${settings.apiKey}`)).body);
+  ok(sd.overview.results.length === 4 && sd.player === 'Zoxam', 'statistiques : bilan détaillé de la session');
+  const ms = JSON.parse((await get(`/api/stats/mmr?range=all&key=${settings.apiKey}`)).body);
+  ok(ms.series.length === 1 && ms.series[0].points.length >= 5 && ms.series[0].current === 1104, `statistiques : courbe du MMR (${ms.series[0] && ms.series[0].points.length} points)`);
+  const csvText = (await get(`/api/history.csv?scope=all&key=${settings.apiKey}`)).body;
+  ok(csvText.trim().split('\r\n').length === 5, 'export CSV : une ligne par partie');
+
   const page = await get('/overlay/counter');
   ok(page.status === 200 || page.status === 404, 'route overlay');
 

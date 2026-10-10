@@ -117,7 +117,7 @@
   OT.lang = I.norm(document.documentElement.lang);
   OT.t = (key, vars) => I.t(OT.lang, key, vars);
   OT.tn = (key, n, vars) => I.tn(OT.lang, key, n, vars);
-  // Éléments du HTML : data-i18n (contenu), data-i18n-title, data-i18n-ph (placeholder), data-i18n-tip (bulle d'aide).
+  // Éléments du HTML : data-i18n (contenu), data-i18n-title, data-i18n-ph (placeholder), data-i18n-tip (bulle d'aide), data-i18n-aria (nom lu par les lecteurs d'écran).
   // L'anglais est dans le HTML : on le garde de côté pour pouvoir y revenir.
   OT.applyI18n = function (root = document) {
     const d = I.DICT[OT.lang] || {};
@@ -130,6 +130,7 @@
       ['title', 'i18nTitle', 'i18n-title'],
       ['placeholder', 'i18nPh', 'i18n-ph'],
       ['data-tip', 'i18nTip', 'i18n-tip'],
+      ['aria-label', 'i18nAria', 'i18n-aria'],
     ]) {
       for (const el of root.querySelectorAll(`[data-${sel}]`)) {
         const keep = `${prop}En`;

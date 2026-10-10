@@ -11,6 +11,7 @@ const { Store, ALERT_TYPES } = require('./store');
 const { Tracker, buildRecord } = require('./tracker');
 const { Journal } = require('./journal');
 const diagnostic = require('./diagnostic');
+const insights = require('./insights');
 const { StatsApiClient } = require('./statsApiClient');
 const { RlLogWatcher } = require('./rlLogWatcher');
 const rlConfig = require('./rlConfig');
@@ -697,6 +698,38 @@ class Core extends EventEmitter {
   history(scope, limit) {
     const list = scope === 'all' ? this.store.data.matches : this.store.sessionMatches();
     return { scope, total: list.length, matches: list.slice(-limit).reverse().map((r) => this._view(r)) };
+  }
+
+  // ---------------------------------------------------------------- statistiques
+  // Vue d'ensemble d'une période (session | 7d | 30d | 90d | all), éventuellement pour un seul mode
+  statsOverview({ range = 'session', mode = 'all' } = {}) {
+    const { list, modes } = insights.select(this.store, { range, mode });
+    return { range, mode, modes, overview: insights.overview(list), mmr: insights.mmrOf(list).map(({ key, ...e }) => e) };
+  }
+
+  // Évolution du MMR, une courbe par mode suivi (compte connecté, sinon le dernier compte vu)
+  mmrSeries({ range = 'all' } = {}) {
+    const acc = this.logWatcher.account && this.logWatcher.account.id;
+    let list = insights.mmrSeries(this.store, this.mmr, { accountId: acc, range });
+    if (!list.length && acc) list = insights.mmrSeries(this.store, this.mmr, { range });
+    return { range, series: list.map(({ key, ...s }) => s) };
+  }
+
+  sessionList(limit = 100) {
+    const r = insights.sessions(this.store, { limit });
+    const strip = (s) => ({ ...s, mmr: s.mmr.map(({ key, ...e }) => e) });
+    return { ...r, sessions: r.sessions.map(strip) };
+  }
+
+  sessionDetail(id) {
+    const d = insights.sessionDetail(this.store, String(id || ''));
+    if (!d) return null;
+    d.summary.mmr = d.summary.mmr.map(({ key, ...e }) => e);
+    return d;
+  }
+
+  historyCsv(scope) {
+    return insights.csv(scope === 'all' ? this.store.data.matches : this.store.sessionMatches());
   }
 
   textValue(field) {
