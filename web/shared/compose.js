@@ -46,7 +46,8 @@
   ];
   const CASTER_BINDS = CASTER_GROUPS.flatMap((g) => g[1]);
   const BINDS = [...SESSION_BINDS, ...LIVE_BINDS, ...ALERT_BINDS, ...RECAP_BINDS, ...CASTER_BINDS];
-  // images fournies par l'app (onglet Caster), qu'un élément « image » peut afficher à la place d'une image du thème
+  // images fournies par l'app (onglet Caster), qu'un élément « image » peut afficher à la place d'une image du thème.
+  // Quand l'app n'en a pas : l'image du thème (src) si l'élément en a une, sinon une silhouette pour la photo d'un joueur.
   const IMAGE_BINDS = ['teamLogo0', 'teamLogo1', 'tgPhoto'];
   // valeurs de 0 à 100 qu'un arc peut suivre
   const ARC_BINDS = ['winRate', 'tgBoost'];
@@ -678,7 +679,8 @@
 .cmp-pop > span { animation: cmp-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
 @keyframes cmp-pop { 0% { transform: translateY(18%) scale(0.92); opacity: 0.4; } 100% { transform: none; opacity: 1; } }
 .cmp-box svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; display: block; }
-.cmp-img { background-repeat: no-repeat; background-position: center; }
+.cmp-img { background-repeat: no-repeat; background-position: center; overflow: hidden; }
+.cmp-avatar { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .cmp-res { display: flex; }
 .cmp-res i { flex: 1 1 0; min-width: 0; min-height: 0; display: grid; place-items: center; font-style: normal; line-height: 1; overflow: hidden; }
 .cmp-res i.rw { background: var(--win); color: #0f2406; }
@@ -838,6 +840,15 @@
         if (e.src && !e.bind) st.backgroundImage = `url("${(opts.imageUrl || ((s) => s))(e.src).replace(/"/g, '%22')}")`;
         st.backgroundSize = e.fit === 'fill' ? '100% 100%' : e.fit;
         st.borderRadius = `${e.radius}px`;
+        // photo du joueur suivi : une silhouette aux couleurs de son équipe, montrée quand il n'a pas de photo
+        if (e.bind === 'tgPhoto' && !e.src) {
+          const s = document.createElementNS(NS, 'svg');
+          s.setAttribute('class', 'cmp-avatar');
+          s.setAttribute('viewBox', '0 0 100 100');
+          s.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+          s.innerHTML = '<rect width="100" height="100" fill="#10171a"/><rect width="100" height="100" fill="var(--event, #7e8f94)" opacity="0.38"/><circle cx="50" cy="39" r="17" fill="#fff" opacity="0.88"/><path d="M15 101c0-22 15-35 35-35s35 13 35 35z" fill="#fff" opacity="0.88"/>';
+          el.appendChild(s);
+        }
       } else if (e.type === 'results') {
         st.flexDirection = e.dir;
         st.gap = `${e.gap}px`;
@@ -1107,10 +1118,13 @@
             else n.style.setProperty('--event', '#ffffff');
           }
           if (e.type === 'image' && e.bind) {
-            const u = d[e.bind] || '';
+            // l'image de l'app ; à défaut celle du thème ; à défaut la silhouette (photo) ou rien (logo)
+            const own = d[e.bind] || '';
+            const u = own || (e.src ? (opts.imageUrl || ((s) => s))(e.src) : '');
             if (n.dataset.src !== u) {
               n.dataset.src = u;
               n.style.backgroundImage = u ? cssUrl(u) : 'none';
+              if (n.firstChild) n.firstChild.style.display = u ? 'none' : 'block';
             }
           } else if (e.type === 'arc') {
             if (e.bind) {

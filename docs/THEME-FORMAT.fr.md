@@ -146,7 +146,7 @@ Les valeurs de la session (les six premières lignes du premier tableau) existen
 
 `src` (un chemin dans le dossier du thème, comme `images/logo.png`), `fit` (`contain`, `cover`, `fill`), `radius`. Un thème ne peut afficher que ses propres images : toute adresse qui pointe ailleurs est retirée.
 
-Dans le caster, `bind` remplace `src` par une image fournie par RL-UI (onglet Caster) : `teamLogo0`, `teamLogo1` (logos des équipes) ou `tgPhoto` (photo du joueur suivi). L'élément reste vide quand il n'y en a pas. Le thème ne choisit toujours aucune adresse.
+Dans le caster, `bind` remplace `src` par une image fournie par RL-UI (onglet Caster) : `teamLogo0`, `teamLogo1` (logos des équipes) ou `tgPhoto` (photo du joueur suivi). Quand RL-UI n'en a pas, l'élément montre l'image du thème donnée par `src` s'il y en a une ; sinon une silhouette de la couleur de l'équipe pour `tgPhoto`, et rien pour un logo. Le thème ne choisit toujours aucune adresse.
 
 ### `results` — les dernières parties, en pastilles
 

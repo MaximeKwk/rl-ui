@@ -260,20 +260,23 @@ OVERLAYS.caster = (tr) => {
   // boost des joueurs, une colonne par équipe
   const boosts = [0, 1].map((n) => ({ type: 'players', name: tr(n ? 'cmp.n.players1' : 'cmp.n.players0'), team: n, x: n ? 1566 : 24, y: 24, w: 330, h: 256, rowH: 58, gap: 8, when: 'boosts' }));
   // joueur suivi, en bas au centre
-  const tx = 580;
+  const tx = 533;
   const ty = 942;
   const stat = (i, bind, cap) => [
-    box(tr('cmp.n.tile'), tx + 332 + i * 68, ty + 26, 62, 58, { fill: 'white', fillOpacity: 0.05, radius: 8, when: 'target' }),
-    val(tr(`e.bind.${bind}`), bind, tx + 332 + i * 68, ty + 31, 62, 28, { size: 26, when: 'target' }),
-    txt(cap, cap, tx + 332 + i * 68, ty + 61, 62, 16, { size: 11, weight: 800, spacing: 1.5, upper: true, opacity: 0.55, fit: true, when: 'target' }),
+    box(tr('cmp.n.tile'), tx + 426 + i * 68, ty + 26, 62, 58, { fill: 'white', fillOpacity: 0.05, radius: 8, when: 'target' }),
+    val(tr(`e.bind.${bind}`), bind, tx + 426 + i * 68, ty + 31, 62, 28, { size: 26, when: 'target' }),
+    txt(cap, cap, tx + 426 + i * 68, ty + 61, 62, 16, { size: 11, weight: 800, spacing: 1.5, upper: true, opacity: 0.55, fit: true, when: 'target' }),
   ];
   const target = [
-    panel(tr('cmp.n.targetCard'), tx, ty, 760, 110, { radius: 16, shadow: 'soft', when: 'target' }),
-    box(tr('cmp.n.teamLine'), tx + 14, ty, 732, 4, { fill: 'event', fillOpacity: 1, when: 'target' }),
+    panel(tr('cmp.n.targetCard'), tx, ty, 854, 110, { radius: 16, shadow: 'soft', when: 'target' }),
+    box(tr('cmp.n.teamLine'), tx + 14, ty, 826, 4, { fill: 'event', fillOpacity: 1, when: 'target' }),
     { type: 'arc', name: tr('cmp.n.boostRing'), x: tx + 14, y: ty + 16, w: 82, h: 82, from: 0, to: 360, thickness: 7, cap: 'round', color: 'event', bind: 'tgBoost', track: 0.18, when: 'target' },
     val(tr('e.bind.tgBoost'), 'tgBoost', tx + 14, ty + 16, 82, 82, { size: 30, when: 'target' }),
-    val(tr('e.bind.tgName'), 'tgName', tx + 114, ty + 20, 200, 42, { size: 34, align: 'left', fit: true, when: 'target' }),
-    val(tr('e.bind.tgTeam'), 'tgTeam', tx + 114, ty + 64, 200, 22, { size: 15, weight: 800, spacing: 2.4, upper: true, color: 'event', align: 'left', fit: true, when: 'target' }),
+    // la photo du joueur (onglet Caster), cerclée de la couleur de son équipe ; sans photo, une silhouette
+    box(tr('cmp.n.photoRing'), tx + 110, ty + 16, 82, 82, { fill: 'event', fillOpacity: 1, radius: 41, when: 'target' }),
+    { type: 'image', name: tr('e.ibind.tgPhoto'), bind: 'tgPhoto', x: tx + 113, y: ty + 19, w: 76, h: 76, radius: 38, fit: 'cover', when: 'target' },
+    val(tr('e.bind.tgName'), 'tgName', tx + 208, ty + 20, 200, 42, { size: 34, align: 'left', fit: true, when: 'target' }),
+    val(tr('e.bind.tgTeam'), 'tgTeam', tx + 208, ty + 64, 200, 22, { size: 15, weight: 800, spacing: 2.4, upper: true, color: 'event', align: 'left', fit: true, when: 'target' }),
     ...stat(0, 'tgScore', tr('c.score')),
     ...stat(1, 'tgGoals', tr('c.goals')),
     ...stat(2, 'tgAssists', tr('c.assists')),

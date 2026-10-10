@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="RL-UI — overlay de stream pour Rocket League" width="100%">
+  <img src="docs/images/fr/banner.png" alt="RL-UI — ton stream réagit à tes matchs Rocket League" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.2.5-2f8cff?style=flat-square"></a>
-  <img alt="Plateforme" src="https://img.shields.io/badge/plateforme-Windows%2010%20%7C%2011-0078d4?style=flat-square&logo=windows&logoColor=white">
-  <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-Stats%20API%20officielle-ff8a2a?style=flat-square">
-  <img alt="OBS et Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-302e31?style=flat-square&logo=obsstudio&logoColor=white">
-  <a href="LICENSE"><img alt="Licence" src="https://img.shields.io/badge/licence-tous%20droits%20r%C3%A9serv%C3%A9s-555?style=flat-square"></a>
+  <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-2.0.0-2fd2c6?style=flat-square&labelColor=12181b"></a>
+  <img alt="Plateforme" src="https://img.shields.io/badge/Windows-10%20%7C%2011-a996ff?style=flat-square&labelColor=12181b&logo=windows&logoColor=white">
+  <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-Stats%20API%20officielle-2fd2c6?style=flat-square&labelColor=12181b">
+  <img alt="OBS et Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-a996ff?style=flat-square&labelColor=12181b&logo=obsstudio&logoColor=white">
+  <img alt="Sans mod" src="https://img.shields.io/badge/sans%20mod-compatible%20anti--triche-8bd95a?style=flat-square&labelColor=12181b">
+  <a href="LICENSE"><img alt="Licence" src="https://img.shields.io/badge/licence-tous%20droits%20r%C3%A9serv%C3%A9s-7e8f94?style=flat-square&labelColor=12181b"></a>
 </p>
 
 <p align="center">
-  <b>RL-UI</b> compte tout seul tes victoires, défaites et ton MMR sur Rocket League,<br>
-  et fait réagir ton stream quand tu gagnes, quand tu perds et quand la partie part en <b>overtime</b>.
+  <b>RL-UI</b> compte tout seul tes victoires, tes défaites et ton MMR sur Rocket League,<br>et fait réagir ton stream quand tu gagnes, quand tu perds et quand la partie part en <b>overtime</b>.
 </p>
 
 <p align="center">
@@ -20,33 +20,70 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/MaximeKwk/rl-ui/releases"><b>Télécharger</b></a> ·
+  <a href="#nouveautés-de-la-version-2">Nouveautés de la V2</a> ·
   <a href="#démarrage-rapide">Démarrage rapide</a> ·
-  <a href="#aperçu">Aperçu</a> ·
-  <a href="#comment-ça-marche">Comment ça marche</a> ·
   <a href="#overlays">Overlays</a> ·
+  <a href="#thèmes">Thèmes</a> ·
   <a href="#faq">FAQ</a>
+</p>
+
+<p align="center">
+  <a href="https://maximekwk.github.io/rl-ui/#video"><img src="docs/media/teaser.fr.webp" alt="RL-UI 2 en vidéo" width="840"></a><br>
+  <sub>▶ <a href="https://maximekwk.github.io/rl-ui/#video">Voir la vidéo complète, avec le son (49 s)</a></sub>
 </p>
 
 > [!IMPORTANT]
 > RL-UI n'utilise **aucun mod** : ni BakkesMod, ni injection dans le jeu. Il lit uniquement la **Stats API officielle** de Psyonix
-> et le journal local du jeu. Il est donc compatible avec l'anti-cheat (EAC).
+> et le journal local du jeu. Il est donc compatible avec l'anti-triche (EAC).
 > L'application n'est pas encore signée numériquement : au premier lancement, Windows SmartScreen peut afficher un avertissement
 > (*Informations complémentaires → Exécuter quand même*).
+
+## Nouveautés de la version 2
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/fr/app-editor.png" alt="Éditeur de thèmes"></td>
+    <td width="50%"><img src="docs/images/fr/app-gallery.png" alt="Galerie de thèmes"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Éditeur de thèmes</b><br>Dessine ton overlay à la souris : plaques, textes, valeurs en direct, images. Compteur, compteur Boost, alertes, dernières parties, récap et overlay caster, sans toucher un fichier.</td>
+    <td valign="top"><b>Galerie de la communauté</b><br>Des thèmes faits par d'autres joueurs, à installer en un clic. Publie le tien sur <a href="https://kydora.net/marketplace">kydora.net/marketplace</a>.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/fr/app-stats.png" alt="Statistiques"></td>
+    <td><img src="docs/images/fr/app-diagnostic.png" alt="Diagnostic"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Statistiques</b><br>Courbe de MMR, séries, winrate par mode de jeu, sessions comparées entre elles, bilan de session à partager en image, export CSV.</td>
+    <td valign="top"><b>Diagnostic</b><br>Chaque partie vue par RL-UI, avec la raison pour laquelle elle est comptée ou non, et un bouton pour la compter quand même.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/fr/app-home.png" alt="Accueil, thème sombre"></td>
+    <td><img src="docs/images/fr/app-home-light.png" alt="Accueil, thème clair"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Nouvelle identité</b><br>Une interface refaite : accueil guidé, recherche d'un réglage, bulles d'aide, trois nouveaux thèmes d'overlay (Signature, Épuré, Contraste).</td>
+    <td valign="top"><b>Clair ou sombre</b><br>L'app suit le thème de ton système. <b>Ajouter à OBS</b> pose chaque overlay en un clic, ou en glissant le bouton dans OBS.</td>
+  </tr>
+</table>
+
+Le détail de chaque version est dans le [journal des versions](CHANGELOG.md).
 
 ## Aperçu
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/alert-win.png" alt="Alerte victoire"></td>
-    <td width="50%"><img src="docs/images/alert-overtime.png" alt="Alerte overtime"></td>
+    <td width="50%"><img src="docs/images/fr/alert-win.jpg" alt="Alerte victoire"></td>
+    <td width="50%"><img src="docs/images/fr/alert-overtime.jpg" alt="Alerte overtime"></td>
   </tr>
   <tr>
     <td align="center"><b>Victoire</b> — score, série, MMR, MVP</td>
     <td align="center"><b>Overtime</b> — dès que la prolongation commence</td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/alert-ot-win.png" alt="Alerte victoire en overtime"></td>
-    <td width="50%"><img src="docs/images/alert-loss.png" alt="Alerte défaite"></td>
+    <td width="50%"><img src="docs/images/fr/alert-ot-win.jpg" alt="Alerte victoire en overtime"></td>
+    <td width="50%"><img src="docs/images/fr/alert-loss.jpg" alt="Alerte défaite"></td>
   </tr>
   <tr>
     <td align="center"><b>Victoire en overtime</b> — but en or</td>
@@ -56,19 +93,22 @@
 
 <table>
   <tr>
-    <td><img src="docs/images/counter.png" alt="Compteur horizontal"></td>
-    <td rowspan="2"><img src="docs/images/counter-vertical.png" alt="Compteur vertical" width="160"></td>
+    <td><img src="docs/images/fr/counter.png" alt="Compteur horizontal"></td>
+    <td rowspan="3"><img src="docs/images/fr/counter-vertical.png" alt="Compteur vertical" width="170"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/counter-boost.png" alt="Compteur collé à la jauge de boost"></td>
+    <td><img src="docs/images/fr/history.png" alt="Dernières parties"></td>
   </tr>
   <tr>
-    <td align="center">Compteur horizontal, et mode <b>Boost</b> collé à la jauge du jeu, à la couleur de ton équipe</td>
+    <td><img src="docs/images/fr/counter-boost.png" alt="Compteur collé à la jauge de boost"></td>
+  </tr>
+  <tr>
+    <td align="center">Compteur horizontal, dernières parties, et le mode <b>Boost</b> collé à la jauge du jeu, à la couleur de ton équipe</td>
     <td align="center">Vertical</td>
   </tr>
 </table>
 
-<p align="center"><img src="docs/images/dashboard.png" alt="Tableau de bord" width="85%"></p>
+<p align="center"><img src="docs/images/fr/summary.jpg" alt="Récap de session" width="85%"><br><sub>Le récap de session, à afficher en fin de stream</sub></p>
 
 ## Comment ça marche
 
@@ -138,7 +178,18 @@ que le repère recouvre ta jauge dans OBS, puis masque-le.
 
 Change la DA de tous les overlays en un clic, ou crée la tienne avec tes images, ta police, tes couleurs et tes sons.
 
-<p align="center"><img src="docs/images/themes.png" alt="Choix du thème dans RL-UI" width="860" /></p>
+<p align="center"><img src="docs/images/fr/app-themes.png" alt="Choix du thème dans RL-UI" width="860" /></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/fr/app-editor-alerts.png" alt="Éditeur : les alertes"></td>
+    <td width="50%"><img src="docs/images/fr/app-editor-caster.png" alt="Éditeur : l'overlay caster"></td>
+  </tr>
+  <tr>
+    <td align="center">L'éditeur sur les <b>alertes</b> : un seul dessin, des éléments par événement</td>
+    <td align="center">L'éditeur sur l'<b>overlay caster</b></td>
+  </tr>
+</table>
 
 | | |
 | --- | --- |
@@ -157,8 +208,8 @@ Pour caster un match en **spectateur** (tournoi, scrim, match privé) : un overl
 
 <table>
   <tr>
-    <td><img src="docs/images/caster.png" alt="Overlay caster en direct" /></td>
-    <td><img src="docs/images/caster-post.png" alt="Tableau de fin de match" /></td>
+    <td><img src="docs/images/fr/caster.jpg" alt="Overlay caster en direct" /></td>
+    <td><img src="docs/images/fr/caster-post.jpg" alt="Tableau de fin de match" /></td>
   </tr>
 </table>
 
@@ -269,7 +320,7 @@ npm run dist       # installeur + version portable dans dist/
 node tools/simulator.js otwin win loss --speed 10                     # faux Rocket League (TCP 49123 + WebSocket 49124)
 node tools/simulator.js win loss --log <Launch.log> --mmr 1150 --lag  # + journal du jeu avec MMR
 node tools/sniff.js 120 capture.jsonl                                 # enregistre le flux brut du vrai jeu
-npm run headless                                                      # tracker sans interface
+npm run headless                                                      # tracker sans interfacenpx electron tools/promo/render.js rl-ui-2.mp4 --lang=fr              # la vidéo de présentation (tools/promo/promo.html, ffmpeg requis)
 ```
 
 | Dossier | Contenu |
@@ -291,7 +342,7 @@ RL-UI est un projet indépendant. Il n'est ni affilié, ni approuvé, ni sponsor
 ## Licence
 
 © 2026 Zoxam — tous droits réservés. Voir [LICENSE](LICENSE).
-Police [Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) sous SIL Open Font License.
+Polices [Unbounded](web/assets/fonts/OFL-Unbounded.txt), [Onest](web/assets/fonts/OFL-Onest.txt), [Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) et [Archivo](web/assets/fonts/OFL-Archivo.txt) sous SIL Open Font License.
 
 ## À propos
 

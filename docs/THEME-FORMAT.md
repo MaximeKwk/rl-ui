@@ -146,7 +146,7 @@ The session values (the first six rows of the first table) exist in every overla
 
 `src` (a path inside the theme folder, such as `images/logo.png`), `fit` (`contain`, `cover`, `fill`), `radius`. A theme can only show its own images: addresses pointing anywhere else are dropped.
 
-In the caster, `bind` replaces `src` with an image supplied by RL-UI (Caster tab): `teamLogo0`, `teamLogo1` (team logos) or `tgPhoto` (photo of the followed player). The element stays empty when there is none. The theme still chooses no address.
+In the caster, `bind` replaces `src` with an image supplied by RL-UI (Caster tab): `teamLogo0`, `teamLogo1` (team logos) or `tgPhoto` (photo of the followed player). When RL-UI has none, the element shows the theme image given by `src` if there is one; otherwise a silhouette in the team's color for `tgPhoto`, and nothing for a logo. The theme still chooses no address.
 
 ### `results` — the last matches, as pills
 

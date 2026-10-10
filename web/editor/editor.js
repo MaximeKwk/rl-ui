@@ -310,7 +310,7 @@
       ]);
     }
     if (e.type === 'image' && (kind === 'caster' || e.bind)) out.push(['e.s.source', [pickOf('bind', 'e.p.ibind', [['', t('e.ibind.none')], ...C.IMAGE_BINDS.map((b) => [b, t(`e.ibind.${b}`)])], { wide: true }), ...(e.bind ? [{ kind: 'note', lbl: 'e.ibind.note' }] : [])]]);
-    if (e.type === 'image') out.push(['e.s.content', [...(e.bind ? [] : [{ kind: 'image', wide: true }]), pickOf('fit', 'e.p.fit', ['contain', 'cover', 'fill'].map((a) => [a, t(`e.fit.${a}`)])), num('radius', 'e.p.radius', { min: 0, max: 400 })]]);
+    if (e.type === 'image') out.push(['e.s.content', [{ kind: 'image', wide: true }, pickOf('fit', 'e.p.fit', ['contain', 'cover', 'fill'].map((a) => [a, t(`e.fit.${a}`)])), num('radius', 'e.p.radius', { min: 0, max: 400 })]]);
     if (e.type === 'text' || e.type === 'value') {
       out.push(['e.s.color', [colorF('color', 'e.p.color', e.type === 'value')]]);
       out.push(['e.s.type', TYPO()]);
@@ -373,7 +373,8 @@
       </div></div>`;
     }
     if (f.kind === 'note') return `<p class="ed-note wide">${esc(t(f.lbl))}</p>`;
-    if (f.kind === 'image') return `<div class="ed-f wide"><span>${esc(t('e.p.image'))}</span><div class="ed-img"><i style="${e.src ? `background-image:url('${imageUrl(e.src)}')` : ''}"></i><button type="button" class="btn small" data-do="image">${esc(t(e.src ? 'e.imgChange' : 'e.imgPick'))}</button></div><p class="ed-note">${esc(t('e.imgNote'))}</p></div>`;
+    // (image liée à un logo ou à une photo de l'app : celle du thème ne sert que quand l'app n'en a pas)
+    if (f.kind === 'image') return `<div class="ed-f wide"><span>${esc(t(e.bind ? 'e.p.imageDefault' : 'e.p.image'))}</span><div class="ed-img"><i style="${e.src ? `background-image:url('${imageUrl(e.src)}')` : ''}"></i><button type="button" class="btn small" data-do="image">${esc(t(e.src ? 'e.imgChange' : 'e.imgPick'))}</button>${e.bind && e.src ? `<button type="button" class="btn small ghost" data-do="imageClear">${esc(t('e.imgClear'))}</button>` : ''}</div><p class="ed-note">${esc(t(e.bind ? (e.bind === 'tgPhoto' ? 'e.imgDefaultPhoto' : 'e.imgDefaultLogo') : 'e.imgNote'))}</p></div>`;
     return '';
   }
 
@@ -877,6 +878,10 @@
     else if (d === 'disth') distribute('h');
     else if (d === 'distv') distribute('v');
     else if (d === 'image') pickImage(sel[0]);
+    else if (d === 'imageClear') {
+      setProp('src', '');
+      renderProps();
+    }
     else if (d === 'uncompose') uncompose();
   });
 
