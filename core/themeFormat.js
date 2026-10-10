@@ -5,8 +5,9 @@
 // theme.json :
 //   { "format": 2, "name", "author", "version", "description", "tags": […], "minApp": "2.0.0",
 //     "colors": { "win", "loss", "ot" },
-//     "base": "signature",          // habillage des overlays que le thème ne redessine pas (alertes, récap…)
-//     "counter": { "width", "height", "elements": [ … ] } }   // composition du compteur
+//     "base": "signature",          // habillage des overlays que le thème ne redessine pas
+//     "counter": { "width", "height", "elements": [ … ] },     // composition du compteur
+//     "alerts": { … }, "history": { … }, "summary": { … } }    // facultatif : alertes, dernières parties, récap
 // Le dossier ne contient à côté que des images (png, jpg, webp, gif), des sons et un aperçu.
 
 const Compose = require('../web/shared/compose.js');
@@ -74,6 +75,8 @@ function cleanTheme(meta) {
     base: BASES.includes(meta.base) ? meta.base : 'signature',
     counter: null,
   };
+  // overlays que le thème compose (le compteur, et s'il le veut les alertes, les dernières parties, le récap)
+  const KINDS = Compose.KINDS;
   // nom et description dans d'autres langues : "translations": { "fr": { "name", "description" } }
   const tr = {};
   for (const lang of ['en', 'fr']) {
@@ -85,9 +88,12 @@ function cleanTheme(meta) {
     if (Object.keys(e).length) tr[lang] = e;
   }
   if (Object.keys(tr).length) out.translations = tr;
-  if (meta.counter != null) out.counter = Compose.clean(meta.counter);
+  for (const k of KINDS) if (meta[k] != null) out[k] = Compose.clean(meta[k]);
   return out;
 }
+
+// Images utilisées par un thème, toutes compositions confondues
+const usedImages = (t) => [...new Set(Compose.KINDS.flatMap((k) => (t && t[k] ? Compose.images(t[k]) : [])))];
 
 // Vérifie un thème avant de le partager : renvoie la liste des problèmes (vide = bon à partager).
 // files : chemins relatifs du dossier ; sizes : taille de chaque fichier en octets.
@@ -104,13 +110,15 @@ function check(meta, files = [], sizes = {}, appVersion = null) {
   if (!t.description) problems.push('description');
   // ce que le fichier contenait et que le format ne garde pas tel quel (propriété inconnue, valeur hors limites,
   // élément d'un type inconnu) : le thème ne s'affichera pas comme son auteur le pense
-  const src = (meta.counter && meta.counter.elements) || [];
-  if (t.counter) {
-    if (src.length !== t.counter.elements.length) problems.push('adjusted:elements');
+  for (const kind of Compose.KINDS) {
+    const comp = t[kind];
+    if (!comp) continue;
+    const src = (meta[kind] && meta[kind].elements) || [];
+    if (src.length !== comp.elements.length) problems.push(`adjusted:${kind}.elements`);
     else {
       src.forEach((e, i) => {
         for (const k of Object.keys(e || {})) {
-          if (JSON.stringify(e[k]) !== JSON.stringify(t.counter.elements[i][k])) problems.push(`adjusted:${t.counter.elements[i].id}.${k}`);
+          if (JSON.stringify(e[k]) !== JSON.stringify(comp.elements[i][k])) problems.push(`adjusted:${kind}.${comp.elements[i].id}.${k}`);
         }
       });
     }
@@ -122,7 +130,7 @@ function check(meta, files = [], sizes = {}, appVersion = null) {
     if ((sizes[f] || 0) > GALLERY.file) problems.push(`big:${f}`);
   }
   if (total > GALLERY.total) problems.push('too-big');
-  for (const src of Compose.images(t.counter)) if (!files.includes(src)) problems.push(`missing:${src}`);
+  for (const src of usedImages(t)) if (!files.includes(src)) problems.push(`missing:${src}`);
   if (appVersion && cmpVersion(appVersion, t.minApp) < 0) problems.push('needs-newer-app');
   return { ok: problems.length === 0, problems, theme: t };
 }
@@ -154,4 +162,4 @@ function review(files, appVersion = null) {
   return { ok: problems.length === 0, problems, theme: r.theme };
 }
 
-module.exports = { FORMAT, BASES, TAGS, GALLERY, COMPOSED_FILE, IMAGE_FILE, cleanTheme, check, review, cmpVersion, imageKind, slug };
+module.exports = { FORMAT, BASES, TAGS, GALLERY, COMPOSED_FILE, IMAGE_FILE, cleanTheme, check, review, usedImages, cmpVersion, imageKind, slug };

@@ -247,19 +247,23 @@
                 </div>
               </div>
               <div>
+                <div class="card cmp-note hidden" id="cmpAlertNote">
+                  <p data-i18n="h.al.cmpNote">This theme draws the alerts itself: where they appear, their size and their style are set in the theme editor.</p>
+                  <button class="btn small primary" id="cmpAlertEdit" data-i18n="h.ctr.cmpEdit">Open the editor</button>
+                </div>
                 <div class="card">
                   <h3 data-i18n="h.al.title">Alerts</h3>
                   <div class="form">
                     <label class="sw-row"><span data-i18n="h.al.sound">Play sounds</span><input type="checkbox" class="switch" data-set="alerts.sound" /></label>
                     <label>Volume <input type="range" min="0" max="1" step="0.05" data-set="alerts.volume" /></label>
-                    <label>Position
+                    <label data-classic-alert>Position
                       <select data-set="alerts.position">
                         <option value="center" data-i18n="h.al.center">Center of the screen</option>
                         <option value="top" data-i18n="h.al.top">Top</option>
                         <option value="bottom" data-i18n="h.al.bottom">Bottom</option>
                       </select>
                     </label>
-                    <label><span data-i18n="h.size">Size</span> <input type="range" min="0.4" max="1.6" step="0.05" data-set="alerts.scale" /></label>
+                    <label data-classic-alert><span data-i18n="h.size">Size</span> <input type="range" min="0.4" max="1.6" step="0.05" data-set="alerts.scale" /></label>
                     <label><span data-i18n="h.al.milestones">“Streak” alert at these numbers of wins in a row</span>
                       <input data-set="alerts.streakMilestones" data-type="list-number" placeholder="3, 5, 10" />
                     </label>
@@ -934,6 +938,7 @@
       <div class="modal-box mk-box">
         <div class="card-head"><h3 id="mkmName"></h3><button class="btn small ghost" id="mkmClose" data-i18n="h.close">Close</button></div>
         <div class="mk-stage" id="mkmStage"></div>
+        <div class="seg mk-kinds hidden" id="mkmKinds"></div>
         <div class="mk-live">
           <span class="muted small" data-i18n="h.e.sample">Preview with</span>
           <div class="seg" id="mkmSample"></div>

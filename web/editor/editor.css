@@ -22,6 +22,17 @@ body.in-app .ed-top { padding-right: 150px; }
 .ed-left h3:not(:first-child) { margin-top: 22px; }
 .ed-left h3 .muted { margin-left: 6px; font: 400 12px var(--ui); }
 
+/* overlays du thème : celui qu'on édite, et un point sur ceux qu'il redessine */
+.ed-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ed-kinds button { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font: 600 12.5px var(--ui); text-align: left; cursor: pointer; }
+.ed-kinds button:hover { border-color: var(--line-2); color: var(--text); }
+.ed-kinds button.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
+.ed-kinds i { width: 7px; height: 7px; border-radius: 50%; background: var(--violet); flex: none; }
+.ed-left.off #edPalette, .ed-left.off #edLayers, .ed-left.off h3:not(:first-child) { display: none; }
+.ed-empty { max-width: 460px; margin: auto; padding: 28px 30px; border: 1px dashed var(--line-2); border-radius: 16px; background: var(--panel); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.ed-empty h2 { margin: 0; }
+.ed-empty p { margin: 0; }
+
 /* palette */
 .ed-palette { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .ed-palette button { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: inherit; font: inherit; font-size: 12.5px; font-weight: 600; text-align: left; cursor: pointer; }
@@ -55,6 +66,7 @@ body.in-app .ed-top { padding-right: 150px; }
 .ed-canvas.checker { background: repeating-conic-gradient(#2a3136 0% 25%, #20262a 0% 50%) 0 0 / 24px 24px; }
 .ed-canvas .cmp-el { cursor: move; }
 .ed-canvas .cmp-ghost { opacity: 0.35 !important; outline: 1px dashed rgba(255, 255, 255, 0.5); }
+.ed-canvas.quiet .cmp-ghost:not(.cmp-picked) { opacity: 0 !important; outline: none; pointer-events: none; }
 .ed-overlay { position: absolute; inset: 0; pointer-events: none; }
 .ed-sel { position: absolute; box-sizing: border-box; border: 1.5px solid var(--violet); }
 .ed-sel.multi { border-style: dashed; }
@@ -114,3 +126,5 @@ body.in-app .ed-top { padding-right: 150px; }
   .ed-sample > span { display: none; }
   .ed-name { width: 170px; }
 }
+
+.ed-uncompose { margin-top: 12px; }

@@ -411,6 +411,10 @@
       const th = activeTheme();
       if (th) location.href = editorUrl(th.id);
     });
+    $('#cmpAlertEdit').addEventListener('click', () => {
+      const th = activeTheme();
+      if (th) location.href = `${editorUrl(th.id)}&overlay=alerts`;
+    });
     $('#themeFolder').addEventListener('click', () => post('/api/open', { target: 'themes' }));
     $('#themeInstall').addEventListener('click', pickTheme);
 
@@ -1214,6 +1218,11 @@
     // avec un thème composé, ce qui est affiché se règle dans l'éditeur : les options du compteur classique s'effacent
     $('#cmpNote').classList.toggle('hidden', !comp);
     $('#cmpEdit').classList.toggle('hidden', !comp || !th.editable);
+    // alertes dessinées par le thème : leur place et leur taille viennent de l'éditeur
+    const alertComp = !!(th && th.compose && th.compose.alerts);
+    $('#cmpAlertNote').classList.toggle('hidden', !alertComp);
+    $('#cmpAlertEdit').classList.toggle('hidden', !alertComp || !th.editable);
+    $$('[data-classic-alert]').forEach((el) => el.classList.toggle('hidden', alertComp));
     $$('#tab-stream [data-ovpane="counter"] .sub-head, #tab-stream [data-ovpane="counter"] .sw-row, #tab-stream [data-ovpane="counter"] details.more-opts').forEach((el) => el.classList.toggle('hidden', !!comp));
     const seg = $('[data-choice="overlay.layout"]');
     $('[data-val="vertical"]', seg).classList.toggle('hidden', !!comp || (!!th && !!th.compose && layout === 'boost'));

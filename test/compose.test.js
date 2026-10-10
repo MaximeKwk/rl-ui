@@ -202,3 +202,118 @@ test('comparaison de versions', () => {
   assert.ok(themeFormat.cmpVersion('2.10.0', '2.9.9') > 0);
   assert.strictEqual(themeFormat.cmpVersion('1.2.5', '1.2.5'), 0);
 });
+
+// ---------------------------------------------------------------- alertes, dernières parties, récap
+const { overlayStarter, OVERLAY_STARTERS } = require('../core/themeStarters');
+
+test('alertes : ce que l\'alerte apporte, quand un élément se montre, couleur de l\'alerte', () => {
+  const tr = (k) => I.tl('en', k);
+  const win = Compose.dataFrom(null, {}, tr, { type: 'ot_win', title: 'OVERTIME VICTORY', data: { scoreFor: 3, scoreAgainst: 2, overtime: true, otSeconds: 42, mvp: true, playlist: '2v2 Ranked', streak: 4, wins: 13, losses: 5, mmr: { delta: 11.6, learned: false } } });
+  assert.deepStrictEqual([win.alert, win.alertTitle, win.alertDetail, win.matchScore, win.matchOt, win.mvp], ['ot_win', 'OVERTIME VICTORY', 'Golden goal', '3 - 2', '+0:42', true]);
+  assert.deepStrictEqual([win.wins, win.losses, win.streak], [13, 5, 4], 'le bilan vient de l\'alerte : l\'état de la session peut arriver après elle');
+  assert.deepStrictEqual(Compose.valueOf('matchMmr', win), { text: '≈ +12', tone: 'win' });
+  assert.deepStrictEqual(Compose.valueOf('alertTitle', win), { text: 'OVERTIME VICTORY', tone: 'event' });
+  for (const [when, want] of [['alertWin', true], ['alertLoss', false], ['alertOt', false], ['alertOtEnd', true], ['alertStreak', false], ['alertMvp', true], ['matchScore', true], ['matchMmr', true]]) assert.strictEqual(Compose.visible(when, win), want, when);
+  // défaite : pas de MVP même si le jeu le dit ; partie comptée à la main : pas de score ni de mode
+  const loss = Compose.dataFrom(null, {}, tr, { type: 'loss', title: 'DEFEAT', data: { manual: true, scoreFor: 0, scoreAgainst: 0, mvp: true, playlist: 'x', mmr: { delta: -9, learned: true } } });
+  assert.deepStrictEqual([loss.mvp, loss.matchScore, loss.alertDetail, Compose.valueOf('matchMmr', loss).text, Compose.visible('alertLoss', loss), Compose.visible('matchScore', loss)], [false, '', '', '-9', true, false]);
+  // début de prolongation, série
+  const ot = Compose.dataFrom(null, {}, tr, { type: 'overtime', title: 'OVERTIME', data: { scoreFor: 2, scoreAgainst: 2, playlist: '2v2 Ranked' } });
+  assert.deepStrictEqual([ot.alertDetail, ot.matchMmr, Compose.visible('alertOt', ot), Compose.visible('matchMmr', ot)], ['Sudden death · 2v2 Ranked', null, true, false]);
+  const streak = Compose.dataFrom(null, {}, tr, Compose.sampleAlert('streak', tr));
+  assert.deepStrictEqual([streak.alertTitle, streak.streak, streak.matchScore, Compose.visible('alertStreak', streak)], ['5 WIN STREAK', 5, '', true]);
+  assert.deepStrictEqual(['win', 'ot_win', 'loss', 'ot_loss', 'overtime', 'streak'].map(Compose.eventTone), ['win', 'win', 'loss', 'loss', 'ot', 'ot']);
+  // hors alerte, rien de tout cela n'apparaît
+  const idle = Compose.dataFrom({ session: { wins: 1 } }, {}, tr);
+  for (const when of ['alertWin', 'alertLoss', 'alertOt', 'alertOtEnd', 'alertStreak', 'alertMvp', 'matchScore', 'matchMmr']) assert.strictEqual(Compose.visible(when, idle), false, when);
+  // chaque type d'alerte a son exemple, pour l'éditeur et les aperçus
+  for (const type of ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak']) assert.ok(Compose.sampleAlert(type, tr).title && !/^alert\./.test(Compose.sampleAlert(type, tr).title), type);
+});
+
+test('récap : temps de jeu, buts, passes, arrêts, différence de buts, joueur', () => {
+  const d = Compose.dataFrom({ session: { wins: 3, losses: 1, played: 4, winRate: 75, timePlayedSec: 4980, myGoals: 7, myAssists: 2, mySaves: 5, goalsFor: 11, goalsAgainst: 6 }, status: { account: 'Zoxam' } }, {});
+  assert.deepStrictEqual(['timePlayed', 'goals', 'assists', 'saves', 'goalDiff', 'player'].map((b) => Compose.valueOf(b, d).text), ['1h23', '7', '2', '5', '+5', 'Zoxam']);
+  assert.strictEqual(Compose.valueOf('goalDiff', d).tone, 'win');
+  assert.strictEqual(Compose.valueOf('timePlayed', Compose.dataFrom(null)).text, '0 min');
+  // chaque overlay propose des valeurs et des conditions qui existent
+  for (const k of Compose.KINDS) {
+    assert.ok(Compose.BINDS_FOR[k].every((b) => Compose.BINDS.includes(b)) && Compose.WHEN_FOR[k].every((w) => Compose.WHEN.includes(w)), k);
+    assert.strictEqual(Compose.SIZES[k].length, 2);
+  }
+  assert.ok(!Compose.BINDS_FOR.counter.includes('alertTitle') && Compose.BINDS_FOR.alerts.includes('alertTitle') && Compose.BINDS_FOR.summary.includes('timePlayed'));
+});
+
+test('thème : les quatre overlays composés, nettoyés et contrôlés comme le compteur', () => {
+  const base = { format: 2, name: 'Complet', author: 'Moi', description: 'Tout est dessiné.', counter: { width: 400, height: 100, elements: [{ type: 'value', bind: 'wins', x: 0, y: 0, w: 100, h: 40 }] } };
+  const t = themeFormat.cleanTheme({
+    ...base,
+    alerts: { width: 1920, height: 1080, enter: 'pop', elements: [{ type: 'value', bind: 'alertTitle', color: 'event', fit: 'oui', x: 0, y: 0, w: 900, h: 100, onload: 'x()' }, { type: 'box', fill: 'event', x: 0, y: 0, w: 10, h: 10 }, { type: 'script' }] },
+    history: { width: 700, height: 90, enter: 'explosion', elements: [{ type: 'results', x: 0, y: 0, w: 300, h: 30 }] },
+    caster: { width: 100, height: 100, elements: [] },
+  });
+  assert.deepStrictEqual([t.alerts.enter, t.alerts.elements.length, t.alerts.elements[0].color, t.alerts.elements[0].fit, t.alerts.elements[1].fill], ['pop', 2, 'event', true, 'event']);
+  assert.ok(!('onload' in t.alerts.elements[0]));
+  assert.ok(!('enter' in t.history), 'une entrée inconnue est retirée');
+  assert.ok(!('caster' in t), 'un overlay qui n\'est pas dans le format est ignoré');
+  // (une composition illisible rend le thème inutilisable : il n'est pas à moitié chargé)
+  assert.throws(() => themeFormat.cleanTheme({ ...base, alerts: { elements: 'x' } }));
+  assert.throws(() => themeFormat.cleanTheme({ ...base, summary: 'pas une composition' }));
+  assert.ok(!('summary' in themeFormat.cleanTheme({ ...base, summary: null })));
+  // contrôle avant partage : chaque composition compte
+  const clean = JSON.parse(JSON.stringify(themeFormat.cleanTheme({ ...base, alerts: { width: 1920, height: 1080, elements: [{ type: 'image', src: 'images/bandeau.png', x: 0, y: 0, w: 100, h: 50 }] } })));
+  assert.deepStrictEqual(themeFormat.check(clean, ['theme.json']).problems, ['missing:images/bandeau.png']);
+  assert.deepStrictEqual(themeFormat.check(clean, ['theme.json', 'images/bandeau.png']).problems, []);
+  assert.deepStrictEqual(themeFormat.usedImages(clean), ['images/bandeau.png']);
+  clean.alerts.elements[0].style = 'position:fixed';
+  assert.deepStrictEqual(themeFormat.check(clean, ['theme.json', 'images/bandeau.png']).problems, ['adjusted:alerts.e1.style']);
+  clean.alerts.elements.push({ type: 'iframe' });
+  assert.ok(themeFormat.check(clean, ['theme.json', 'images/bandeau.png']).problems.includes('adjusted:alerts.elements'));
+  // le compteur reste obligatoire : c'est lui que montre la vignette du thème
+  assert.ok(themeFormat.check({ ...clean, counter: null }, []).problems.includes('empty'));
+});
+
+test('points de départ des alertes, des dernières parties et du récap : valides, dans les deux langues', () => {
+  assert.deepStrictEqual(OVERLAY_STARTERS, ['alerts', 'history', 'summary']);
+  for (const lang of ['en', 'fr']) {
+    const tr = (k) => I.tl(lang, k);
+    for (const kind of OVERLAY_STARTERS) {
+      const raw = overlayStarter(kind, tr);
+      const c = Compose.clean(raw);
+      assert.deepStrictEqual(JSON.parse(JSON.stringify(c.elements.map(({ id, ...e }) => e))), JSON.parse(JSON.stringify(raw.elements.map((e) => ({ ...Compose.cleanElement(e, 0, new Set()), id: undefined })).map(({ id, ...e }) => e))), `${kind} : rien n'est corrigé`);
+      assert.deepStrictEqual([c.width, c.height], Compose.SIZES[kind], kind);
+      // chaque valeur et chaque condition est de celles que l'éditeur propose pour cet overlay
+      for (const e of c.elements) {
+        if (e.type === 'value') assert.ok(Compose.BINDS_FOR[kind].includes(e.bind), `${kind} ${e.bind}`);
+        assert.ok(Compose.WHEN_FOR[kind].includes(e.when), `${kind} ${e.when}`);
+        assert.ok(e.x >= 0 && e.y >= 0 && e.x + e.w <= c.width && e.y + e.h <= c.height, `${kind} : « ${e.name} » tient dans la toile`);
+        assert.ok(e.name && !/^(cmp|ov|al)\./.test(e.name) && !/^(cmp|ov|al)\./.test(e.text || ''), `${lang} ${kind} : ${e.name}`);
+      }
+    }
+    assert.strictEqual(overlayStarter('alerts', tr).enter, 'slide');
+  }
+  assert.strictEqual(overlayStarter('caster', (k) => k), null);
+  assert.strictEqual(overlayStarter('constructor', (k) => k), null);
+});
+
+test('thème composé : enregistrer et relire les autres overlays ; images gardées si une composition s\'en sert', () => {
+  const tm = manager();
+  const { id } = tm.create({ name: 'Avec alertes', kind: 'bar', author: 'Zoxam' });
+  assert.deepStrictEqual(Object.keys(tm.get(id).compose), ['counter']);
+  const img = tm.saveImage(id, PNG, 'bandeau.png');
+  const unused = tm.saveImage(id, PNG, 'oubli.png');
+  const src = tm.source(id);
+  const tr = (k) => I.tl('fr', k);
+  const alerts = overlayStarter('alerts', tr);
+  alerts.elements.push({ type: 'image', src: img.src, x: 0, y: 0, w: 100, h: 100 });
+  tm.saveSource(id, { ...src.theme, alerts, summary: overlayStarter('summary', tr) });
+  const t = tm.get(id);
+  assert.deepStrictEqual(Object.keys(t.compose), ['counter', 'alerts', 'summary']);
+  assert.strictEqual(t.compose.alerts.enter, 'slide');
+  const dir = t.dir;
+  assert.ok(fs.existsSync(path.join(dir, img.src)), 'image utilisée par les alertes : gardée');
+  assert.ok(!fs.existsSync(path.join(dir, unused.src)), 'image qui ne sert à rien : retirée');
+  // ne plus dessiner un overlay : il disparaît du thème
+  tm.saveSource(id, { ...tm.source(id).theme, alerts: null });
+  assert.deepStrictEqual(Object.keys(tm.get(id).compose), ['counter', 'summary']);
+  assert.ok(!fs.existsSync(path.join(dir, img.src)));
+});

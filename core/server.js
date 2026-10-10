@@ -400,7 +400,7 @@ class AppServer extends EventEmitter {
       }
       if (p === '/api/market/theme') {
         const t = await this.core.market.theme(url.searchParams.get('id') || '');
-        return t ? this._json(res, 200, { ok: true, id: t.id, colors: t.colors, counter: t.counter, images: t.images }) : this._json(res, 404, { ok: false });
+        return t ? this._json(res, 200, { ok: true, id: t.id, colors: t.colors, counter: t.counter, compose: t.compose, images: t.images }) : this._json(res, 404, { ok: false });
       }
       if (p === '/api/market/file') {
         const f = await this.core.market.file(url.searchParams.get('id') || '', url.searchParams.get('path') || '');
@@ -417,6 +417,10 @@ class AppServer extends EventEmitter {
         const b = await this._body(req, true).catch(() => ({}));
         const r = this.core.createTheme({ name: b.name, starter: b.starter });
         return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/themes/starter') {
+        const r = this.core.overlayStarter(url.searchParams.get('overlay'));
+        return this._json(res, r.ok ? 200 : 404, r);
       }
       m = /^\/api\/themes\/([a-z0-9-]+)\/(source|image|preview|check)$/.exec(p);
       if (m && m[2] === 'source' && method === 'GET') {

@@ -10,6 +10,7 @@ const { readZip, writeZip } = require('./zip');
 const { t: tr, getLang } = require('./i18n');
 const themeFormat = require('./themeFormat');
 const { starter, STARTER_IDS } = require('./themeStarters');
+const Compose = require('../web/shared/compose.js');
 
 const ALLOWED = new Set(['.json', '.css', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.woff2', '.woff', '.ttf', '.otf', '.mp3', '.wav', '.ogg', '.md', '.txt']);
 const SOUND_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
@@ -87,7 +88,8 @@ class ThemeManager extends EventEmitter {
       base: composed ? composed.base : null,
       tags: composed ? composed.tags : [],
       minApp: composed ? composed.minApp : null,
-      compose: composed && composed.counter ? { counter: composed.counter } : null,
+      // overlays que le thème dessine lui-même : { counter, alerts, history, summary } (ceux qu'il compose seulement)
+      compose: composed && composed.counter ? Object.fromEntries(Compose.KINDS.filter((k) => composed[k]).map((k) => [k, composed[k]])) : null,
       editable: !builtin && !!composed,
       id,
       builtin,
@@ -304,7 +306,7 @@ class ThemeManager extends EventEmitter {
     const t = this._userTheme(id);
     if (t.format !== themeFormat.FORMAT) throw new Error(tr('s.themeNotComposed'));
     const theme = themeFormat.cleanTheme({ ...(data || {}), format: themeFormat.FORMAT });
-    const used = new Set(theme.counter ? require('../web/shared/compose.js').images(theme.counter) : []);
+    const used = new Set(themeFormat.usedImages(theme));
     for (const f of walk(t.dir)) {
       if (/^images\//.test(f) && !used.has(f)) {
         try {

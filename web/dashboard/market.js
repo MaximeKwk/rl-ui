@@ -16,6 +16,11 @@
   let open = null; // thème affiché en grand
   let live = null; // sa composition, posée dans la fenêtre
   let sample = 'idle';
+  let liveKind = 'counter'; // overlay montré dans la fenêtre : compteur, alertes, dernières parties ou récap
+  let liveTheme = null; // compositions du thème ouvert
+  // situations d'aperçu de chaque overlay (« a:… » : une alerte de ce type)
+  const SAMPLES = { counter: ['idle', 'match', 'overtime', 'cold'], alerts: ['a:win', 'a:loss', 'a:overtime', 'a:ot_win', 'a:streak'], history: ['idle', 'cold'], summary: ['idle', 'cold'] };
+  const sampleData = () => (sample.startsWith('a:') ? { ...C.sample('idle', t), ...C.alertFields(C.sampleAlert(sample.slice(2), t), t) } : C.sample(sample, t));
 
   try {
     sort = localStorage.getItem('rlui-mksort') || sort;
@@ -220,6 +225,7 @@
   function closeModal() {
     if (live) live.destroy();
     live = null;
+    liveTheme = null;
     open = null;
     $('#mkModal').classList.add('hidden');
   }
@@ -259,14 +265,33 @@
     if (open !== id) return;
     // (composition illisible : l'image d'aperçu reste affichée)
     if (!r.ok || !r.counter || !C || !C.mount) return $('.mk-live').classList.add('hidden');
+    liveTheme = r;
+    liveKind = 'counter';
+    mountLive();
+    $('.mk-live').classList.remove('hidden');
+  }
+
+  // Pose dans la fenêtre l'overlay choisi du thème ouvert
+  function mountLive() {
+    if (live) live.destroy();
+    live = null;
+    const r = liveTheme;
+    const comp = (r.compose && r.compose[liveKind]) || r.counter;
+    const stage = $('#mkmStage');
     stage.innerHTML = '<div class="mk-fit"></div>';
     const box = stage.firstChild;
     for (const k of ['win', 'loss', 'ot']) if (r.colors && r.colors[k]) box.style.setProperty(`--${k}`, r.colors[k]);
-    const view = C.mount(box, r.counter, { imageUrl: (src) => fileUrl(id, src) });
-    live = { view, box, comp: r.counter, bounds: boundsOf(r.counter), destroy: () => view.destroy() };
-    view.update(C.sample(sample, t));
+    const view = C.mount(box, comp, { imageUrl: (src) => fileUrl(open, src) });
+    live = { view, box, comp, bounds: boundsOf(comp), destroy: () => view.destroy() };
+    if (!SAMPLES[liveKind].includes(sample)) sample = SAMPLES[liveKind][0];
+    view.update(sampleData());
     fit();
-    $('.mk-live').classList.remove('hidden');
+    if (liveKind === 'alerts') view.enter(comp.enter || 'slide');
+    // onglets des overlays que le thème dessine (s'il n'y a que le compteur, pas d'onglets), puis situations d'aperçu
+    const kinds = C.KINDS.filter((k) => r.compose && r.compose[k]);
+    $('#mkmKinds').classList.toggle('hidden', kinds.length < 2);
+    $('#mkmKinds').innerHTML = kinds.map((k) => `<button data-kind="${k}" class="${k === liveKind ? 'on' : ''}">${esc(t(`e.kind.${k}`))}</button>`).join('');
+    $('#mkmSample').innerHTML = SAMPLES[liveKind].map((k) => `<button data-sample="${k}" class="${k === sample ? 'on' : ''}">${esc(t(k.startsWith('a:') ? `type.${k.slice(2)}` : `e.sample.${k}`))}</button>`).join('');
   }
 
   function renderModal() {
@@ -276,11 +301,11 @@
     box.dataset.mkid = x.id;
     $('#mkmName').textContent = x.name;
     $('#mkmDesc').textContent = x.description;
-    $$('#mkmSample button').forEach((b) => b.classList.toggle('on', b.dataset.sample === sample));
     const fact = (k, v) => `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
     $('#mkmFacts').innerHTML = [
       fact(t('d.mk.fAuthor'), esc(x.author || t('d.mk.anon'))),
       fact(t('d.mk.fVersion'), `${esc(x.version)}${x.updated ? ` · ${esc(fmtDay(x.updated))}` : ''}`),
+      fact(t('d.mk.fDraws'), esc(x.draws.map((k) => t(`e.kind.${k}`)).join(', '))),
       fact(t('d.mk.fStyle'), x.tags.map((k) => `<button class="mk-chip" data-mk="tag" data-tag="${k}">${esc(t(`e.tag.${k}`))}</button>`).join('') || '—'),
       fact(t('d.mk.fCompat'), x.compatible ? `<span class="pill ok">${esc(t('d.mk.compatOk', { v: x.minApp }))}</span>` : `<span class="pill wait">${esc(t('d.mk.compatNo', { v: x.minApp, c: data.appVersion }))}</span>`),
       fact(t('d.mk.fSize'), esc(fmtSize(x.size))),
@@ -380,13 +405,19 @@
       onClick(e);
     });
     $('#mkmClose').addEventListener('click', closeModal);
-    $('#mkmSample').innerHTML = ['idle', 'match', 'overtime', 'cold'].map((k) => `<button data-sample="${k}">${esc(t(`e.sample.${k}`))}</button>`).join('');
+    $('#mkmKinds').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-kind]');
+      if (!b || !liveTheme || b.dataset.kind === liveKind) return;
+      liveKind = b.dataset.kind;
+      mountLive();
+    });
     $('#mkmSample').addEventListener('click', (e) => {
       const b = e.target.closest('[data-sample]');
       if (!b || !live) return;
       sample = b.dataset.sample;
       $$('#mkmSample button').forEach((k) => k.classList.toggle('on', k === b));
-      live.view.update(C.sample(sample, t));
+      live.view.update(sampleData());
+      if (liveKind === 'alerts') live.view.enter(live.comp.enter || 'slide');
     });
     $('#mkTags').addEventListener('click', (e) => {
       const b = e.target.closest('[data-tag]');

@@ -34,7 +34,8 @@ Rien d'autre n'est permis dans le dossier. Les images sont reconnues à leur con
   "colors": { "win": "#3dffd0", "loss": "#ff4fa8", "ot": "#ffe04d" },
   "base": "contraste",
   "translations": { "fr": { "name": "Nuit néon", "description": "Une plaque sombre aux bords violets lumineux." } },
-  "counter": { "width": 1000, "height": 220, "elements": [] }
+  "counter": { "width": 1000, "height": 220, "elements": [] },
+  "alerts": { "width": 1920, "height": 1080, "enter": "slide", "elements": [] }
 }
 ```
 
@@ -47,15 +48,23 @@ Rien d'autre n'est permis dans le dossier. Les images sont reconnues à leur con
 | `tags` | Jusqu'à 5 parmi `minimal`, `competitive`, `neon`, `dark`, `light`, `colorful`, `retro`, `esport`, `compact`, `vertical`. |
 | `minApp` | La plus ancienne version de RL-UI capable d'afficher le thème. La galerie ne laisse pas un RL-UI plus ancien l'installer. |
 | `colors` | Couleurs victoire / défaite / overtime, `#rrggbb`. Utilisées par les noms de couleur `win`, `loss`, `ot` ci-dessous, et par les alertes. |
-| `base` | Habillage des overlays que le thème ne dessine pas lui-même (alertes, dernières parties, récap) : `signature`, `epure` ou `contraste`. |
+| `base` | Habillage des overlays que le thème ne dessine pas lui-même : `signature`, `epure` ou `contraste`. |
 | `translations` | Nom et description facultatifs en `en` ou `fr`. |
-| `counter` | La composition du compteur V/D (ci-dessous). |
+| `counter` | La composition du compteur V/D (ci-dessous). Obligatoire pour la galerie. |
+| `alerts`, `history`, `summary` | Facultatifs : la composition des alertes, des dernières parties et du récap de session. |
 
-Un thème composé dessine le **compteur**. La disposition « Boost » du compteur garde son propre habillage avec tous les thèmes.
+Un thème composé dessine toujours le **compteur**. Il peut aussi dessiner les **alertes**, les **dernières parties** et le **récap de session** ; ceux qu'il ne dessine pas gardent l'habillage `base`. La disposition « Boost » du compteur et l'overlay caster gardent leur propre habillage avec tous les thèmes.
 
 ## La composition
 
-`counter` est une toile (`width` 40–1920, `height` 20–1080, en pixels : la taille de la source OBS) et jusqu'à 80 `elements`, dessinés dans l'ordre (le dernier au-dessus).
+Une composition est une toile (`width` 40–1920, `height` 20–1080, en pixels) et jusqu'à 80 `elements`, dessinés dans l'ordre (le dernier au-dessus). Les quatre overlays utilisent les mêmes éléments ; seules changent les valeurs en direct et les conditions disponibles.
+
+| Composition | Toile proposée | Remarques |
+| --- | --- | --- |
+| `counter` | 1000 × 220 | La taille de la source OBS. |
+| `alerts` | 1920 × 1080 | Une seule composition pour toutes les alertes : les conditions `alert…` disent quels éléments apparaissent pour quelle alerte. La toile est ajustée et centrée dans la source. `enter` choisit l'entrée en scène : `slide`, `rise`, `pop`, `fade` ou `none`. |
+| `history` | 700 × 90 | La taille de la source OBS. |
+| `summary` | 1920 × 1080 | La toile est ajustée et centrée dans la source. |
 
 Chaque élément a :
 
@@ -67,10 +76,24 @@ Chaque élément a :
 | `x`, `y`, `w`, `h` | Position et taille en pixels. |
 | `rotate` | −180 à 180 degrés. |
 | `opacity` | 0 à 1. |
-| `when` | Quand l'élément est visible : `always`, `match` (pendant une partie), `idle` (entre deux parties), `overtime`, `winStreak` (2 victoires de suite ou plus), `lossStreak`, `mmr` (quand le MMR est connu). |
+| `when` | Quand l'élément est visible : `always` ou l'une des conditions ci-dessous. |
 | `hidden` | `true` pour garder l'élément dans le thème sans l'afficher. |
 
-Une couleur est un `#rrggbb` ou l'un de ces noms : `win`, `loss`, `ot` (les couleurs du thème), `white`, `black`, et pour les valeurs en direct `auto` (la couleur de victoire en hausse, celle de défaite en baisse, doré en série de victoires, bleu en série de défaites).
+| `when` | Visible… | Overlays |
+| --- | --- | --- |
+| `match`, `idle`, `overtime` | pendant une partie, entre deux parties, en overtime | compteur |
+| `winStreak`, `lossStreak` | à partir de 2 victoires (ou défaites) de suite | compteur, dernières parties, récap ; `winStreak` aussi dans les alertes |
+| `mmr` | quand le MMR est connu | compteur, dernières parties, récap |
+| `alertWin`, `alertLoss` | pour une victoire, une défaite (overtime compris) | alertes |
+| `alertOt` | quand l'overtime commence | alertes |
+| `alertOtEnd` | pour une victoire ou une défaite en overtime | alertes |
+| `alertStreak` | pour une série de victoires | alertes |
+| `alertMvp` | quand la victoire vient avec le MVP | alertes |
+| `matchScore`, `matchMmr` | quand le score, ou la variation de MMR de la partie, est connu | alertes |
+
+L'éditeur ne propose pour chaque overlay que les conditions de sa ligne. Une condition écrite à la main dans un autre overlay ne casse rien, mais n'y a pas de sens.
+
+Une couleur est un `#rrggbb` ou l'un de ces noms : `win`, `loss`, `ot` (les couleurs du thème), `white`, `black`, pour les valeurs en direct `auto` (la couleur de victoire en hausse, celle de défaite en baisse, doré en série de victoires, bleu en série de défaites), et dans les alertes `event` : la couleur de l'alerte affichée (victoire, défaite, ou overtime pour un début d'overtime et une série).
 
 ### `box` — une plaque
 
@@ -78,7 +101,7 @@ Une couleur est un `#rrggbb` ou l'un de ces noms : `win`, `loss`, `ot` (les coul
 
 ### `text` — un texte fixe, et `value` — une valeur en direct
 
-Typographie pour les deux : `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `Archivo` : les polices livrées avec RL-UI), `size` (6–400), `weight` (100–900), `italic`, `upper`, `spacing`, `color`, `align` (`left`, `center`, `right`), `valign` (`top`, `middle`, `bottom`), `shadow` (`none`, `soft`, `outline`).
+Typographie pour les deux : `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `Archivo` : les polices livrées avec RL-UI), `size` (6–400), `weight` (100–900), `italic`, `upper`, `spacing`, `color`, `align` (`left`, `center`, `right`), `valign` (`top`, `middle`, `bottom`), `shadow` (`none`, `soft`, `outline`), `fit` (`true` : le texte rétrécit s'il dépasse la largeur de l'élément, utile pour un titre d'alerte ou un pseudo).
 
 - `text` ajoute `text` (80 caractères).
 - `value` ajoute `bind`, et `prefix` / `suffix` facultatifs (12 caractères chacun).
@@ -92,7 +115,13 @@ Typographie pour les deux : `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `A
 | `mmr`, `mmrDelta` | MMR actuel, variation depuis le début de la session |
 | `played`, `mvps` | Parties jouées, MVP |
 | `labelWin`, `labelLoss` | Les lettres V / D choisies dans RL-UI |
-| `mode`, `clock`, `score` | Pendant une partie : mode de jeu, chrono, score |
+| `mode`, `clock`, `score` | Compteur, pendant une partie : mode de jeu, chrono, score |
+| `alertTitle`, `alertDetail` | Alertes : le titre (« VICTOIRE », « SÉRIE DE 3 »…, ou celui que tu as écrit dans RL-UI) et la ligne du dessus (mode de jeu, « But en or »…) |
+| `matchScore`, `matchMmr`, `matchOt` | Alertes : score de la partie, variation de MMR de la partie (« ≈ » devant une estimation), durée de l'overtime |
+| `timePlayed`, `player` | Récap : temps de jeu de la session, pseudo |
+| `goals`, `assists`, `saves`, `goalDiff` | Récap : buts, passes, arrêts, différence de buts |
+
+Les valeurs de la session (les six premières lignes) existent dans tous les overlays. Dans une alerte, `wins`, `losses`, `record` et `streak` sont ceux du moment de l'alerte.
 
 ### `image`
 
@@ -116,7 +145,7 @@ Un thème qu'il a fallu corriger ainsi est **refusé par la galerie** : son aute
 
 Le bouton **Proposer** d'un thème (Overlays → Thèmes) les lance et dit quoi corriger :
 
-- le compteur a au moins un élément ; l'auteur et la description sont remplis ;
+- le compteur a au moins un élément (les autres overlays sont facultatifs) ; l'auteur et la description sont remplis ;
 - `preview.png` existe (l'éditeur le fabrique à l'enregistrement) ;
 - uniquement des fichiers permis, chacun sous 2 Mo, 8 Mo et 24 fichiers au total ;
 - chaque image utilisée est dans le dossier, et c'est une vraie image ;

@@ -861,6 +861,7 @@ input.switch:checked::after { transform: translateX(16px); }
 .mk-stage img { max-width: 100%; border-radius: 8px; display: block; }
 .mk-fit { position: relative; flex: none; overflow: hidden; }
 .mk-fit .cmp { position: absolute; left: 0; top: 0; }
+.mk-kinds { margin-top: 12px; }
 .mk-live { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0 2px; }
 .mk-box p.mk-desc { margin: 14px 0 0; font-size: 14px; }
 .mk-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 22px; margin: 16px 0 0; }

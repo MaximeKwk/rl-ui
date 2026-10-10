@@ -101,9 +101,92 @@ const STARTERS = {
   },
 };
 
+// Points de départ des autres overlays : un thème qui veut redessiner ses alertes, ses dernières parties ou son récap
+// part d'une composition complète plutôt que d'une toile vide.
+const OVERLAYS = {
+  // un bandeau au centre de l'écran : barre de la couleur de l'alerte, titre, puis le détail de la partie
+  alerts(tr) {
+    const x = 360;
+    const y = 420;
+    const chip = { font: 'Onest', size: 28, weight: 700, align: 'left' };
+    return {
+      width: 1920,
+      height: 1080,
+      enter: 'slide',
+      elements: [
+        box(tr('cmp.n.plate'), x, y, 1200, 240, { cut: 28, shadow: 'strong' }),
+        box(tr('cmp.n.eventBar'), x, y, 16, 240, { fill: 'event', fillOpacity: 1 }),
+        value(tr('cmp.n.alertDetail'), 'alertDetail', x + 60, y + 24, 1080, 36, { ...chip, size: 26, opacity: 0.62 }),
+        value(tr('cmp.n.alertTitle'), 'alertTitle', x + 60, y + 58, 1080, 108, { size: 92, weight: 800, color: 'event', align: 'left', fit: true }),
+        line(x + 60, y + 176, 1080, 1),
+        value(tr('cmp.n.record'), 'record', x + 60, y + 186, 300, 44, { ...chip, prefix: `${tr('al.session')} ` }),
+        value(tr('cmp.n.matchScore'), 'matchScore', x + 370, y + 186, 170, 44, { size: 32, weight: 800, align: 'left', when: 'matchScore' }),
+        value(tr('cmp.n.matchMmr'), 'matchMmr', x + 550, y + 186, 230, 44, { ...chip, color: 'auto', suffix: ' MMR', when: 'matchMmr' }),
+        text(tr('cmp.n.nextGoal'), tr('al.nextGoal'), x + 550, y + 186, 420, 44, { ...chip, color: 'ot', opacity: 1, when: 'alertOt', fit: true }),
+        value(tr('cmp.n.matchOt'), 'matchOt', x + 790, y + 186, 180, 44, { ...chip, color: 'ot', prefix: 'OT ', when: 'alertOtEnd' }),
+        text('MVP', 'MVP', x + 1000, y + 186, 140, 44, { ...chip, color: 'ot', opacity: 1, align: 'right', when: 'alertMvp' }),
+      ],
+    };
+  },
+  // une plaque et les dernières parties en pastilles
+  history(tr) {
+    return {
+      width: 700,
+      height: 90,
+      elements: [
+        box(tr('cmp.n.plate'), 10, 12, 566, 66, { radius: 12, cut: 16 }),
+        text(tr('ov.recent'), tr('ov.recent'), 28, 12, 104, 66, { size: 18, weight: 700, align: 'left', opacity: 0.55, fit: true }),
+        { type: 'results', name: tr('cmp.n.results'), x: 140, y: 24, w: 418, h: 42, count: 10, gap: 6, radius: 5 },
+      ],
+    };
+  },
+  // une carte au centre de l'écran : le bilan en grand, huit chiffres, les dernières parties
+  summary(tr) {
+    const x = 510;
+    const tile = (i, row, key, bind, o = {}) => {
+      const tx = x + i * 230;
+      const ty = 566 + row * 126;
+      return [box(tr('cmp.n.tile'), tx, ty, 210, 110, { fill: 'white', fillOpacity: 0.05, radius: 14 }), value(tr(`cmp.n.${key}`), bind, tx, ty + 14, 210, 50, { size: 38, ...o }), text(tr(`cmp.cap.${key}`), tr(`cmp.cap.${key}`), tx, ty + 70, 210, 24, { size: 16 })];
+    };
+    return {
+      width: 1920,
+      height: 1080,
+      elements: [
+        box(tr('cmp.n.plate'), 460, 180, 1000, 720, { radius: 24, cut: 40, shadow: 'strong' }),
+        text(tr('ov.recap'), tr('ov.recap'), x, 214, 560, 56, { font: 'Unbounded', size: 34, weight: 700, align: 'left', opacity: 1, fit: true }),
+        value(tr('cmp.n.player'), 'player', 1110, 214, 300, 56, { font: 'Onest', size: 24, weight: 600, align: 'right', opacity: 0.6, fit: true }),
+        value(tr('cmp.n.wins'), 'wins', 540, 300, 280, 150, { size: 130, weight: 800, color: 'win' }),
+        text(tr('ov.wins'), tr('ov.wins'), 540, 452, 280, 30, { size: 20, color: 'win', opacity: 0.8 }),
+        text('–', '–', 820, 300, 80, 150, { font: 'Unbounded', size: 70, weight: 500, opacity: 0.35 }),
+        value(tr('cmp.n.losses'), 'losses', 900, 300, 280, 150, { size: 130, weight: 800, color: 'loss' }),
+        text(tr('ov.losses'), tr('ov.losses'), 900, 452, 280, 30, { size: 20, color: 'loss', opacity: 0.8 }),
+        line(1200, 320, 1, 150),
+        value(tr('cmp.n.winRate'), 'winRate', 1210, 336, 200, 80, { size: 54 }),
+        text(tr('cmp.cap.winRate'), tr('cmp.cap.winRate'), 1210, 420, 200, 28, { size: 18 }),
+        { type: 'bar', name: tr('cmp.n.bar'), x, y: 512, w: 900, h: 12, radius: 6, gap: 4 },
+        ...tile(0, 0, 'bestStreak', 'bestStreak'),
+        ...tile(1, 0, 'ot', 'otRecord', { color: 'ot' }),
+        ...tile(2, 0, 'mvps', 'mvps'),
+        ...tile(3, 0, 'timePlayed', 'timePlayed'),
+        ...tile(0, 1, 'goals', 'goals'),
+        ...tile(1, 1, 'assists', 'assists'),
+        ...tile(2, 1, 'saves', 'saves'),
+        ...tile(3, 1, 'mmr', 'mmrDelta', { color: 'auto' }),
+        { type: 'results', name: tr('cmp.n.results'), x, y: 828, w: 900, h: 40, count: 14, gap: 8, radius: 6 },
+      ],
+    };
+  },
+};
+
 function starter(kind, tr) {
   LINE = tr('cmp.n.line');
   return (STARTERS[kind] || STARTERS.signature)(tr);
 }
 
-module.exports = { starter, STARTER_IDS: Object.keys(STARTERS) };
+// Composition de départ d'un overlay autre que le compteur (alerts, history, summary) ; null si le nom est inconnu
+function overlayStarter(overlay, tr) {
+  LINE = tr('cmp.n.line');
+  return Object.prototype.hasOwnProperty.call(OVERLAYS, overlay) ? OVERLAYS[overlay](tr) : null;
+}
+
+module.exports = { starter, overlayStarter, STARTER_IDS: Object.keys(STARTERS), OVERLAY_STARTERS: Object.keys(OVERLAYS) };

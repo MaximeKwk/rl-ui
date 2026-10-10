@@ -18,6 +18,7 @@
       <label class="ed-sample nodrag"><span class="muted small" data-i18n="h.e.sample">Preview with</span>
         <select id="edSample" aria-label="Preview with" data-i18n-aria="h.e.sample"></select>
       </label>
+      <button class="btn small ghost nodrag hidden" id="edReplay" title="Play the alert's entrance again" data-i18n-title="h.e.replayTip" data-i18n="h.e.replay">Replay</button>
       <div class="ed-zoom nodrag" role="group" aria-label="Zoom">
         <button class="btn small ghost" id="zoomOut" title="Zoom out" data-i18n-title="h.e.zoomOut">−</button>
         <button class="btn small ghost" id="zoomFit" title="Fit to the window" data-i18n-title="h.e.zoomFit">100 %</button>
@@ -33,6 +34,8 @@
 
     <div class="ed-body">
       <aside class="ed-left" aria-label="Elements">
+        <h3 data-i18n="h.e.kinds">Overlay</h3>
+        <div id="edKinds" class="ed-kinds" role="group" aria-label="Overlay" data-i18n-aria="h.e.kinds"></div>
         <h3 data-i18n="h.e.add">Add</h3>
         <div id="edPalette" class="ed-palette"></div>
         <h3><span data-i18n="h.e.layers">Layers</span> <span class="muted small" data-i18n="h.e.layersSub">front on top</span></h3>
@@ -46,7 +49,11 @@
             <div id="edOverlay" class="ed-overlay"></div>
           </div>
         </div>
-        <div class="ed-hint muted small" id="edHint" data-i18n="h.e.hint">Click an element to select it, drag to move it, pull a handle to resize it. Arrows nudge by 1 px (10 with Shift).</div>
+        <div class="ed-empty hidden" id="edEmpty"></div>
+        <div class="ed-hint muted small" id="edHint">
+          <span data-i18n="h.e.hint">Click an element to select it, drag to move it, pull a handle to resize it. Arrows nudge by 1 px (10 with Shift).</span>
+          <span class="hidden" id="edHintAlerts" data-i18n="h.e.hintAlerts">You only see the elements of the alert chosen in "Preview with". To edit an element made for another alert, pick it in the layers or change the preview.</span>
+        </div>
       </main>
 
       <aside class="ed-right" id="edProps" aria-label="Properties"></aside>

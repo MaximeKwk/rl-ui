@@ -22,6 +22,8 @@ const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
 const { ThemeManager, DEFAULT_THEME, walk } = require('./themes');
 const { Market, review } = require('./market');
+const { overlayStarter } = require('./themeStarters');
+const Compose = require('../web/shared/compose.js');
 const { CasterFeed } = require('./caster');
 const { TwitchChat } = require('./twitch');
 const { CasterAssets } = require('./casterAssets');
@@ -986,6 +988,12 @@ class Core extends EventEmitter {
     }
   }
 
+  // Composition de départ d'un overlay (alertes, dernières parties, récap), dans la langue de l'app
+  overlayStarter(overlay) {
+    const comp = overlayStarter(String(overlay || ''), tr);
+    return comp ? { ok: true, composition: Compose.clean(comp) } : { ok: false, error: tr('s.unknownType') };
+  }
+
   themeSource(id) {
     try {
       return { ok: true, ...this.themes.source(id), active: (this.store.settings.overlay.themePack || DEFAULT_THEME) === id };
@@ -1103,7 +1111,7 @@ class Core extends EventEmitter {
       const canvas = !!def.canvas || (id === 'counter' && boost);
       // un thème de l'éditeur a sa propre toile : la source prend sa taille
       const th = this.themes.get(this.store.settings.overlay.themePack || DEFAULT_THEME);
-      const comp = id === 'counter' && !boost && th && th.compose ? th.compose.counter : null;
+      const comp = th && th.compose ? (id === 'counter' ? (boost ? null : th.compose.counter) : id === 'history' ? th.compose.history : null) : null;
       const size = comp ? { width: comp.width, height: comp.height } : {};
       const r = await this.obs.addBrowserSource({ ...def, ...size, canvas, url: this.overlayUrl(id) });
       this.log(tr(r.created ? 's.obsAdded' : 's.obsUpdated', { n: def.name, c: r.scene, s: this.obs.status.name }));

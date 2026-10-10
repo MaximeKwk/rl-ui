@@ -1,4 +1,5 @@
 // Compositions RL-UI : un overlay décrit par des données (une toile, des éléments posés dessus), jamais par du code.
+// Un thème peut composer quatre overlays : le compteur, les alertes, les dernières parties et le récap de session.
 // Ce fichier est partagé : l'app le charge pour valider un thème (require), les pages pour l'afficher (window.Compose).
 //
 // Un élément est un rectangle posé sur la toile : { id, type, x, y, w, h, … }. Types :
@@ -13,11 +14,35 @@
   const FORMAT = 2;
   const TYPES = ['box', 'text', 'value', 'image', 'results', 'bar'];
   const FONTS = ['Unbounded', 'Onest', 'Barlow Condensed', 'Archivo'];
-  // valeurs en direct qu'un élément « value » peut afficher
-  const BINDS = ['wins', 'losses', 'record', 'winRate', 'streak', 'bestStreak', 'otRecord', 'mmr', 'mmrDelta', 'played', 'mvps', 'labelWin', 'labelLoss', 'mode', 'clock', 'score'];
+  // overlays qu'un thème peut composer, et la toile proposée pour chacun
+  const KINDS = ['counter', 'alerts', 'history', 'summary'];
+  const SIZES = { counter: [1000, 220], alerts: [1920, 1080], history: [700, 90], summary: [1920, 1080] };
+  // valeurs en direct qu'un élément « value » peut afficher : la session…
+  const SESSION_BINDS = ['wins', 'losses', 'record', 'winRate', 'streak', 'bestStreak', 'otRecord', 'mmr', 'mmrDelta', 'played', 'mvps', 'labelWin', 'labelLoss'];
+  // … la partie en cours (compteur), l'alerte affichée (alertes), le bilan (récap)
+  const LIVE_BINDS = ['mode', 'clock', 'score'];
+  const ALERT_BINDS = ['alertTitle', 'alertDetail', 'matchScore', 'matchMmr', 'matchOt'];
+  const RECAP_BINDS = ['timePlayed', 'goals', 'assists', 'saves', 'goalDiff', 'player'];
+  const BINDS = [...SESSION_BINDS, ...LIVE_BINDS, ...ALERT_BINDS, ...RECAP_BINDS];
+  const BINDS_FOR = {
+    counter: [...SESSION_BINDS, ...LIVE_BINDS],
+    alerts: [...ALERT_BINDS, ...SESSION_BINDS],
+    history: [...SESSION_BINDS],
+    summary: [...SESSION_BINDS, ...RECAP_BINDS],
+  };
   // quand un élément est visible
-  const WHEN = ['always', 'match', 'idle', 'overtime', 'winStreak', 'lossStreak', 'mmr'];
-  const TOKENS = ['win', 'loss', 'ot', 'white', 'black', 'auto'];
+  const ALERT_WHEN = ['alertWin', 'alertLoss', 'alertOt', 'alertOtEnd', 'alertStreak', 'alertMvp', 'matchScore', 'matchMmr'];
+  const WHEN = ['always', 'match', 'idle', 'overtime', 'winStreak', 'lossStreak', 'mmr', ...ALERT_WHEN];
+  const WHEN_FOR = {
+    counter: ['always', 'match', 'idle', 'overtime', 'winStreak', 'lossStreak', 'mmr'],
+    alerts: ['always', ...ALERT_WHEN, 'winStreak'],
+    history: ['always', 'winStreak', 'lossStreak', 'mmr'],
+    summary: ['always', 'winStreak', 'lossStreak', 'mmr'],
+  };
+  // entrée en scène d'une alerte
+  const ENTER = ['slide', 'rise', 'pop', 'fade', 'none'];
+  // « event » : la couleur de l'alerte affichée (victoire, défaite, overtime)
+  const TOKENS = ['win', 'loss', 'ot', 'white', 'black', 'auto', 'event'];
   const LIMITS = { minW: 40, maxW: 1920, minH: 20, maxH: 1080, elements: 80, text: 80, affix: 12, name: 40 };
   const IMAGE_EXT = /\.(png|jpe?g|webp|gif)$/i;
 
@@ -54,6 +79,7 @@
       align: pick(e.align, ['left', 'center', 'right'], d.align || 'left'),
       valign: pick(e.valign, ['top', 'middle', 'bottom'], 'middle'),
       shadow: pick(e.shadow, ['none', 'soft', 'outline'], 'none'),
+      fit: !!e.fit, // rétrécir le texte s'il dépasse la largeur de l'élément (titres d'alerte, pseudos)
     };
   }
 
@@ -119,6 +145,7 @@
     return {
       width: num(comp.width, 1000, LIMITS.minW, LIMITS.maxW),
       height: num(comp.height, 220, LIMITS.minH, LIMITS.maxH),
+      ...(ENTER.includes(comp.enter) ? { enter: comp.enter } : {}),
       elements: comp.elements.map((e, i) => cleanElement(e, i, seen)).filter(Boolean),
     };
   }
@@ -127,21 +154,56 @@
   const images = (comp) => [...new Set(((comp && comp.elements) || []).filter((e) => e.type === 'image' && e.src).map((e) => e.src))];
 
   // ------------------------------------------------------------------ données affichées
+  const fmtClock = (sec, ot) => {
+    if (typeof sec !== 'number' || !isFinite(sec)) return '';
+    const v = Math.max(0, Math.round(sec));
+    return `${ot ? '+' : ''}${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
+  };
+  const fmtPlayed = (sec) => {
+    const m = Math.round((Number(sec) || 0) / 60);
+    return m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}` : `${m} min`;
+  };
+
+  // Ce qu'une alerte apporte en plus de la session. a : { type, title, data } tel que l'app l'envoie aux overlays.
+  //   alert        type de l'alerte : win, loss, overtime, ot_win, ot_loss, streak
+  //   alertTitle   son titre (« VICTOIRE », ou le texte choisi dans RL-UI)
+  //   alertDetail  la ligne au-dessus du titre : mode de jeu, « Mort subite », « But en or »…
+  //   matchScore, matchMmr, matchOt : le score de la partie, sa variation de MMR, la durée de sa prolongation
+  function alertFields(a, tr = (k) => k) {
+    const d = (a && a.data) || {};
+    const type = a && a.type;
+    const pl = d.manual ? '' : d.playlist || '';
+    const detail = type === 'overtime' ? `${tr('al.suddenDeath')}${pl ? ` · ${pl}` : ''}` : type === 'ot_win' ? tr('al.golden') : type === 'streak' ? tr('al.inARow') : pl;
+    const hasScore = Number.isFinite(d.scoreFor) && Number.isFinite(d.scoreAgainst) && !d.manual;
+    const mmr = d.mmr && Number.isFinite(d.mmr.delta) ? { delta: Math.round(d.mmr.delta), learned: !!d.mmr.learned } : null;
+    const out = {
+      alert: type || '',
+      alertTitle: String((a && a.title) || ''),
+      alertDetail: detail,
+      matchScore: hasScore ? `${d.scoreFor} - ${d.scoreAgainst}` : '',
+      matchMmr: mmr,
+      matchOt: d.overtime && d.otSeconds > 0 ? fmtClock(d.otSeconds, true) : '',
+      mvp: !!d.mvp && (type === 'win' || type === 'ot_win'),
+    };
+    // le bilan au moment de l'alerte (l'état de la session peut arriver un instant après elle)
+    if (Number.isFinite(d.wins)) out.wins = d.wins;
+    if (Number.isFinite(d.losses)) out.losses = d.losses;
+    if (type === 'streak' && Number.isFinite(d.n)) out.streak = d.n;
+    else if (Number.isFinite(d.streak)) out.streak = d.streak;
+    return out;
+  }
+
   // À partir de l'état public de l'app (le même que reçoivent les overlays) et des réglages de l'overlay.
-  function dataFrom(state, cfg = {}, tr = (k) => k) {
+  // alert : l'alerte affichée, pour l'overlay des alertes.
+  function dataFrom(state, cfg = {}, tr = (k) => k, alert = null) {
     const s = (state && state.session) || {};
     const live = (state && state.live) || {};
     const mm = s.mmr && s.mmr.primary;
-    const fmtClock = (sec, ot) => {
-      if (typeof sec !== 'number' || !isFinite(sec)) return '';
-      const v = Math.max(0, Math.round(sec));
-      return `${ot ? '+' : ''}${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
-    };
     const mine = live.myTeam === 0 || live.myTeam === 1 ? live.myTeam : 0;
     const teams = live.teams || [];
     const sc = (n) => (teams.find((t) => t.num === n) || {}).score;
     const inMatch = !!live.inMatch;
-    return {
+    const d = {
       wins: s.wins || 0,
       losses: s.losses || 0,
       played: s.played || 0,
@@ -161,18 +223,64 @@
       inMatch,
       overtime: inMatch && !!live.overtime,
       last: (s.last || []).map((r) => ({ r: r.result, ot: !!r.ot })),
+      // récap de session
+      timePlayed: fmtPlayed(s.timePlayedSec),
+      goals: s.myGoals || 0,
+      assists: s.myAssists || 0,
+      saves: s.mySaves || 0,
+      goalDiff: (s.goalsFor || 0) - (s.goalsAgainst || 0),
+      player: (state && state.status && state.status.account) || '',
+      // alerte affichée (overlay des alertes seulement)
+      alert: '',
+      alertTitle: '',
+      alertDetail: '',
+      matchScore: '',
+      matchMmr: null,
+      matchOt: '',
+      mvp: false,
     };
+    return alert ? Object.assign(d, alertFields(alert, tr)) : d;
   }
 
   // Jeux de données d'exemple, pour l'éditeur et les aperçus
   function sample(kind = 'idle', tr = (k) => k) {
     const last = 'WWLWLWWWLLWWLWWW'.split('').map((r, i) => ({ r, ot: i % 5 === 3 }));
-    const base = { wins: 12, losses: 5, played: 17, winRate: 71, streak: 3, bestStreak: 5, otWins: 2, otLosses: 1, mvps: 4, mmr: 1175, mmrDelta: 45, labelWin: tr('lbl.w'), labelLoss: tr('lbl.l'), mode: '', clock: '', score: '', inMatch: false, overtime: false, last };
+    const base = {
+      ...dataFrom(null, {}, tr),
+      wins: 12,
+      losses: 5,
+      played: 17,
+      winRate: 71,
+      streak: 3,
+      bestStreak: 5,
+      otWins: 2,
+      otLosses: 1,
+      mvps: 4,
+      mmr: 1175,
+      mmrDelta: 45,
+      last,
+      timePlayed: '2h14',
+      goals: 31,
+      assists: 14,
+      saves: 22,
+      goalDiff: 12,
+      player: 'Zoxam',
+    };
     if (kind === 'match') return { ...base, inMatch: true, mode: tr('cmp.sampleMode'), clock: '2:41', score: '2 - 1' };
     if (kind === 'overtime') return { ...base, inMatch: true, overtime: true, mode: tr('cmp.sampleMode'), clock: '+0:37', score: '2 - 2' };
-    if (kind === 'cold') return { ...base, wins: 4, losses: 9, played: 13, winRate: 31, streak: -4, mmrDelta: -38, mmr: 1092, last: 'LWLLWLLLWLLLL'.split('').map((r) => ({ r, ot: false })) };
-    if (kind === 'empty') return { ...base, wins: 0, losses: 0, played: 0, winRate: null, streak: 0, bestStreak: 0, otWins: 0, otLosses: 0, mvps: 0, mmr: null, mmrDelta: null, last: [] };
+    if (kind === 'cold') return { ...base, wins: 4, losses: 9, played: 13, winRate: 31, streak: -4, bestStreak: 2, mmrDelta: -38, mmr: 1092, goals: 17, goalDiff: -9, last: 'LWLLWLLLWLLLL'.split('').map((r) => ({ r, ot: false })) };
+    if (kind === 'empty') return { ...base, wins: 0, losses: 0, played: 0, winRate: null, streak: 0, bestStreak: 0, otWins: 0, otLosses: 0, mvps: 0, mmr: null, mmrDelta: null, last: [], timePlayed: '0 min', goals: 0, assists: 0, saves: 0, goalDiff: 0 };
     return base;
+  }
+
+  // Une alerte d'exemple (type : win, loss, overtime, ot_win, ot_loss, streak), telle que l'app l'enverrait
+  function sampleAlert(type = 'win', tr = (k) => k) {
+    const ot = type === 'ot_win' || type === 'ot_loss';
+    const lost = type === 'loss' || type === 'ot_loss';
+    const data = { scoreFor: lost ? 1 : 3, scoreAgainst: 2, overtime: ot, otSeconds: ot ? 42 : 0, mvp: !lost, playlist: tr('cmp.sampleMode'), streak: lost ? -1 : 4, wins: lost ? 12 : 13, losses: lost ? 6 : 5, n: 5, mmr: { delta: lost ? -11 : 12, learned: true } };
+    if (type === 'overtime') Object.assign(data, { scoreFor: 2, scoreAgainst: 2, mmr: null, mvp: false });
+    if (type === 'streak') Object.assign(data, { mmr: null, mvp: false, scoreFor: NaN });
+    return { type, title: String(tr(`alert.${type}`)).replace('{n}', data.n), data };
   }
 
   // Texte d'une valeur, et sa « teinte » (hausse, baisse, série chaude ou froide) pour la couleur automatique
@@ -211,6 +319,31 @@
         return { text: d.clock, tone: d.overtime ? 'ot' : '' };
       case 'score':
         return { text: d.score, tone: '' };
+      // ---- alerte
+      case 'alertTitle':
+        return { text: d.alertTitle, tone: 'event' };
+      case 'alertDetail':
+        return { text: d.alertDetail, tone: '' };
+      case 'matchScore':
+        return { text: d.matchScore, tone: '' };
+      case 'matchMmr':
+        // « ≈ » : variation estimée, pas encore calée sur les vraies valeurs du joueur
+        return { text: d.matchMmr ? `${d.matchMmr.learned ? '' : '≈ '}${sign(d.matchMmr.delta)}` : '', tone: d.matchMmr ? (d.matchMmr.delta >= 0 ? 'win' : 'loss') : '' };
+      case 'matchOt':
+        return { text: d.matchOt, tone: 'ot' };
+      // ---- récap
+      case 'timePlayed':
+        return { text: d.timePlayed, tone: '' };
+      case 'goals':
+        return { text: String(d.goals), tone: '' };
+      case 'assists':
+        return { text: String(d.assists), tone: '' };
+      case 'saves':
+        return { text: String(d.saves), tone: '' };
+      case 'goalDiff':
+        return { text: sign(d.goalDiff), tone: d.goalDiff > 0 ? 'win' : d.goalDiff < 0 ? 'loss' : '' };
+      case 'player':
+        return { text: d.player, tone: '' };
       default:
         return { text: '', tone: '' };
     }
@@ -230,18 +363,39 @@
         return d.streak <= -2;
       case 'mmr':
         return d.mmrDelta != null;
+      case 'alertWin':
+        return d.alert === 'win' || d.alert === 'ot_win';
+      case 'alertLoss':
+        return d.alert === 'loss' || d.alert === 'ot_loss';
+      case 'alertOt':
+        return d.alert === 'overtime';
+      case 'alertOtEnd':
+        return d.alert === 'ot_win' || d.alert === 'ot_loss';
+      case 'alertStreak':
+        return d.alert === 'streak';
+      case 'alertMvp':
+        return !!d.mvp;
+      case 'matchScore':
+        return !!d.matchScore;
+      case 'matchMmr':
+        return !!d.matchMmr;
       default:
         return true;
     }
   }
 
-  const api = { FORMAT, TYPES, FONTS, BINDS, WHEN, TOKENS, LIMITS, clean, cleanElement, images, imagePath, dataFrom, sample, valueOf, visible };
+  // Couleur de l'alerte affichée : celle du jeton « event »
+  const eventTone = (alert) => (alert === 'loss' || alert === 'ot_loss' ? 'loss' : alert === 'overtime' || alert === 'streak' ? 'ot' : 'win');
+
+  const api = { FORMAT, TYPES, FONTS, KINDS, SIZES, BINDS, BINDS_FOR, WHEN, WHEN_FOR, ENTER, TOKENS, LIMITS, clean, cleanElement, images, imagePath, dataFrom, alertFields, sample, sampleAlert, valueOf, visible, eventTone };
 
   // ------------------------------------------------------------------ affichage (pages seulement)
   if (typeof document !== 'undefined') {
-    const TONES = { win: 'var(--win)', loss: 'var(--loss)', ot: 'var(--ot)', hot: '#ffcf5a', cold: '#8fbcff' };
+    // « event » suit la couleur de l'alerte affichée (posée sur la composition : --event) ; hors alerte, c'est celle de la victoire
+    const TONES = { win: 'var(--win)', loss: 'var(--loss)', ot: 'var(--ot)', hot: '#ffcf5a', cold: '#8fbcff', event: 'var(--event, var(--win))' };
     const css = (c, tone) => {
       if (c === 'auto') return TONES[tone] || '#ffffff';
+      if (c === 'event') return TONES.event;
       if (c === 'win' || c === 'loss' || c === 'ot') return `var(--${c})`;
       if (c === 'white') return '#ffffff';
       if (c === 'black') return '#000000';
@@ -265,7 +419,17 @@
 .cmp-res i.rn { background: rgba(255, 255, 255, 0.12); }
 .cmp-bar { display: flex; overflow: hidden; }
 .cmp-bar i { display: block; flex: 0 0 auto; transition: flex-basis 0.5s ease; }
-@media (prefers-reduced-motion: reduce) { .cmp-pop > span { animation: none; } .cmp-bar i { transition: none; } }`;
+.cmp.in-slide { animation: cmp-in-slide 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.cmp.in-rise { animation: cmp-in-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.cmp.in-pop { animation: cmp-in-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.35) both; }
+.cmp.in-fade { animation: cmp-in-fade 0.45s ease-out both; }
+.cmp.out { animation: cmp-out 0.35s ease-in forwards; }
+@keyframes cmp-in-slide { from { transform: translateX(-70px); opacity: 0; } }
+@keyframes cmp-in-rise { from { transform: translateY(50px); opacity: 0; } }
+@keyframes cmp-in-pop { from { transform: scale(0.88); opacity: 0; } }
+@keyframes cmp-in-fade { from { opacity: 0; } }
+@keyframes cmp-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cmp-pop > span { animation: none; } .cmp-bar i { transition: none; } .cmp.in-slide, .cmp.in-rise, .cmp.in-pop { animation-name: cmp-in-fade; } }`;
 
     function ensureStyle() {
       if (document.getElementById('cmp-style')) return;
@@ -371,6 +535,28 @@
       return el;
     }
 
+    // Charge les polices dont une composition a besoin (au plus 1,5 s d'attente). À appeler avant d'afficher une alerte :
+    // ses textes sont ainsi mesurés avec la bonne police dès la première image.
+    function loadFonts(comp) {
+      if (!document.fonts || !document.fonts.load) return Promise.resolve();
+      const specs = new Set();
+      for (const e of comp.elements) if (e.type === 'text' || e.type === 'value') specs.add(`${e.italic ? 'italic ' : ''}${e.weight} ${e.size}px '${e.font}'`);
+      const all = Promise.all([...specs].map((f) => document.fonts.load(f).catch(() => {})));
+      return Promise.race([all, new Promise((r) => setTimeout(r, 1500))]);
+    }
+
+    // Texte plus large que son élément : rétréci pour tenir (option « fit »), depuis le côté où il est aligné
+    function fitText(n, e) {
+      const span = n.firstChild;
+      span.style.transform = '';
+      if (!e.fit) return;
+      const w = span.offsetWidth;
+      if (w > e.w && w > 0) {
+        span.style.transformOrigin = `${e.align === 'center' ? '50%' : e.align === 'right' ? '100%' : '0'} 50%`;
+        span.style.transform = `scale(${e.w / w})`;
+      }
+    }
+
     // Pose une composition dans `host`. Renvoie { el, update(données), nodes } ; update peut être rappelé à volonté.
     function mount(host, comp, opts = {}) {
       ensureStyle();
@@ -387,8 +573,19 @@
       host.appendChild(el);
       const prev = new Map();
       let first = true;
+      let last = null;
+      // une police n'est chargée qu'à sa première utilisation : les textes ajustés sont remesurés une fois qu'elle est là
+      if (comp.elements.some((e) => e.fit)) {
+        loadFonts(comp).then(() => {
+          if (last && el.isConnected) for (const e of comp.elements) if (e.fit && (e.type === 'text' || e.type === 'value')) fitText(nodes.get(e.id), e);
+        });
+      }
 
       function update(d) {
+        last = d;
+        // couleur de l'alerte affichée, pour les éléments de couleur « event »
+        if (d.alert) el.style.setProperty('--event', `var(--${eventTone(d.alert)})`);
+        else el.style.removeProperty('--event');
         for (const e of comp.elements) {
           const n = nodes.get(e.id);
           // dans l'éditeur, un élément conditionnel reste visible (estompé) pour pouvoir être sélectionné
@@ -409,6 +606,9 @@
               prev.set(e.id, text);
             }
             n.style.color = css(e.color, v.tone);
+            fitText(n, e);
+          } else if (e.type === 'text') {
+            fitText(n, e);
           } else if (e.type === 'results') {
             const list = d.last.slice(-e.count);
             const sig = list.map((r) => r.r + (r.ot ? 'o' : '')).join('');
@@ -436,10 +636,19 @@
         }
         first = false;
       }
-      return { el, nodes, update, destroy: () => el.remove() };
+      // Entrée en scène (alertes) : rejoue l'animation choisie dans la composition
+      function enter(kind = comp.enter || 'none') {
+        el.classList.remove('out', ...ENTER.map((k) => `in-${k}`));
+        if (kind === 'none') return;
+        void el.offsetWidth;
+        el.classList.add(`in-${kind}`);
+      }
+      const leave = () => el.classList.add('out');
+      return { el, nodes, update, enter, leave, destroy: () => el.remove() };
     }
 
     api.mount = mount;
+    api.loadFonts = loadFonts;
     api.boxPath = boxPath;
     api.cssColor = css;
   }

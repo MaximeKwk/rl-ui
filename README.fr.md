@@ -143,7 +143,7 @@ Change la DA de tous les overlays en un clic, ou crée la tienne avec tes images
 | | |
 | --- | --- |
 | **Thèmes intégrés** | Signature, Épuré, Contraste, et un **Modèle** avec images à dupliquer |
-| **Éditeur de thèmes** | *Créer un thème* ouvre un éditeur visuel : tu poses à la souris des plaques, des textes, des valeurs en direct (victoires, winrate, MMR, série…), des images et les dernières parties, et tu vois le résultat tout de suite. Aucun fichier à toucher |
+| **Éditeur de thèmes** | *Créer un thème* ouvre un éditeur visuel : tu poses à la souris des plaques, des textes, des valeurs en direct (victoires, winrate, MMR, série…), des images et les dernières parties, et tu vois le résultat tout de suite. Un thème dessine le compteur et, si tu veux, les alertes, les dernières parties et le récap de session. Aucun fichier à toucher |
 | **Galerie de la communauté** | *Overlays → Galerie* : des thèmes faits par d'autres joueurs, avec recherche, styles, favoris, J'aime et aperçu en direct. Un clic pour installer, et les mises à jour sont proposées quand un créateur en publie une |
 | **Partager le tien** | Le bouton *Proposer* vérifie ton thème et l'exporte ; tu le publies sur **[kydora.net/marketplace](https://kydora.net/marketplace)** avec un compte Twitch, Discord ou e-mail. Chaque thème a sa page, avec un bouton **Installer dans RL-UI** |
 | **Sûr** | Un thème fait dans l'éditeur n'est que des données et des images : ni CSS, ni script. RL-UI vérifie chaque fichier d'un thème de la galerie (taille, empreinte, format) avant de l'installer |

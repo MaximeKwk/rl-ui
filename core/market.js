@@ -12,6 +12,7 @@ const themeFormat = require('./themeFormat');
 const { t: tr, getLang } = require('./i18n');
 
 const { COMPOSED_FILE, IMAGE_FILE, GALLERY, imageKind, slug, review } = themeFormat;
+const KINDS = require('../web/shared/compose.js').KINDS;
 const CATALOG_FORMAT = 1;
 const OFFICIAL = 'https://kydora.net/marketplace/api/catalog.json';
 const LIMITS = { catalog: 4 * 1024 * 1024, file: GALLERY.file, total: GALLERY.total, files: GALLERY.files, themes: 2000 };
@@ -90,6 +91,8 @@ function cleanEntry(e, base) {
     likes: count(e.likes),
     installs: count(e.installs),
     featured: !!e.featured,
+    // overlays que le thème dessine lui-même (le compteur toujours ; alertes, dernières parties, récap s'il les compose)
+    draws: ['counter', ...(Array.isArray(e.draws) ? KINDS.filter((k) => k !== 'counter' && e.draws.includes(k)) : [])],
     page: sitePage(e.page, base),
     added: DAY.test(e.added || '') ? e.added : '',
     updated: DAY.test(e.updated || '') ? e.updated : '',
@@ -264,7 +267,8 @@ class Market {
       const data = await this._get(`${e.root}theme.json`, LIMITS.file);
       if (data.length !== f.size || crypto.createHash('sha256').update(data).digest('hex') !== f.sha256) return null;
       const t = themeFormat.cleanTheme(JSON.parse(data.toString('utf8').replace(/^﻿/, '')));
-      const out = { id, colors: t.colors, counter: t.counter, images: e.files.filter((x) => /^images\//.test(x.path)).map((x) => x.path), data: Buffer.alloc(0) };
+      const compose = Object.fromEntries(KINDS.filter((k) => t[k]).map((k) => [k, t[k]]));
+      const out = { id, colors: t.colors, counter: t.counter, compose, images: e.files.filter((x) => /^images\//.test(x.path)).map((x) => x.path), data: Buffer.alloc(0) };
       this._files.set(key, out);
       return out;
     } catch {
@@ -315,6 +319,7 @@ function entryFromFiles(id, files, extra = {}) {
     likes: extra.likes || 0,
     installs: extra.installs || 0,
     page: extra.page || '',
+    draws: KINDS.filter((k) => theme[k]),
     path: extra.path || `themes/${id}/`,
     files: files.map((f) => ({ path: f.path, size: f.data.length, sha256: crypto.createHash('sha256').update(f.data).digest('hex') })).sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
   };

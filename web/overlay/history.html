@@ -46,17 +46,50 @@
       .pill.new { animation: popIn 0.4s ease-out; }
       @keyframes popIn { from { transform: translateY(calc(-10px * var(--s))); opacity: 0; } }
       .empty { font-size: calc(22px * var(--s)); font-weight: 700; opacity: 0.55; padding: 0 calc(8px * var(--s)); }
+      /* thème de l'éditeur : il dessine lui-même cet overlay */
+      .hidden { display: none !important; }
+      body.composed { padding: 0; }
+      #cmp { flex: none; }
+      #cmp .cmp { transform: scale(var(--s)); }
     </style>
   </head>
   <body>
     <div class="bar" id="bar"><div class="deco"></div><span class="ttl" id="ttl" data-i18n="ov.recent">Recent</span><span id="pills"></span></div>
+    <div id="cmp" class="hidden"></div>
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
+    <script src="/static/shared/compose.js"></script>
     <script>
       (function () {
         const P = OT.params;
         if (P.get('preview')) document.body.classList.add('preview');
         if (P.get('bare') === '1') document.body.classList.add('bare');
+        // thème composé (éditeur visuel) : { update }
+        let composed = null;
+        let composedSig = '';
+        let overlayCfg = {};
+        function mountCompose(c) {
+          const pack = (c && c.theme) || {};
+          const comp = pack.compose && pack.compose.history ? pack.compose.history : null;
+          const host = document.getElementById('cmp');
+          document.body.classList.toggle('composed', !!comp);
+          host.classList.toggle('hidden', !comp);
+          document.getElementById('bar').classList.toggle('hidden', !!comp);
+          if (!comp) {
+            composed = null;
+            composedSig = '';
+            host.textContent = '';
+            return;
+          }
+          const s = OT.num('scale', Number(c.overlay.scale) || 1);
+          host.style.width = `${comp.width * s}px`;
+          host.style.height = `${comp.height * s}px`;
+          const sig = `${pack.id}|${pack.v}|${JSON.stringify(comp)}`;
+          if (sig === composedSig) return;
+          composedSig = sig;
+          host.textContent = '';
+          composed = window.Compose.mount(host, comp, { imageUrl: (src) => `${pack.assets || ''}${src}?v=${pack.v || 0}` });
+        }
         document.body.classList.add(`align-${P.get('align') || 'left'}`);
         const n = OT.num('n', 10);
         const newestFirst = P.get('order') !== 'old';
@@ -67,6 +100,7 @@
         let labels = { w: 'W', l: 'L' };
         let seen = null;
         function render(st) {
+          if (composed) return composed.update(window.Compose.dataFrom(st, overlayCfg, OT.t));
           const last = ((st && st.session && st.session.last) || []).slice(-n);
           const list = newestFirst ? [...last].reverse() : last;
           const ids = new Set(list.map((r) => r.id));
@@ -87,6 +121,8 @@
           OT.applyColors(c.overlay);
           labels = { w: c.overlay.labelWin || OT.t('lbl.w'), l: c.overlay.labelLoss || OT.t('lbl.l') };
           document.documentElement.style.setProperty('--s', OT.num('scale', Number(c.overlay.scale) || 1));
+          overlayCfg = c.overlay || {};
+          mountCompose(c);
           render(OT.state);
         });
         OT.on('state', render);

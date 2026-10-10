@@ -1,5 +1,5 @@
-// Éditeur de thèmes RL-UI : on compose le compteur à la souris (choisir, déplacer, redimensionner, régler),
-// le résultat se voit tout de suite. Ce qui est enregistré est une description en données (voir compose.js),
+// Éditeur de thèmes RL-UI : on compose à la souris le compteur, et si on veut les alertes, les dernières parties
+// et le récap de session (choisir, déplacer, redimensionner, régler) ; le résultat se voit tout de suite. Ce qui est enregistré est une description en données (voir compose.js),
 // jamais du code : c'est ce qui permet de partager un thème sans risque.
 (function () {
   const KEY = document.querySelector('meta[name="ot-key"]').content;
@@ -11,10 +11,20 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   if (OT.params.has('app')) document.body.classList.add('in-app');
 
-  let theme = null; // le thème entier (nom, couleurs, habillage de base, composition du compteur)
-  let comp = null; // theme.counter
+  let theme = null; // le thème entier (nom, couleurs, habillage de base, compositions)
+  let kind = C.KINDS.includes(OT.params.get('overlay')) ? OT.params.get('overlay') : 'counter'; // overlay en cours d'édition
+  let comp = null; // theme[kind] : la composition de cet overlay (null si le thème ne le redessine pas)
   let sel = []; // identifiants des éléments choisis
   let sample = 'idle';
+  // situations d'aperçu proposées pour chaque overlay (« a:… » : une alerte de ce type)
+  const SAMPLES = {
+    counter: ['idle', 'match', 'overtime', 'cold', 'empty'],
+    alerts: ['a:win', 'a:loss', 'a:overtime', 'a:ot_win', 'a:ot_loss', 'a:streak'],
+    history: ['idle', 'cold', 'empty'],
+    summary: ['idle', 'cold', 'empty'],
+  };
+  // données d'exemple de la situation choisie ; une alerte s'ajoute aux chiffres d'une bonne session
+  const data = () => (sample.startsWith('a:') ? { ...C.sample('idle', t), ...C.alertFields(C.sampleAlert(sample.slice(2), t), t) } : C.sample(sample, t));
   let zoom = 1;
   let dirty = false;
   let active = false; // ce thème est-il celui des overlays ?
@@ -45,7 +55,7 @@
     $('#toasts').appendChild(el);
     setTimeout(() => el.remove(), 3400);
   }
-  const byId = (id) => comp.elements.find((e) => e.id === id);
+  const byId = (id) => (comp ? comp.elements.find((e) => e.id === id) : undefined);
   const chosen = () => sel.map(byId).filter(Boolean);
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const imageUrl = (src) => `/themes/${ID}/${src}?v=${Date.now() >> 12}`;
@@ -90,7 +100,7 @@
     to.push(JSON.stringify({ theme, sel }));
     const s = JSON.parse(from.pop());
     theme = s.theme;
-    comp = theme.counter;
+    comp = theme[kind] || null;
     sel = s.sel.filter((id) => byId(id));
     lastKey = '';
     setDirty(true);
@@ -110,6 +120,15 @@
     const canvas = $('#edCanvas');
     const host = $('#edComp');
     host.textContent = '';
+    // overlay que le thème ne redessine pas : pas de toile, une invitation à le composer
+    $('#edWrap').classList.toggle('hidden', !comp);
+    $('#edHint').classList.toggle('hidden', !comp);
+    $('#edHintAlerts').classList.toggle('hidden', !comp || kind !== 'alerts');
+    renderEmpty();
+    if (!comp) {
+      mounted = null;
+      return;
+    }
     canvas.style.width = `${comp.width}px`;
     canvas.style.height = `${comp.height}px`;
     canvas.style.transform = `scale(${zoom})`;
@@ -117,11 +136,44 @@
     $('#edWrap').style.width = `${comp.width * zoom}px`;
     $('#edWrap').style.height = `${comp.height * zoom}px`;
     for (const k of ['win', 'loss', 'ot']) canvas.style.setProperty(`--${k}`, theme.colors[k] || { win: '#8bd95a', loss: '#f2685f', ot: '#f0b03f' }[k]);
+    // alertes : beaucoup d'éléments n'existent que pour un événement et se superposent ; ceux de l'événement
+    // affiché restent seuls visibles, les autres ne se montrent (en fantôme) que sélectionnés depuis les calques
+    canvas.classList.toggle('quiet', kind === 'alerts');
     mounted = C.mount(host, comp, { editing: true, animate: false, imageUrl });
-    mounted.update(C.sample(sample, t));
+    mounted.update(data());
     for (const e of comp.elements) if (e.hidden) mounted.nodes.get(e.id).style.display = 'none';
     renderOverlay();
     $('#zoomFit').textContent = `${Math.round(zoom * 100)} %`;
+  }
+
+  // Overlay non composé : ce qui se passe aujourd'hui, et le bouton pour le dessiner soi-même
+  function renderEmpty() {
+    const box = $('#edEmpty');
+    box.classList.toggle('hidden', !!comp);
+    if (comp) return;
+    const base = { signature: 'Signature', epure: t('e.base.epure'), contraste: t('e.base.contraste') }[theme.base] || 'Signature';
+    box.innerHTML = `<h2>${esc(t(`e.empty.${kind}`))}</h2><p class="muted">${esc(t('e.empty.text', { b: base }))}</p><button type="button" class="btn primary" id="edCompose">${esc(t('e.empty.go'))}</button><p class="muted small">${esc(t('e.empty.note'))}</p>`;
+  }
+
+  // Onglets des overlays : celui qu'on édite, et ceux que le thème redessine (point de couleur)
+  function renderKinds() {
+    $('#edKinds').innerHTML = C.KINDS.map((k) => `<button type="button" data-kind="${k}" class="${k === kind ? 'on' : ''}" aria-pressed="${k === kind}"><span>${esc(t(`e.kind.${k}`))}</span>${theme[k] ? `<i title="${esc(t('e.kind.drawn'))}"></i>` : ''}</button>`).join('');
+    // situations d'aperçu de cet overlay
+    const list = SAMPLES[kind];
+    if (!list.includes(sample)) sample = list[0];
+    $('#edSample').innerHTML = list.map((k) => `<option value="${k}" ${k === sample ? 'selected' : ''}>${esc(t(k.startsWith('a:') ? `type.${k.slice(2)}` : `e.sample.${k}`))}</option>`).join('');
+    $('#edReplay').classList.toggle('hidden', kind !== 'alerts' || !comp);
+  }
+
+  function setKind(k) {
+    if (!C.KINDS.includes(k) || k === kind) return;
+    kind = k;
+    comp = theme[kind] || null;
+    sel = [];
+    bindsOpen = false;
+    lastKey = '';
+    renderAll();
+    if (comp) fit();
   }
 
   function bounds(list) {
@@ -135,6 +187,7 @@
   function renderOverlay(guides = []) {
     const ov = $('#edOverlay');
     const list = chosen();
+    if (mounted) for (const [id, n] of mounted.nodes) n.classList.toggle('cmp-picked', sel.includes(id));
     let html = '';
     for (const e of list) {
       const single = list.length === 1;
@@ -149,6 +202,11 @@
 
   // ------------------------------------------------------------------ calques
   function renderLayers() {
+    $('.ed-left').classList.toggle('off', !comp);
+    if (!comp) {
+      $('#edLayers').innerHTML = '';
+      return;
+    }
     const rows = [...comp.elements].reverse();
     $('#edLayers').innerHTML = rows.length
       ? rows
@@ -180,7 +238,7 @@
     ];
     $('#edPalette').innerHTML =
       groups.map(([type, ic]) => `<button type="button" data-add="${type}" ${type === 'value' ? `aria-expanded="${bindsOpen}"` : ''}>${icon(ic)}<span>${esc(t(`e.type.${type}`))}</span></button>`).join('') +
-      (bindsOpen ? `<div class="ed-binds">${C.BINDS.map((b) => `<button type="button" data-addbind="${b}">${esc(t(`e.bind.${b}`))}</button>`).join('')}</div>` : '');
+      (bindsOpen ? `<div class="ed-binds">${C.BINDS_FOR[kind].map((b) => `<button type="button" data-addbind="${b}">${esc(t(`e.bind.${b}`))}</button>`).join('')}</div>` : '');
   }
 
   function freeId() {
@@ -188,6 +246,7 @@
   }
 
   function addElement(base) {
+    if (!comp) return;
     if (comp.elements.length >= C.LIMITS.elements) return toast(t('e.tooMany', { n: C.LIMITS.elements }), 'err');
     const w = base.w || 160;
     const h = base.h || 48;
@@ -226,6 +285,7 @@
     pickOf('shadow', 'e.p.shadow', ['none', 'soft', 'outline'].map((a) => [a, t(`e.sh.${a}`)])),
     check('upper', 'e.p.upper'),
     check('italic', 'e.p.italic'),
+    check('fit', 'e.p.fit'),
   ];
 
   function sections(e) {
@@ -234,7 +294,7 @@
     if (e.type === 'value') {
       out.push([
         'e.s.content',
-        [pickOf('bind', 'e.p.bind', C.BINDS.map((b) => [b, t(`e.bind.${b}`)]), { wide: true }), textF('prefix', 'e.p.prefix', { max: C.LIMITS.affix, wide: false }), textF('suffix', 'e.p.suffix', { max: C.LIMITS.affix, wide: false })],
+        [pickOf('bind', 'e.p.bind', [...new Set([...C.BINDS_FOR[kind], e.bind])].map((b) => [b, t(`e.bind.${b}`)]), { wide: true }), textF('prefix', 'e.p.prefix', { max: C.LIMITS.affix, wide: false }), textF('suffix', 'e.p.suffix', { max: C.LIMITS.affix, wide: false })],
       ]);
     }
     if (e.type === 'image') out.push(['e.s.content', [{ kind: 'image', wide: true }, pickOf('fit', 'e.p.fit', ['contain', 'cover', 'fill'].map((a) => [a, t(`e.fit.${a}`)])), num('radius', 'e.p.radius', { min: 0, max: 400 })]]);
@@ -254,11 +314,11 @@
       ]);
     }
     if (e.type === 'bar') out.push(['e.s.content', [colorF('colorWin', 'e.p.colorWin'), colorF('colorLoss', 'e.p.colorLoss'), num('radius', 'e.p.radius', { min: 0, max: 100 }), num('gap', 'e.p.gap', { min: 0, max: 20 }), pickOf('dir', 'e.p.dir', ['row', 'column'].map((a) => [a, t(`e.dir.${a}`)]))]]);
-    out.push(['e.s.display', [range('opacity', 'e.p.opacity', 0, 1, 0.01), pickOf('when', 'e.p.when', C.WHEN.map((w) => [w, t(`e.when.${w}`)]), { wide: true }), textF('name', 'e.p.name', { max: C.LIMITS.name })]]);
+    out.push(['e.s.display', [range('opacity', 'e.p.opacity', 0, 1, 0.01), pickOf('when', 'e.p.when', [...new Set([...C.WHEN_FOR[kind], e.when])].map((w) => [w, t(`e.when.${w}`)]), { wide: true }), textF('name', 'e.p.name', { max: C.LIMITS.name })]]);
     return out;
   }
 
-  const SWATCH = { win: 'var(--win)', loss: 'var(--loss)', ot: 'var(--ot)', white: '#ffffff', black: '#000000' };
+  const SWATCH = { win: 'var(--win)', loss: 'var(--loss)', ot: 'var(--ot)', white: '#ffffff', black: '#000000', event: 'conic-gradient(var(--win), var(--ot), var(--loss), var(--win))' };
   function field(f, e) {
     const v = f.k ? e[f.k] : null;
     const wide = f.wide ? ' wide' : '';
@@ -268,11 +328,12 @@
     if (f.kind === 'text') return `<label class="ed-f${wide}"><span>${esc(t(f.lbl))}</span><input type="text" data-k="${f.k}" value="${esc(v)}" maxlength="${f.max}" /></label>`;
     if (f.kind === 'check') return `<label class="ed-check wide"><input type="checkbox" data-k="${f.k}" ${v ? 'checked' : ''} /> ${esc(t(f.lbl))}</label>`;
     if (f.kind === 'color') {
-      const tokens = ['win', 'loss', 'ot', 'white', 'black'];
+      // « Alerte » : la couleur de l'alerte affichée (victoire, défaite, overtime) ; proposée pour les alertes seulement
+      const tokens = [...(kind === 'alerts' || v === 'event' ? ['event'] : []), 'win', 'loss', 'ot', 'white', 'black'];
       const custom = /^#/.test(v);
       return `<div class="ed-f wide"><span>${esc(t(f.lbl))}</span><div class="ed-colors" data-color="${f.k}">
         ${f.auto ? `<button type="button" data-tok="auto" class="${v === 'auto' ? 'on' : ''}" title="${esc(t('e.c.autoTip'))}"><i style="background:conic-gradient(var(--win), #ffcf5a, var(--loss), var(--win))"></i>${esc(t('e.c.auto'))}</button>` : ''}
-        ${tokens.map((k) => `<button type="button" data-tok="${k}" class="${v === k ? 'on' : ''}"><i style="background:${SWATCH[k]}"></i>${esc(t(`e.c.${k}`))}</button>`).join('')}
+        ${tokens.map((k) => `<button type="button" data-tok="${k}" class="${v === k ? 'on' : ''}" ${k === 'event' ? `title="${esc(t('e.c.eventTip'))}"` : ''}><i style="background:${SWATCH[k]}"></i>${esc(t(`e.c.${k}`))}</button>`).join('')}
         <input type="color" data-k="${f.k}" value="${custom ? v : '#2fd2c6'}" title="${esc(t('e.c.custom'))}" aria-label="${esc(t('e.c.custom'))}" class="${custom ? 'on' : ''}" />
       </div></div>`;
     }
@@ -295,6 +356,7 @@
     for (const k of ['win', 'loss', 'ot']) host.style.setProperty(`--${k}`, theme.colors[k] || { win: '#8bd95a', loss: '#f2685f', ot: '#f0b03f' }[k]);
     const list = chosen();
     if (!list.length) return renderThemeProps(host);
+    if (!comp) return;
     const many = list.length > 1;
     const e = list[0];
     const b = bounds(list);
@@ -335,14 +397,18 @@
         <div class="ed-grid three">${['win', 'loss', 'ot'].map((k) => `<label class="ed-f"><span>${esc(t(`e.c.${k}`))}</span><input type="color" data-tc="${k}" value="${c[k] || { win: '#8bd95a', loss: '#f2685f', ot: '#f0b03f' }[k]}" /></label>`).join('')}</div>
         <p class="ed-note">${esc(t('e.t.colorsNote'))}</p>
       </div>
-      <div class="ed-sec"><h3>${esc(t('e.s.canvas'))}</h3>
+      ${comp
+        ? `<div class="ed-sec"><h3>${esc(t('e.s.canvas'))} <span class="muted small">${esc(t(`e.kind.${kind}`))}</span></h3>
         <div class="ed-grid">
           <label class="ed-f"><span>${esc(t('e.p.w'))}</span><input type="number" data-cv="width" value="${comp.width}" min="${C.LIMITS.minW}" max="${C.LIMITS.maxW}" /></label>
           <label class="ed-f"><span>${esc(t('e.p.h'))}</span><input type="number" data-cv="height" value="${comp.height}" min="${C.LIMITS.minH}" max="${C.LIMITS.maxH}" /></label>
+          ${kind === 'alerts' ? `<label class="ed-f wide"><span>${esc(t('e.t.enter'))}</span><select data-cv="enter">${C.ENTER.map((k) => `<option value="${k}" ${(comp.enter || 'slide') === k ? 'selected' : ''}>${esc(t(`e.enter.${k}`))}</option>`).join('')}</select></label>` : ''}
         </div>
-        <p class="ed-note">${esc(t('e.t.canvasNote'))}</p>
+        <p class="ed-note">${esc(t(kind === 'counter' ? 'e.t.canvasNote' : `e.t.canvasNote.${kind}`))}</p>
         <label class="ed-check"><input type="checkbox" id="edChecker" ${$('#edCanvas').classList.contains('checker') ? 'checked' : ''} /> ${esc(t('e.t.checker'))}</label>
-      </div>
+        ${kind === 'counter' ? '' : `<button type="button" class="btn small ghost danger ed-uncompose" data-do="uncompose">${esc(t('e.uncompose'))}</button>`}
+      </div>`
+        : ''}
       <div class="ed-sec"><h3>${esc(t('e.s.base'))}</h3>
         <label class="ed-f wide"><span>${esc(t('e.t.base'))}</span><select data-t="base">${[['signature', 'Signature'], ['epure', t('e.base.epure')], ['contraste', t('e.base.contraste')]].map(([k, n]) => `<option value="${k}" ${theme.base === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
         <p class="ed-note">${esc(t('e.t.baseNote'))}</p>
@@ -350,6 +416,7 @@
   }
 
   function renderAll() {
+    renderKinds();
     renderCanvas();
     renderLayers();
     renderProps();
@@ -611,8 +678,11 @@
   function renderCanvasKeep() {
     const host = $('#edComp');
     host.textContent = '';
+    // alertes : beaucoup d'éléments n'existent que pour un événement et se superposent ; ceux de l'événement
+    // affiché restent seuls visibles, les autres ne se montrent (en fantôme) que sélectionnés depuis les calques
+    canvas.classList.toggle('quiet', kind === 'alerts');
     mounted = C.mount(host, comp, { editing: true, animate: false, imageUrl });
-    mounted.update(C.sample(sample, t));
+    mounted.update(data());
     for (const e of comp.elements) if (e.hidden) mounted.nodes.get(e.id).style.display = 'none';
   }
 
@@ -638,6 +708,7 @@
       return save();
     }
     if (typing) return;
+    if (!comp && !(mod && /^[zy]$/i.test(ev.key))) return;
     if (mod && ev.key.toLowerCase() === 'z') {
       ev.preventDefault();
       return ev.shiftKey ? restore(redo, undo) : restore(undo, redo);
@@ -721,6 +792,11 @@
       change(() => (theme.colors[el.dataset.tc] = el.value), `tc:${el.dataset.tc}`);
       return renderCanvas();
     }
+    if (el.dataset.cv === 'enter') {
+      change(() => (comp.enter = C.ENTER.includes(el.value) ? el.value : 'slide'));
+      if (mounted) mounted.enter(comp.enter);
+      return;
+    }
     if (el.dataset.cv && el.value !== '') {
       const k = el.dataset.cv;
       const lim = k === 'width' ? [C.LIMITS.minW, C.LIMITS.maxW] : [C.LIMITS.minH, C.LIMITS.maxH];
@@ -748,6 +824,39 @@
     else if (d === 'disth') distribute('h');
     else if (d === 'distv') distribute('v');
     else if (d === 'image') pickImage(sel[0]);
+    else if (d === 'uncompose') uncompose();
+  });
+
+  // ---- composer / ne plus composer un overlay (alertes, dernières parties, récap)
+  async function compose() {
+    const r = await api(`/api/themes/starter?overlay=${kind}`);
+    if (!r.ok || !r.composition) return toast(r.error || t('d.failed'), 'err');
+    change(() => {
+      theme[kind] = r.composition;
+      comp = theme[kind];
+      sel = [];
+    });
+    renderAll();
+    fit();
+  }
+  function uncompose() {
+    if (kind === 'counter' || !comp || !window.confirm(t('e.uncomposeQ', { n: t(`e.kind.${kind}`) }))) return;
+    change(() => {
+      theme[kind] = null;
+      comp = null;
+      sel = [];
+    });
+    renderAll();
+  }
+  $('#edEmpty').addEventListener('click', (ev) => {
+    if (ev.target.closest('#edCompose')) compose();
+  });
+  $('#edKinds').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-kind]');
+    if (b) setKind(b.dataset.kind);
+  });
+  $('#edReplay').addEventListener('click', () => {
+    if (mounted && comp) mounted.enter(comp.enter || 'slide');
   });
 
   // ------------------------------------------------------------------ calques et palette
@@ -820,7 +929,10 @@
       const b = bind.dataset.addbind;
       const big = b === 'wins' || b === 'losses' || b === 'record';
       bindsOpen = false;
-      return addElement({ type: 'value', bind: b, w: big ? 150 : 120, h: big ? 64 : 40, size: big ? 44 : 24, weight: 700, align: 'center', color: ['wins', 'losses', 'streak', 'mmrDelta', 'labelWin', 'labelLoss'].includes(b) ? 'auto' : 'white' });
+      // un titre d'alerte : grand, de la couleur de l'alerte, rétréci s'il est long
+      if (b === 'alertTitle') return addElement({ type: 'value', bind: b, w: Math.min(900, comp.width - 40), h: 110, size: 88, weight: 800, align: 'left', color: 'event', fit: true });
+      if (b === 'alertDetail' || b === 'player') return addElement({ type: 'value', bind: b, w: 420, h: 40, font: 'Onest', size: 26, weight: 700, align: 'left', fit: true });
+      return addElement({ type: 'value', bind: b, w: big ? 150 : 120, h: big ? 64 : 40, size: big ? 44 : 24, weight: 700, align: 'center', color: ['wins', 'losses', 'streak', 'mmrDelta', 'labelWin', 'labelLoss', 'matchMmr', 'goalDiff'].includes(b) ? 'auto' : 'white' });
     }
     const b = ev.target.closest('[data-add]');
     if (!b) return;
@@ -867,12 +979,14 @@
   $('#edSample').addEventListener('change', (ev) => {
     sample = ev.target.value;
     renderCanvas();
+    if (kind === 'alerts' && mounted && comp) mounted.enter(comp.enter || 'slide');
   });
   const zoomTo = (z) => {
     zoom = clamp(Math.round(z * 100) / 100, 0.25, 4);
     renderCanvas();
   };
   function fit() {
+    if (!comp) return;
     const st = $('#edStage');
     zoomTo(Math.min(2, (st.clientWidth - 72) / comp.width, (st.clientHeight - 140) / comp.height));
   }
@@ -923,7 +1037,7 @@
     }
     // ce que l'app a gardé fait foi (valeurs ramenées dans les limites du format)
     theme = r.theme;
-    comp = theme.counter;
+    comp = theme[kind] || null;
     sel = sel.filter((id) => byId(id));
     setDirty(false);
     renderAll();
@@ -935,6 +1049,7 @@
   // Aperçu du thème (preview.png) : la composition redessinée sur un canevas, sur le faux fond de match
   async function savePreview() {
     try {
+      const comp = theme.counter; // (la vignette d'un thème montre son compteur, quel que soit l'overlay en cours d'édition)
       const W = 960;
       const H = 240;
       const cv = document.createElement('canvas');
@@ -963,6 +1078,7 @@
       g.scale(k, k);
       const col = (c, tone) => {
         const base = { win: theme.colors.win || '#8bd95a', loss: theme.colors.loss || '#f2685f', ot: theme.colors.ot || '#f0b03f', white: '#ffffff', black: '#000000', hot: '#ffcf5a', cold: '#8fbcff' };
+        base.event = base.win; // (hors alerte, « couleur de l'alerte » vaut celle de la victoire)
         if (c === 'auto') return base[tone] || '#ffffff';
         return base[c] || c;
       };
@@ -1018,13 +1134,17 @@
           } catch {}
           const x = e.align === 'center' ? e.w / 2 : e.align === 'right' ? e.w : 0;
           const y = e.valign === 'top' ? e.size / 2 : e.valign === 'bottom' ? e.h - e.size / 2 : e.h / 2;
+          // texte « ajusté » : rétréci depuis son côté d'alignement s'il dépasse la largeur de l'élément
+          const tw = g.measureText(txt).width;
+          g.translate(x, y + e.size * 0.04);
+          if (e.fit && tw > e.w) g.scale(e.w / tw, e.w / tw);
           if (e.shadow !== 'none') {
             g.shadowColor = e.shadow === 'soft' ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.9)';
             g.shadowBlur = (e.shadow === 'soft' ? 8 : 5) * k;
             g.shadowOffsetY = 2 * k;
-            if (e.shadow === 'outline') g.fillText(txt, x, y + e.size * 0.04); // (deux passes : un contour plus dense)
+            if (e.shadow === 'outline') g.fillText(txt, 0, 0); // (deux passes : un contour plus dense)
           }
-          g.fillText(txt, x, y + e.size * 0.04);
+          g.fillText(txt, 0, 0);
         } else if (e.type === 'image' && imgs.get(e.src)) {
           const im = imgs.get(e.src);
           let [dw, dh] = [e.w, e.h];
@@ -1085,7 +1205,7 @@
   // ------------------------------------------------------------------ démarrage
   async function start() {
     OT.applyI18n();
-    $('#edSample').innerHTML = ['idle', 'match', 'overtime', 'cold', 'empty'].map((k) => `<option value="${k}">${esc(t(`e.sample.${k}`))}</option>`).join('');
+    // (la liste des situations d'aperçu est remplie selon l'overlay : voir renderKinds)
     if (OT.params.has('app')) $('#edBack').href = '/?app=1';
     const r = await api(`/api/themes/${encodeURIComponent(ID)}/source`);
     if (!r.ok || !r.theme || !r.theme.counter) {
@@ -1095,7 +1215,7 @@
       return;
     }
     theme = r.theme;
-    comp = theme.counter;
+    comp = theme[kind] || null;
     active = !!r.active;
     document.title = `${theme.name} — RL-UI`;
     setDirty(false);

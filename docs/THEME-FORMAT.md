@@ -34,7 +34,8 @@ Nothing else is allowed in the folder. Images are recognized by their content, n
   "colors": { "win": "#3dffd0", "loss": "#ff4fa8", "ot": "#ffe04d" },
   "base": "contraste",
   "translations": { "fr": { "name": "Nuit néon", "description": "Une plaque sombre aux bords violets lumineux." } },
-  "counter": { "width": 1000, "height": 220, "elements": [] }
+  "counter": { "width": 1000, "height": 220, "elements": [] },
+  "alerts": { "width": 1920, "height": 1080, "enter": "slide", "elements": [] }
 }
 ```
 
@@ -47,15 +48,23 @@ Nothing else is allowed in the folder. Images are recognized by their content, n
 | `tags` | Up to 5 among `minimal`, `competitive`, `neon`, `dark`, `light`, `colorful`, `retro`, `esport`, `compact`, `vertical`. |
 | `minApp` | The oldest RL-UI version that can display the theme. The gallery does not let an older RL-UI install it. |
 | `colors` | Win / loss / overtime colors, `#rrggbb`. Used by the `win`, `loss`, `ot` color names below, and by the alerts. |
-| `base` | Look of the overlays the theme does not draw itself (alerts, recent matches, recap): `signature`, `epure` or `contraste`. |
+| `base` | Look of the overlays the theme does not draw itself: `signature`, `epure` or `contraste`. |
 | `translations` | Optional name and description in `en` or `fr`. |
-| `counter` | The composition of the W/L counter (below). |
+| `counter` | The composition of the W/L counter (below). Required for the gallery. |
+| `alerts`, `history`, `summary` | Optional: the composition of the alerts, the recent matches and the session recap. |
 
-A composed theme draws the **counter**. The "Boost" layout of the counter keeps its own look with every theme.
+A composed theme always draws the **counter**. It can also draw the **alerts**, the **recent matches** and the **session recap**; the ones it does not draw keep the `base` look. The "Boost" layout of the counter and the caster overlay keep their own look with every theme.
 
 ## The composition
 
-`counter` is a canvas (`width` 40–1920, `height` 20–1080, in pixels: the size of the OBS source) and up to 80 `elements`, drawn in order (the last one on top).
+A composition is a canvas (`width` 40–1920, `height` 20–1080, in pixels) and up to 80 `elements`, drawn in order (the last one on top). The four overlays use the same elements; only the live values and conditions available differ.
+
+| Composition | Suggested canvas | Notes |
+| --- | --- | --- |
+| `counter` | 1000 × 220 | The size of the OBS source. |
+| `alerts` | 1920 × 1080 | One composition for every alert: the `alert…` conditions say which elements appear for which alert. The canvas is fitted and centered in the source. `enter` picks the entrance: `slide`, `rise`, `pop`, `fade` or `none`. |
+| `history` | 700 × 90 | The size of the OBS source. |
+| `summary` | 1920 × 1080 | The canvas is fitted and centered in the source. |
 
 Every element has:
 
@@ -67,10 +76,24 @@ Every element has:
 | `x`, `y`, `w`, `h` | Position and size in pixels. |
 | `rotate` | −180 to 180 degrees. |
 | `opacity` | 0 to 1. |
-| `when` | When the element is visible: `always`, `match` (during a match), `idle` (between matches), `overtime`, `winStreak` (2 wins in a row or more), `lossStreak`, `mmr` (when the MMR is known). |
+| `when` | When the element is visible: `always` or one of the conditions below. |
 | `hidden` | `true` to keep the element in the theme without showing it. |
 
-Colors are `#rrggbb` or one of: `win`, `loss`, `ot` (the theme's colors), `white`, `black`, and for live values `auto` (the win color when rising, the loss color when falling, gold on a win streak, blue on a losing streak).
+| `when` | Visible… | Overlays |
+| --- | --- | --- |
+| `match`, `idle`, `overtime` | during a match, between matches, in overtime | counter |
+| `winStreak`, `lossStreak` | from 2 wins (or losses) in a row | counter, recent matches, recap; `winStreak` in alerts too |
+| `mmr` | when the MMR is known | counter, recent matches, recap |
+| `alertWin`, `alertLoss` | for a win, a loss (overtime included) | alerts |
+| `alertOt` | when overtime starts | alerts |
+| `alertOtEnd` | for an overtime win or loss | alerts |
+| `alertStreak` | for a win streak | alerts |
+| `alertMvp` | when the win comes with the MVP | alerts |
+| `matchScore`, `matchMmr` | when the score, or the MMR change of the match, is known | alerts |
+
+For each overlay the editor only offers the conditions of its row. A condition written by hand in another overlay breaks nothing, but means nothing there.
+
+Colors are `#rrggbb` or one of: `win`, `loss`, `ot` (the theme's colors), `white`, `black`, for live values `auto` (the win color when rising, the loss color when falling, gold on a win streak, blue on a losing streak), and in alerts `event`: the color of the alert being shown (win, loss, or overtime for an overtime start and a streak).
 
 ### `box` — a plate
 
@@ -78,7 +101,7 @@ Colors are `#rrggbb` or one of: `win`, `loss`, `ot` (the theme's colors), `white
 
 ### `text` — fixed text, and `value` — a live value
 
-Typography for both: `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `Archivo`: the fonts shipped with RL-UI), `size` (6–400), `weight` (100–900), `italic`, `upper`, `spacing`, `color`, `align` (`left`, `center`, `right`), `valign` (`top`, `middle`, `bottom`), `shadow` (`none`, `soft`, `outline`).
+Typography for both: `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `Archivo`: the fonts shipped with RL-UI), `size` (6–400), `weight` (100–900), `italic`, `upper`, `spacing`, `color`, `align` (`left`, `center`, `right`), `valign` (`top`, `middle`, `bottom`), `shadow` (`none`, `soft`, `outline`), `fit` (`true`: the text shrinks when it is wider than the element, handy for an alert title or a player name).
 
 - `text` adds `text` (80 characters).
 - `value` adds `bind`, and optional `prefix` / `suffix` (12 characters each).
@@ -92,7 +115,13 @@ Typography for both: `font` (`Unbounded`, `Onest`, `Barlow Condensed`, `Archivo`
 | `mmr`, `mmrDelta` | Current MMR, change since the session started |
 | `played`, `mvps` | Matches played, MVPs |
 | `labelWin`, `labelLoss` | The W / L letters chosen in RL-UI |
-| `mode`, `clock`, `score` | During a match: game mode, clock, score |
+| `mode`, `clock`, `score` | Counter, during a match: game mode, clock, score |
+| `alertTitle`, `alertDetail` | Alerts: the title ("VICTORY", "3 WIN STREAK"…, or the one you wrote in RL-UI) and the line above it (game mode, "Golden goal"…) |
+| `matchScore`, `matchMmr`, `matchOt` | Alerts: score of the match, MMR change of the match ("≈" before an estimate), overtime length |
+| `timePlayed`, `player` | Recap: time played in the session, player name |
+| `goals`, `assists`, `saves`, `goalDiff` | Recap: goals, assists, saves, goal difference |
+
+The session values (the first six rows) exist in every overlay. In an alert, `wins`, `losses`, `record` and `streak` are those at the time of the alert.
 
 ### `image`
 
@@ -116,7 +145,7 @@ A theme that had to be corrected this way is **refused by the gallery**: its aut
 
 The **Share** button of a theme (Overlays → Themes) runs them and says what to fix:
 
-- the counter has at least one element; author and description are filled in;
+- the counter has at least one element (the other overlays are optional); author and description are filled in;
 - `preview.png` exists (the editor makes it when you save);
 - only allowed files, each under 2 MB, 8 MB and 24 files in total;
 - every image used is in the folder, and is a real image;
