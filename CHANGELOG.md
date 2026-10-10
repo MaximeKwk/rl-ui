@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.0-beta.1
+
+RL-UI V2, in beta on the `v2` branch.
+
+- **New identity**: one look for the whole app (turquoise and violet, Unbounded and Onest), light and dark themes following your system, a guided home page, a collapsible icon menu, help bubbles. Three new built-in themes: Signature, Minimal, Contrast.
+- **Reliability**: every match now ends with a decision and its reason (counted, tracking paused, mode excluded, no winner, left early…). Coming back into a match you left corrects the result instead of counting it twice. New **Diagnostic** page: health check of each link (game, API, log, account, MMR, overlays), every match seen with the reason it was counted or not and a button to count it anyway, and a report to copy that holds no personal data.
+- **Statistics**: the History tab becomes **Stats**. Overview of a period by game mode, MMR curve, streaks, win rate after a win or a loss, sessions compared with each other or with your average, a session summary as an image to share, CSV export.
+- **Easier to set up**: **Add to OBS** on every overlay (one click once OBS is connected, or drag the button into OBS), a search box that finds any setting, settings sorted into three panes, a rebuilt Help page.
+- **Theme editor**: create a theme with the mouse. Plates, texts, live values, images, last matches, win/loss bar; layers, alignment, undo/redo, preview in each match situation. Themes made this way are data only: no CSS, no script (see docs/THEME-FORMAT.md).
+- **Community gallery**: *Overlays → Gallery* lists the themes published on kydora.net/marketplace, with search, styles, favorites, likes, install counts, compatibility and a live preview. Every file is checked before it is installed. The **Share** button checks your theme and exports it for publishing; **Install in RL-UI** links on the website open the app on the theme (`rlui://`).
+
+Not changed: the "Boost" counter keeps its look with every theme.
+
 ## 1.2.5
 
 - **MMR estimate**: before RL-UI knows any real MMR value for you (for example when your party leader always starts the search), a match is now estimated at **±10** instead of ±12, closer to a real ranked match. Existing estimated matches are recalculated; real values don't change.

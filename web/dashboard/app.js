@@ -115,7 +115,7 @@
   const baseUrl = () => `http://127.0.0.1:${D ? D.port : location.port}`;
 
   // Outils communs aux autres scripts du tableau de bord (stats.js)
-  window.RLUI = { $, $$, esc, t, tn, api, toast, confirmBox, pad, fmtHour, fmtDate, fmtDur, LW, LL, key: KEY, resPill: (r) => resPill(r), state: () => D, go: (target) => showTab(target) };
+  window.RLUI = { $, $$, esc, t, tn, api, post, toast, confirmBox, copy: (text) => copy(text), editor: (id) => editorUrl(id), openUrl: (url) => post('/api/open', { target: 'url', url }), pad, fmtHour, fmtDate, fmtDur, LW, LL, key: KEY, resPill: (r) => resPill(r), state: () => D, go: (target) => showTab(target) };
 
   function resPill(r) {
     const cls = ['res', r.result, r.ot || r.overtime ? 'ot' : '', r.abandon ? 'ab' : '', r.manual ? 'man' : ''].join(' ');
@@ -179,6 +179,7 @@
     }
     if (entry === 'diag') loadDiag();
     if (entry === 'stream' || entry === 'session') layoutPreviews();
+    if (entry === 'stream' && window.RLUI.market && !$('[data-ovpane="market"]').classList.contains('hidden')) window.RLUI.market.show();
     if (entry === 'caster') layoutCasterPv();
     // section demandée rangée sous une autre entrée : on l'amène à l'écran
     if (own && entry !== name) own.scrollIntoView({ block: 'start' });
@@ -1169,6 +1170,8 @@
       localStorage.setItem('rlui-ovtab', name);
     } catch {}
     layoutPreviews(); // un aperçu caché n'a pas de taille : on le recale quand il apparaît
+    // la galerie n'est lue en ligne que lorsqu'on l'ouvre
+    if (name === 'market' && window.RLUI.market && $('#tab-stream').classList.contains('active')) window.RLUI.market.show();
   }
   function layoutPreviews() {
     $$('#tab-stream .pv, #tab-session .pv').forEach((pv) => {
@@ -1276,16 +1279,17 @@
           <div class="thumb">${thumb}${on ? `<span class="pill ok">${esc(tr('d.active'))}</span>` : ''}</div>
           <div class="info">
             <b>${esc(t.name)}</b>
-            <span class="muted small">${esc(tr(t.builtin ? 'd.builtin' : t.format === 2 ? 'd.madeInEditor' : 'd.custom'))}${t.author ? ` · ${esc(tr('d.byAuthor', { a: t.author }))}` : ''} · v${esc(t.version)}</span>
+            <span class="muted small">${esc(tr(t.builtin ? 'd.builtin' : t.market ? 'd.fromGallery' : t.format === 2 ? 'd.madeInEditor' : 'd.custom'))}${t.author ? ` · ${esc(tr('d.byAuthor', { a: t.author }))}` : ''} · v${esc(t.version)}</span>
             ${t.problem ? `<span class="desc warn-text">${esc(tr('d.themeBroken'))}</span>` : ''}
             ${t.description ? `<span class="desc">${esc(t.description)}</span>` : ''}
           </div>
           <div class="acts">
             ${on ? '' : `<button class="btn small primary" data-tact="use">${esc(tr('d.use'))}</button>`}
-            ${t.editable ? `<button class="btn small" data-tact="edit">${esc(tr('d.editTheme'))}</button>` : ''}
-            ${t.format === 2 ? `<button class="btn small ghost" data-tact="copy">${esc(tr('d.dupTheme'))}</button>` : `<button class="btn small ghost" data-tact="custom" title="${esc(tr('d.customizeTip'))}">${esc(tr('d.customize'))}</button>`}
+            ${t.editable && !t.market ? `<button class="btn small" data-tact="edit">${esc(tr('d.editTheme'))}</button>` : ''}
+            ${t.market ? `<button class="btn small" data-tact="copy" title="${esc(tr('d.mk.customizeTip'))}">${esc(tr('d.mk.customize'))}</button>` : t.format === 2 ? `<button class="btn small ghost" data-tact="copy">${esc(tr('d.dupTheme'))}</button>` : `<button class="btn small ghost" data-tact="custom" title="${esc(tr('d.customizeTip'))}">${esc(tr('d.customize'))}</button>`}
             ${t.builtin ? '' : `<button class="btn small ghost" data-tact="folder">${esc(tr('d.folder'))}</button>`}
             <button class="btn small ghost" data-tact="export">${esc(tr('d.export'))}</button>
+            ${t.editable && !t.market ? `<button class="btn small ghost" data-tact="share">${esc(tr('d.mk.shareBtn'))}</button>` : ''}
             ${t.builtin ? '' : `<button class="btn small ghost danger" data-tact="del">${esc(tr('d.delete'))}</button>`}
           </div>
         </div>`;
@@ -1312,6 +1316,8 @@
       const r = await post(`/api/themes/${id}/duplicate`, { name: t('d.customCopyName', { n: th.name }), open: false });
       if (r.ok) location.href = editorUrl(r.id);
       else toast(r.error || t('d.failed'), 'err');
+    } else if (act === 'share') {
+      window.RLUI.market.share(id);
     } else if (act === 'folder') {
       post('/api/open', { target: `theme:${id}` });
     } else if (act === 'export') {
@@ -1522,12 +1528,13 @@
             .filter((x) => x.builtin && x.hasPreview)
             .map((x) => `<button class="onb-th${x.id === cur ? ' on' : ''}" data-onbtheme="${esc(x.id)}"><img src="/themes/${esc(x.id)}/preview.png" alt="" /><span>${esc(x.name)}</span></button>`)
             .join('')}</div>
-          <div class="onb-layouts">${['horizontal', 'vertical', 'boost'].map((l) => `<button class="btn small ${layout === l ? 'primary' : ''}" data-onblayout="${l}">${esc(t(`o.layout.${l}`))}</button>`).join('')}</div>`;
+          <div class="onb-layouts">${['horizontal', 'vertical', 'boost'].map((l) => `<button class="btn small ${layout === l ? 'primary' : ''}" data-onblayout="${l}">${esc(t(`o.layout.${l}`))}</button>`).join('')}</div>
+          <p class="muted small">${esc(t('o.lookMore'))}</p>`;
         break;
       }
       case 4:
         html = `<h2>${esc(t('o.doneTitle'))}</h2><p>${esc(t('o.doneText'))}</p>
-          <div class="onb-more">${['stream/themes', 'history/overview', 'diag', 'obs/twitch', 'caster', 'settings/links']
+          <div class="onb-more">${['stream/market', 'history/overview', 'diag', 'obs/twitch', 'caster', 'settings/links']
             .map((go) => {
               // les mêmes cartes que sur la page Aide (« ce que RL-UI sait faire »), déjà dans la bonne langue
               const c = $(`.disc-card[data-go="${go}"]`);
@@ -1878,7 +1885,15 @@
     if (D.diag.rev !== dgRev && $('#tab-diag').classList.contains('active')) loadDiag();
     if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds, D.status.obs, D.settings.obs.enabled])) renderStream();
     if (changed('layout', [D.settings.overlay.layout, D.settings.overlay.themePack, D.themes])) renderLayout();
-    if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
+    if (changed('themes', [D.themes, D.settings.overlay.themePack])) {
+      renderThemes();
+      if (window.RLUI.market) window.RLUI.market.sync();
+    }
+    // lien « Installer dans RL-UI » cliqué sur le site : on ouvre la fiche du thème dans la galerie
+    if (D.intent && D.intent.type === 'market' && changed('intent', D.intent.n) && Date.now() - D.intent.at < 30000 && window.RLUI.market) {
+      showTab('stream/market');
+      window.RLUI.market.open(D.intent.id);
+    }
     if (changed('casterTheme', [D.themes, D.settings.overlay.themePack, D.settings.caster.themePack, D.settings.language])) renderCasterTheme();
     renderObs();
     if (changed('update', [D.update, D.version])) renderUpdate();

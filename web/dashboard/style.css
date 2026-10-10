@@ -422,8 +422,7 @@ button.link { padding: 0; border: 0; background: none; color: var(--violet); fon
 .cmp-note p { margin: 0; }
 
 /* ------------------------------------------------------------ aide : ce que l'app sait faire */
-.disc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-@media (max-width: 1080px) { .disc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.disc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
 .disc-card { display: flex; flex-direction: column; gap: 5px; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--well); color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .disc-card:hover { border-color: var(--accent); background: var(--accent-soft); }
 .disc-card b { font-weight: 650; }
@@ -813,6 +812,73 @@ input.switch:checked::after { transform: translateX(16px); }
 .th .info b { font: 600 13px/1.3 var(--display); }
 .th .info .desc { font-size: 13px; color: var(--muted); }
 .th .acts { padding: 8px 12px 12px; display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+
+/* ------------------------------------------------------------ galerie de la communauté */
+.mk-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 14px 0 10px; }
+.mk-search { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; max-width: 360px; height: 36px; padding: 0 10px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--well); }
+.mk-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.mk-search svg { width: 15px; height: 15px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+.mk-search input#mkSearch { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; outline: 0; background: none; box-shadow: none; color: var(--text); font: inherit; font-size: 13.5px; }
+.mk-sort { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.mk-sort select { width: auto; }
+.mk-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.mk-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--line-2); border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 550; cursor: pointer; }
+.mk-chip:hover { color: var(--text); border-color: var(--faint); }
+.mk-chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
+.mk-chip i { font-style: normal; font-size: 11.5px; color: var(--faint); }
+.mk-chip.on i { color: inherit; opacity: 0.75; }
+.mk-state { margin: 14px 0 4px; padding: 22px 18px; border: 1px dashed var(--line-2); border-radius: 12px; text-align: center; color: var(--muted); }
+.mk-state p { margin: 0 0 8px; }
+.mk-state b { color: var(--text); }
+.mk-state .btn { margin-top: 4px; }
+.mk-grid { grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); margin-top: 14px; }
+.mk-card.off .thumb img { opacity: 0.55; }
+.mk-card .thumb { aspect-ratio: 4 / 1; }
+.mk-open { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.mk-open:focus-visible { outline-offset: -3px; }
+.mk-card .thumb .pill { left: auto; right: 10px; }
+.mk-fav { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line-2); border-radius: 50%; background: var(--panel); color: var(--muted); cursor: pointer; }
+.mk-fav svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.mk-fav:hover { color: var(--text); }
+.mk-fav.on { color: var(--loss); border-color: color-mix(in srgb, var(--loss) 55%, transparent); }
+.mk-fav.on svg { fill: currentColor; }
+.mk-name { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.mk-name .mk-fav { width: 26px; height: 26px; margin: -3px -2px 0 0; border-color: transparent; background: none; }
+.mk-name .mk-fav:hover { border-color: var(--line-2); }
+.mk-card .info .desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mk-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.mk-chips .mk-chip { padding: 1px 8px; font-size: 11.5px; }
+.mk-card .acts { align-items: center; flex-wrap: nowrap; }
+.mk-card .acts .btn { white-space: nowrap; }
+.mk-card .acts .grow, #mkmActs .grow { flex: 1; }
+.mk-stat { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mk-stat svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mk-foot { margin: 14px 0 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.mk-box { width: min(820px, 94vw); max-height: 92vh; overflow-y: auto; }
+.mk-stage { display: grid; place-items: center; min-height: 190px; padding: 16px; border-radius: 12px; overflow: hidden; background: radial-gradient(120% 140% at 20% 110%, rgba(24, 115, 255, 0.3), transparent 60%), radial-gradient(120% 140% at 80% 110%, rgba(255, 138, 42, 0.26), transparent 60%), linear-gradient(#1b2438, #0b1020 55%, #070a12); }
+.mk-stage img { max-width: 100%; border-radius: 8px; display: block; }
+.mk-fit { position: relative; flex: none; overflow: hidden; }
+.mk-fit .cmp { position: absolute; left: 0; top: 0; }
+.mk-live { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0 2px; }
+.mk-box p.mk-desc { margin: 14px 0 0; font-size: 14px; }
+.mk-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 22px; margin: 16px 0 0; }
+.mk-facts dt { font-size: 12px; color: var(--faint); margin-bottom: 3px; }
+.mk-facts dd { margin: 0; font-size: 13.5px; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+.mk-facts .mk-stat { margin-left: 0; margin-right: 8px; }
+.mk-facts dd button.link { flex-basis: 100%; text-align: left; font-size: 13px; }
+.mk-facts .pill { align-items: baseline; }
+#mkmActs { align-items: center; }
+.mk-pick { display: flex; flex-direction: column; gap: 5px; margin: 4px 0 14px; font-size: 13px; color: var(--muted); }
+.mk-box .mk-check p { font-size: 14px; margin: 0 0 10px; }
+.mk-steps { list-style: none; counter-reset: mk; margin: 14px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mk-steps li { counter-increment: mk; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--well); }
+.mk-steps li::before { content: counter(mk); display: grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%; border: 2px solid var(--violet); color: var(--violet); font: 700 12px var(--display); }
+.mk-steps li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mk-steps li span { font-size: 13px; color: var(--muted); }
+.mk-problems { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+@media (max-width: 760px) { .mk-sort { margin-left: 0; } }
 
 /* ------------------------------------------------------------ mode caster */
 .caster-pv { position: relative; overflow: hidden; border-radius: 12px; border: 1px solid var(--line); background: var(--stage); margin: 12px 0; }

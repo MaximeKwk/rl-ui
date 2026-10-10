@@ -138,6 +138,7 @@
               <button data-ovtab="alerts" data-i18n="h.ov.tabAlerts">Alerts</button>
               <button data-ovtab="more" data-i18n="h.ov.tabMore">More overlays</button>
               <button data-ovtab="themes" data-i18n="h.th.title">Themes</button>
+              <button data-ovtab="market" data-i18n="h.mk.tab">Gallery</button>
             </div>
           </div>
 
@@ -300,6 +301,47 @@
                 right away, without touching a file. A theme made in the editor can be shared safely: it is only data, never code.
               </p>
               <div class="theme-grid" id="themeGrid"></div>
+            </div>
+          </div>
+
+          <!-- ............................ galerie de la communauté ............................ -->
+          <div class="ov-pane hidden" data-ovpane="market">
+            <div class="card">
+              <div class="card-head">
+                <h3 data-i18n="h.mk.title">Community gallery</h3>
+                <div class="head-actions">
+                  <button class="btn small ghost" id="mkRefresh" data-i18n="h.mk.refresh">Refresh</button>
+                  <button class="btn small ghost hidden" id="mkSite" data-i18n="h.mk.site">Open the website</button>
+                  <button class="btn small" id="mkSubmit" data-i18n="h.mk.submit">Share my theme</button>
+                </div>
+              </div>
+              <p class="muted" data-i18n="h.mk.intro">
+                Themes made by other players with the editor. Install one in a click, then make it yours. A gallery theme is only data and
+                images, never code, and every file is checked before it is installed.
+              </p>
+              <div class="mk-bar">
+                <label class="mk-search">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                  <input id="mkSearch" maxlength="60" autocomplete="off" spellcheck="false" placeholder="Search a theme or an author" data-i18n-ph="h.mk.searchPh" aria-label="Search the gallery" data-i18n-aria="h.mk.searchAria" />
+                </label>
+                <div class="seg" id="mkScope">
+                  <button data-scope="all" class="on" data-i18n="h.mk.all">All</button>
+                  <button data-scope="fav" data-i18n="h.mk.favs">Favorites</button>
+                  <button data-scope="installed" data-i18n="h.mk.installed">Installed</button>
+                </div>
+                <label class="mk-sort"><span data-i18n="h.mk.sort">Sort by</span>
+                  <select id="mkSort">
+                    <option value="likes" data-i18n="h.mk.sortLikes">Most liked</option>
+                    <option value="installs" data-i18n="h.mk.sortInstalls">Most installed</option>
+                    <option value="new" data-i18n="h.mk.sortNew">Newest</option>
+                    <option value="name" data-i18n="h.mk.sortName">Name</option>
+                  </select>
+                </label>
+              </div>
+              <div class="mk-tags" id="mkTags" role="group" aria-label="Style" data-i18n-aria="h.mk.style"></div>
+              <div class="mk-state hidden" id="mkState" role="status"></div>
+              <div class="theme-grid mk-grid" id="mkGrid"></div>
+              <p class="muted small mk-foot" id="mkFoot"></p>
             </div>
           </div>
 
@@ -833,6 +875,7 @@
               <button type="button" class="disc-card" data-go="stream/counter"><b data-i18n="h.disc.counter">W/L counter</b><span data-i18n="h.disc.counterText">Wins, losses, streak and MMR live on your stream.</span></button>
               <button type="button" class="disc-card" data-go="stream/alerts"><b data-i18n="h.disc.alerts">Alerts</b><span data-i18n="h.disc.alertsText">A full-screen announcement for every win, loss and overtime.</span></button>
               <button type="button" class="disc-card" data-go="stream/themes"><b data-i18n="h.disc.themes">Themes</b><span data-i18n="h.disc.themesText">Change the look of all your overlays in one click.</span></button>
+              <button type="button" class="disc-card" data-go="stream/market"><b data-i18n="h.disc.market">Theme gallery</b><span data-i18n="h.disc.marketText">Themes made by other players, installed in one click. Share yours.</span></button>
               <button type="button" class="disc-card" data-go="history/overview"><b data-i18n="h.disc.stats">Statistics</b><span data-i18n="h.disc.statsText">Your streaks, your MMR curve and your sessions compared.</span></button>
               <button type="button" class="disc-card" data-go="diag"><b data-i18n="h.disc.diag">Diagnostic</b><span data-i18n="h.disc.diagText">Why a match was counted or not, and how to fix it.</span></button>
               <button type="button" class="disc-card" data-go="obs/software"><b data-i18n="h.disc.obs">Actions in OBS</b><span data-i18n="h.disc.obsText">Switch scene or show a source on every win or overtime.</span></button>
@@ -872,7 +915,7 @@
               <details><summary data-i18n="h.faq.q8">Where does the MMR come from?</summary><p data-i18n="h.faq.a8">From the game log: when you start a matchmaking search (solo or party leader), Rocket League writes your MMR for that mode. So the change of a match is known at the next search; meanwhile, the app shows an estimate based on your recent real changes (marked ≈ in the dashboard). If your teammate starts the search, only the estimate is available.</p></details>
             </div>
           </div>
-          <p class="legal muted small" data-i18n="h.legal">RL-UI — made by Zoxam. Not affiliated with Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC. Everything runs locally: no data is sent over the Internet.</p>
+          <p class="legal muted small" data-i18n="h.legal">RL-UI — made by Zoxam. Not affiliated with Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC. Tracking runs locally: your matches and statistics never leave your PC. The theme gallery is read online when you open it.</p>
         </section>
       </main>
     </div>
@@ -885,6 +928,29 @@
         <p class="muted small" data-i18n="h.th.newStart">Start from:</p>
         <div class="new-starters" id="themeNewStarters" role="radiogroup" aria-labelledby="themeNewTitle"></div>
         <div class="actions"><button class="btn primary" id="themeNewGo" data-i18n="h.th.newGo">Create and open the editor</button></div>
+      </div>
+    </div>
+    <div id="mkModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mkmName">
+      <div class="modal-box mk-box">
+        <div class="card-head"><h3 id="mkmName"></h3><button class="btn small ghost" id="mkmClose" data-i18n="h.close">Close</button></div>
+        <div class="mk-stage" id="mkmStage"></div>
+        <div class="mk-live">
+          <span class="muted small" data-i18n="h.e.sample">Preview with</span>
+          <div class="seg" id="mkmSample"></div>
+        </div>
+        <p class="mk-desc" id="mkmDesc"></p>
+        <dl class="mk-facts" id="mkmFacts"></dl>
+        <div class="actions" id="mkmActs"></div>
+      </div>
+    </div>
+    <div id="mkShare" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mksTitle">
+      <div class="modal-box mk-box">
+        <div class="card-head"><h3 id="mksTitle" data-i18n="h.mk.shareTitle">Share a theme in the gallery</h3><button class="btn small ghost" id="mksClose" data-i18n="h.close">Close</button></div>
+        <p class="muted" data-i18n="h.mk.shareIntro">
+          Any theme made with the editor can join the gallery. You publish it on the gallery website with your account, it is checked
+          automatically, then everyone can install it. Your theme keeps your name.
+        </p>
+        <div id="mksBody"></div>
       </div>
     </div>
     <div id="shareModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
@@ -904,8 +970,10 @@
 
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
+    <script src="/static/shared/compose.js"></script>
     <script src="/static/dashboard/app.js"></script>
     <script src="/static/dashboard/stats.js"></script>
+    <script src="/static/dashboard/market.js"></script>
     <script src="/static/dashboard/search.js"></script>
   </body>
 </html>

@@ -25,7 +25,7 @@ fs.writeFileSync(path.join(cfgDir, 'TAStatsAPI.ini'), '[TAGame.MatchStatsExporte
 const dataDir = path.join(tmp, 'data');
 const PORT = 5890;
 fs.mkdirSync(dataDir, { recursive: true });
-fs.writeFileSync(path.join(dataDir, 'data.json'), JSON.stringify({ settings: { port: PORT, stats: { transport } } }));
+fs.writeFileSync(path.join(dataDir, 'data.json'), JSON.stringify({ settings: { port: PORT, stats: { transport }, market: { url: 'http://127.0.0.1:9/catalog.json' } } }));
 
 const get = (p) =>
   new Promise((resolve, reject) => {
@@ -142,6 +142,12 @@ function cleanup(code) {
   ok(ms.series.length === 1 && ms.series[0].points.length >= 5 && ms.series[0].current === 1104, `statistiques : courbe du MMR (${ms.series[0] && ms.series[0].points.length} points)`);
   const csvText = (await get(`/api/history.csv?scope=all&key=${settings.apiKey}`)).body;
   ok(csvText.trim().split('\r\n').length === 5, 'export CSV : une ligne par partie');
+
+  // galerie de thèmes : le site est injoignable ici (adresse d'essai fermée), l'app le dit sans planter
+  const mk = await get(`/api/market?key=${settings.apiKey}`);
+  const mkv = JSON.parse(mk.body);
+  ok(mk.status === 200 && mkv.ok === false && mkv.error && Array.isArray(mkv.themes) && mkv.themes.length === 0, 'galerie injoignable : un message clair, rien de cassé');
+  ok((await get('/api/market')).status === 401, 'galerie protégée sans clé');
 
   const page = await get('/overlay/counter');
   ok(page.status === 200 || page.status === 404, 'route overlay');

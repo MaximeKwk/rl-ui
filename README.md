@@ -144,11 +144,13 @@ Change the look of every overlay in one click, or build your own with your image
 | | |
 | --- | --- |
 | **Built-in themes** | Signature, Minimal, Contrast, and a **Template** with images, ready to duplicate |
-| **Customize** | Creates an editable copy and opens its folder: replace the images, the colors in `theme.json` or the `theme.css`, overlays update **live in OBS** |
-| **Share** | *Export* gives a `.zip`; others load it with *Install a theme* |
-| **Safe** | No scripts allowed in a theme: images, fonts, sounds and CSS only |
+| **Theme editor** | *Create a theme* opens a visual editor: place plates, texts, live values (wins, win rate, MMR, streak…), images and the last matches with the mouse, see the result right away. No file to touch |
+| **Community gallery** | *Overlays → Gallery*: themes made by other players, with search, styles, favorites, likes and a live preview. One click to install, and updates are offered when a creator publishes one |
+| **Share yours** | The *Share* button checks your theme and exports it; you publish it on **[kydora.net/marketplace](https://kydora.net/marketplace)** with a Twitch, Discord or e-mail account. Every theme has its own page, with an **Install in RL-UI** button |
+| **Safe** | A theme made in the editor is only data and images: no CSS, no script. RL-UI checks every file of a gallery theme (size, fingerprint, format) before installing it |
+| **For people who know CSS** | *Edit the files* creates an editable copy of a built-in theme and opens its folder: images, colors in `theme.json`, `theme.css`. Overlays update **live in OBS** |
 
-Full guide (every element you can change, examples): **[docs/THEMES.md](docs/THEMES.md)**.
+Format of editor themes (what a theme may contain, versions, checks): **[docs/THEME-FORMAT.md](docs/THEME-FORMAT.md)**. Themes with a style sheet: **[docs/THEMES.md](docs/THEMES.md)**.
 
 ## Caster mode
 
@@ -243,8 +245,9 @@ report you can copy when asking for help.
 
 ## Privacy
 
-RL-UI runs **entirely locally**. It sends no data over the Internet, contains no telemetry and needs no account.
-Your matches are stored in `%APPDATA%\RL-UI\data.json`.
+RL-UI tracks your matches **entirely locally**: your matches and statistics never leave your PC (`%APPDATA%\RL-UI\data.json`), there is no telemetry and no account to create.
+
+It only goes online for things you can see: checking for updates (GitHub), the Twitch chat if you connect it, and the theme gallery when you open its tab. Browsing the gallery sends nothing about you; installing a theme tells the gallery which theme was installed, for its install counter, and nothing else.
 
 ## Security
 

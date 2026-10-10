@@ -55,6 +55,14 @@
       "!**/*.map"
     ],
     "asar": true,
+    "protocols": [
+      {
+        "name": "RL-UI",
+        "schemes": [
+          "rlui"
+        ]
+      }
+    ],
     "electronLanguages": [
       "fr",
       "en-US"

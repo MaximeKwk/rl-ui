@@ -18,23 +18,7 @@ const DEFAULT_THEME = 'signature';
 // Thèmes intégrés des versions 1.x, retirés avec la V2 : un réglage qui les désigne revient au thème par défaut
 const RETIRED_THEMES = ['classique', 'neon', 'or-noir'];
 
-// Fichiers permis dans un thème composé (format 2) : des données et des médias, rien d'autre
-const COMPOSED_FILE = /^(theme\.json|preview\.png|images\/[\w\-. ]+\.(png|jpe?g|webp|gif)|sounds\/[\w\-. ]+\.(mp3|wav|ogg)|README\.md|LISEZMOI\.md)$/i;
-const IMAGE_MAGIC = [
-  ['png', (b) => b.length > 8 && b.readUInt32BE(0) === 0x89504e47],
-  ['jpg', (b) => b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff],
-  ['gif', (b) => b.length > 6 && b.toString('latin1', 0, 3) === 'GIF'],
-  ['webp', (b) => b.length > 12 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP'],
-];
-
-const slug = (s) =>
-  String(s || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'theme';
+const { COMPOSED_FILE, imageKind, slug } = themeFormat;
 
 function safeRel(rel) {
   const r = String(rel || '').replace(/\\/g, '/').replace(/^\/+/, '');
@@ -242,6 +226,33 @@ class ThemeManager extends EventEmitter {
     return { id: newId, dir: dest };
   }
 
+  // Installe un thème composé reçu fichier par fichier (galerie de la communauté).
+  // files : [{ path, data }] déjà vérifiés ; id : thème à remplacer (mise à jour), sinon un identifiant libre est pris.
+  installFiles(files, { id = null, wanted = '' } = {}) {
+    const manifest = files.find((f) => f.path === 'theme.json');
+    if (!manifest) throw new Error(tr('s.zipNoManifest'));
+    let cleaned;
+    try {
+      cleaned = themeFormat.cleanTheme(JSON.parse(manifest.data.toString('utf8').replace(/^\ufeff/, '')));
+    } catch {
+      throw new Error(tr('s.zipBadManifest'));
+    }
+    const existing = id ? this.get(id) : null;
+    const target = existing && !existing.builtin ? existing.id : this._freeId(wanted || cleaned.name);
+    const dest = path.join(this.userDir, target);
+    fs.rmSync(dest, { recursive: true, force: true });
+    for (const f of files) {
+      if (!COMPOSED_FILE.test(f.path) || !safeRel(f.path)) continue;
+      // une image doit en être une (le nom du fichier ne suffit pas)
+      if (/\.(png|jpe?g|webp|gif)$/i.test(f.path) && !imageKind(f.data)) continue;
+      const p = path.join(dest, f.path);
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, f.path === 'theme.json' ? Buffer.from(`${JSON.stringify({ id: target, ...cleaned }, null, 2)}\n`) : f.data);
+    }
+    this._changed();
+    return { id: target, name: cleaned.name, version: cleaned.version };
+  }
+
   // ---------------------------------------------------------------- thèmes composés (éditeur visuel)
   _userTheme(id) {
     const t = this.get(id);
@@ -311,11 +322,11 @@ class ThemeManager extends EventEmitter {
     const t = this._userTheme(id);
     if (!Buffer.isBuffer(buf) || !buf.length) throw new Error(tr('s.emptyFile'));
     if (buf.length > 2 * 1024 * 1024) throw new Error(tr('s.imageTooBig'));
-    const kind = IMAGE_MAGIC.find(([, test]) => test(buf));
+    const kind = imageKind(buf);
     if (!kind) throw new Error(tr('s.imageFormats'));
     const base = slug(String(name || 'image').replace(/\.[^.]+$/, ''));
-    let rel = `images/${base}.${kind[0]}`;
-    for (let i = 2; fs.existsSync(path.join(t.dir, rel)); i++) rel = `images/${base}-${i}.${kind[0]}`;
+    let rel = `images/${base}.${kind}`;
+    for (let i = 2; fs.existsSync(path.join(t.dir, rel)); i++) rel = `images/${base}-${i}.${kind}`;
     fs.mkdirSync(path.join(t.dir, 'images'), { recursive: true });
     fs.writeFileSync(path.join(t.dir, rel), buf);
     return { src: rel };
@@ -324,7 +335,7 @@ class ThemeManager extends EventEmitter {
   // Aperçu du thème (image fabriquée par l'éditeur à l'enregistrement)
   savePreview(id, buf) {
     const t = this._userTheme(id);
-    if (!Buffer.isBuffer(buf) || buf.length > 1024 * 1024 || !IMAGE_MAGIC[0][1](buf)) throw new Error(tr('s.imageFormats'));
+    if (!Buffer.isBuffer(buf) || buf.length > 1024 * 1024 || imageKind(buf) !== 'png') throw new Error(tr('s.imageFormats'));
     fs.writeFileSync(path.join(t.dir, 'preview.png'), buf);
     this._changed();
     return { ok: true };
@@ -380,4 +391,4 @@ class ThemeManager extends EventEmitter {
   }
 }
 
-module.exports = { ThemeManager, safeRel, slug, SOUND_TYPES, DEFAULT_THEME, RETIRED_THEMES };
+module.exports = { ThemeManager, safeRel, slug, walk, imageKind, COMPOSED_FILE, SOUND_TYPES, DEFAULT_THEME, RETIRED_THEMES };

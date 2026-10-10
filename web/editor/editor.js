@@ -958,7 +958,7 @@
       const shown = comp.elements.filter((e) => !e.hidden && C.visible(e.when, d));
       if (!shown.length) return;
       const b = bounds(shown);
-      const k = Math.min((W - 80) / b.w, (H - 60) / b.h, 2.2);
+      const k = Math.min((W - 80) / b.w, (H - (b.h > b.w ? 28 : 60)) / b.h, 2.2); // (une colonne prend toute la hauteur)
       g.translate((W - b.w * k) / 2 - b.x * k, (H - b.h * k) / 2 - b.y * k);
       g.scale(k, k);
       const col = (c, tone) => {
@@ -991,7 +991,14 @@
         if (e.type === 'box') {
           g.globalAlpha = e.opacity * e.fillOpacity;
           g.fillStyle = col(e.fill);
+          // (les ombres d'un canevas ne suivent pas l'échelle : on la leur applique)
+          if (e.shadow !== 'none') {
+            g.shadowColor = e.shadow === 'soft' ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.6)';
+            g.shadowBlur = (e.shadow === 'soft' ? 14 : 24) * k;
+            g.shadowOffsetY = (e.shadow === 'soft' ? 6 : 10) * k;
+          }
           g.fill(new Path2D(C.boxPath(e.w, e.h, e.radius, e.cut, e.cutCorner)));
+          g.shadowColor = 'transparent';
           if (e.borderWidth > 0) {
             g.globalAlpha = e.opacity * e.borderOpacity;
             g.lineWidth = e.borderWidth;
@@ -1011,6 +1018,12 @@
           } catch {}
           const x = e.align === 'center' ? e.w / 2 : e.align === 'right' ? e.w : 0;
           const y = e.valign === 'top' ? e.size / 2 : e.valign === 'bottom' ? e.h - e.size / 2 : e.h / 2;
+          if (e.shadow !== 'none') {
+            g.shadowColor = e.shadow === 'soft' ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.9)';
+            g.shadowBlur = (e.shadow === 'soft' ? 8 : 5) * k;
+            g.shadowOffsetY = 2 * k;
+            if (e.shadow === 'outline') g.fillText(txt, x, y + e.size * 0.04); // (deux passes : un contour plus dense)
+          }
           g.fillText(txt, x, y + e.size * 0.04);
         } else if (e.type === 'image' && imgs.get(e.src)) {
           const im = imgs.get(e.src);

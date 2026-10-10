@@ -383,6 +383,31 @@ class AppServer extends EventEmitter {
         return this._json(res, r.ok ? 200 : 400, r);
       }
       if (m && method === 'DELETE') return this._json(res, 200, this.core.deleteSound(m[1]));
+      // galerie de thèmes de la communauté
+      if (p === '/api/market') return this._json(res, 200, await this.core.marketView(url.searchParams.get('refresh') === '1'));
+      if (p === '/api/market/install' && method === 'POST') {
+        const b = await this._body(req, true);
+        const r = await this.core.marketInstall(b.id, !!b.use);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/market/open' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, { ok: this.core.openMarketTheme(b.id) });
+      }
+      if (p === '/api/market/favorite' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, this.core.marketFavorite(b.id, b.on));
+      }
+      if (p === '/api/market/theme') {
+        const t = await this.core.market.theme(url.searchParams.get('id') || '');
+        return t ? this._json(res, 200, { ok: true, id: t.id, colors: t.colors, counter: t.counter, images: t.images }) : this._json(res, 404, { ok: false });
+      }
+      if (p === '/api/market/file') {
+        const f = await this.core.market.file(url.searchParams.get('id') || '', url.searchParams.get('path') || '');
+        if (!f) return this._text(res, 404, 'Introuvable');
+        res.writeHead(200, { 'Content-Type': f.type, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox" });
+        return res.end(f.data);
+      }
       if (p === '/api/themes/install' && method === 'POST') {
         const buf = await this._body(req, false, 60 * 1024 * 1024);
         const r = this.core.installTheme(buf);

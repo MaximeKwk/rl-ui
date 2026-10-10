@@ -20,7 +20,8 @@ const { TextExporter, renderTemplate, templateVars, customTemplate } = require('
 const { StreamBridge } = require('./streamBridge');
 const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
-const { ThemeManager, DEFAULT_THEME } = require('./themes');
+const { ThemeManager, DEFAULT_THEME, walk } = require('./themes');
+const { Market, review } = require('./market');
 const { CasterFeed } = require('./caster');
 const { TwitchChat } = require('./twitch');
 const { CasterAssets } = require('./casterAssets');
@@ -55,6 +56,7 @@ class Core extends EventEmitter {
     this._casterSentAt = 0;
     this.mmr = new MmrTracker(this.store);
     this.themes = new ThemeManager({ builtinDir: path.join(webDir, 'themes'), userDir: path.join(dataDir, 'themes') });
+    this.market = new Market({ store: this.store, themes: this.themes, version }); // galerie de thèmes de la communauté
     this.stats = new StatsApiClient(this._statsOpts({ effective: rlConfig.DEFAULTS }));
     this.text = new TextExporter(path.join(dataDir, 'texte'));
     this.obs = new StreamBridge(() => this.store.settings);
@@ -560,6 +562,13 @@ class Core extends EventEmitter {
   }
 
   // Thème choisi (DA) : feuille de style, couleurs et sons qu'il apporte
+  // Thèmes installés, avec pour ceux qui viennent de la galerie leur identifiant dans le catalogue
+  _themeList() {
+    const from = {};
+    for (const [mid, v] of Object.entries(this.store.data.market.installed)) from[v.theme] = mid;
+    return this.themes.list().map(({ dir, ...t }) => ({ ...t, market: from[t.id] || null }));
+  }
+
   _themeInfo() {
     return this.themeInfo(this.store.settings.overlay.themePack || DEFAULT_THEME);
   }
@@ -643,12 +652,14 @@ class Core extends EventEmitter {
       hotkeyErrors: this.hotkeyErrors,
       update: this.update,
       chat: this.chat.status(),
-      themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir, rev: this._themesRev || 0 },
+      themes: { list: this._themeList(), dir: this.themes.userDir, rev: this._themesRev || 0 },
       mmr: {
         summary: this.mmrSummary(),
         known: this.mmr.known(this.logWatcher.account && this.logWatcher.account.id),
       },
       diag: this.diagSummary(),
+      // ce qu'un lien « rlui:// » demande d'afficher (thème de la galerie à ouvrir)
+      intent: this._intent || null,
     };
   }
 
@@ -1009,17 +1020,56 @@ class Core extends EventEmitter {
     }
   }
 
+  // Le thème est-il prêt à être proposé à la galerie ? (mêmes règles que celles appliquées à l'entrée)
   checkTheme(id) {
     try {
-      const r = this.themes.check(id, this.version);
+      const t = this.themes.get(id);
+      if (!t) throw new Error('missing');
+      const files = walk(t.dir).map((rel) => ({ path: rel, data: fs.readFileSync(path.join(t.dir, rel)) }));
+      const r = review(files, this.version);
       return { ok: r.ok, problems: r.problems };
     } catch (e) {
       return { ok: false, problems: [`theme:${e.message}`] };
     }
   }
 
+  // ---- galerie de thèmes de la communauté
+  async marketView(force = false) {
+    return this.market.view(force);
+  }
+
+  async marketInstall(id, use = false) {
+    try {
+      const r = await this.market.install(String(id || ''));
+      this.log(tr(r.updated ? 's.mk.updated' : 's.mk.installed', { n: r.name, v: r.version }));
+      if (use) {
+        this.store.patchSettings({ overlay: { themePack: r.id } });
+        this.server.broadcast({ type: 'config', config: this.overlayConfig() });
+      }
+      this._changed();
+      return { ok: true, ...r };
+    } catch (e) {
+      this.log(tr('s.mk.failed', { e: e.message }), 'warn');
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // Lien « Installer dans RL-UI » du site (rlui://theme/<id>) : le tableau de bord ouvre la fiche du thème.
+  // Rien n'est installé sans un clic dans l'app.
+  openMarketTheme(id) {
+    if (!/^[a-z0-9-]{1,40}$/.test(String(id || ''))) return false;
+    this._intent = { type: 'market', id, n: (this._intent ? this._intent.n : 0) + 1, at: Date.now() };
+    this._changed();
+    return true;
+  }
+
+  marketFavorite(id, on) {
+    return { ok: true, favorite: this.market.favorite(String(id || ''), !!on) };
+  }
+
   removeTheme(id) {
     const ok = this.themes.remove(id);
+    if (ok) this.market.forget(id);
     if (ok && this.store.settings.overlay.themePack === id) this.store.patchSettings({ overlay: { themePack: DEFAULT_THEME } });
     if (ok) this.log(tr('s.themeDeleted', { n: id }));
     return ok;
@@ -1132,7 +1182,8 @@ class Core extends EventEmitter {
     }
     if (target === 'url' && typeof url === 'string') {
       const ok = /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url) || /^https:\/\/(www\.)?twitch\.tv\/activate/.test(url);
-      if (ok && this.hooks.openExternal) {
+      // (et les pages que le site de la galerie donne à ouvrir : son accueil, la page d'un thème, celle pour publier)
+      if ((ok || (/^https:\/\//.test(url) && this.market.canOpen(url))) && this.hooks.openExternal) {
         await this.hooks.openExternal(url);
         return true;
       }

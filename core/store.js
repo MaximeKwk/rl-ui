@@ -118,6 +118,8 @@ function defaultSettings() {
         { name: 'ot', aliases: 'overtime', enabled: false, text: '' },
       ],
     },
+    // Galerie de thèmes de la communauté. url vide = le catalogue officiel (dépôt GitHub de RL-UI)
+    market: { url: '' },
     // Mode caster : noms d'équipe (vide = nom du jeu), série (BO), options d'affichage de l'overlay
     caster: {
       title: '',
@@ -195,7 +197,7 @@ class Store {
   }
 
   _load() {
-    const base = { version: 1, settings: defaultSettings(), sessions: [], currentSessionId: null, matches: [], journal: [] };
+    const base = { version: 1, settings: defaultSettings(), sessions: [], currentSessionId: null, matches: [], journal: [], market: { installed: {}, favorites: [] } };
     for (const f of [this.file, this.file + '.bak']) {
       try {
         // (un fichier retouché à la main peut commencer par un BOM UTF-8)

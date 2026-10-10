@@ -143,11 +143,13 @@ Change la DA de tous les overlays en un clic, ou crée la tienne avec tes images
 | | |
 | --- | --- |
 | **Thèmes intégrés** | Signature, Épuré, Contraste, et un **Modèle** avec images à dupliquer |
-| **Personnaliser** | Crée une copie modifiable et ouvre son dossier : remplace les images, les couleurs de `theme.json` ou le `theme.css`, les overlays se mettent à jour **en direct dans OBS** |
-| **Partager** | *Exporter* donne un `.zip` ; les autres le chargent avec *Installer un thème* |
-| **Sûr** | Aucun script accepté dans un thème : images, polices, sons et CSS uniquement |
+| **Éditeur de thèmes** | *Créer un thème* ouvre un éditeur visuel : tu poses à la souris des plaques, des textes, des valeurs en direct (victoires, winrate, MMR, série…), des images et les dernières parties, et tu vois le résultat tout de suite. Aucun fichier à toucher |
+| **Galerie de la communauté** | *Overlays → Galerie* : des thèmes faits par d'autres joueurs, avec recherche, styles, favoris, J'aime et aperçu en direct. Un clic pour installer, et les mises à jour sont proposées quand un créateur en publie une |
+| **Partager le tien** | Le bouton *Proposer* vérifie ton thème et l'exporte ; tu le publies sur **[kydora.net/marketplace](https://kydora.net/marketplace)** avec un compte Twitch, Discord ou e-mail. Chaque thème a sa page, avec un bouton **Installer dans RL-UI** |
+| **Sûr** | Un thème fait dans l'éditeur n'est que des données et des images : ni CSS, ni script. RL-UI vérifie chaque fichier d'un thème de la galerie (taille, empreinte, format) avant de l'installer |
+| **Pour qui connaît le CSS** | *Modifier les fichiers* crée une copie modifiable d'un thème intégré et ouvre son dossier : images, couleurs de `theme.json`, `theme.css`. Les overlays se mettent à jour **en direct dans OBS** |
 
-Guide complet (tous les éléments modifiables, exemples) : **[docs/THEMES.fr.md](docs/THEMES.fr.md)**.
+Format des thèmes de l'éditeur (ce qu'un thème peut contenir, versions, contrôles) : **[docs/THEME-FORMAT.fr.md](docs/THEME-FORMAT.fr.md)**. Thèmes à feuille de style : **[docs/THEMES.fr.md](docs/THEMES.fr.md)**.
 
 ## Mode caster
 
@@ -242,8 +244,9 @@ et prépare un rapport à copier pour demander de l'aide.
 
 ## Confidentialité
 
-RL-UI fonctionne **entièrement en local**. Il n'envoie aucune donnée sur Internet, ne contient aucune télémétrie et n'a pas
-de compte à créer. Tes parties sont stockées dans `%APPDATA%\RL-UI\data.json`.
+RL-UI suit tes parties **entièrement en local** : tes parties et tes statistiques ne quittent jamais ton PC (`%APPDATA%\RL-UI\data.json`), il n'y a ni télémétrie ni compte à créer.
+
+Il ne va en ligne que pour ce que tu vois : la recherche de mises à jour (GitHub), le chat Twitch si tu le connectes, et la galerie de thèmes quand tu ouvres son onglet. Parcourir la galerie n'envoie rien sur toi ; installer un thème indique à la galerie quel thème a été installé, pour son compteur d'installations, et rien d'autre.
 
 ## Sécurité
 
