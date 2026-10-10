@@ -266,6 +266,11 @@
       .bguide text { fill: var(--acc); font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-style: italic; }
       body.preview .bguide .ring { stroke-dasharray: none; stroke-width: 3; opacity: 0.55; }
       body.preview .bguide .core { fill: rgba(0, 0, 0, 0.35); }
+      /* ---------- Thème composé (éditeur visuel) : la toile du thème remplace le compteur classique ---------- */
+      body.composed { padding: 0; }
+      #cmp { flex: none; }
+      #cmp .cmp { transform: scale(var(--s)); opacity: 0; transition: opacity 0.4s; }
+      #cmp.ready .cmp { opacity: 1; }
       .hidden { display: none !important; }
     </style>
   </head>
@@ -288,6 +293,9 @@
       <div class="sweep"></div>
     </div>
 
+    <!-- Thème composé : rempli par /static/shared/compose.js -->
+    <div id="cmp" class="hidden"></div>
+
     <!-- Disposition "boost" -->
     <div id="bGuide" class="bguide hidden"><svg id="bGuideSvg"></svg></div>
     <div id="boost" class="boost hidden">
@@ -303,6 +311,7 @@
     </div>
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
+    <script src="/static/shared/compose.js"></script>
     <script src="/static/overlay/counter.js"></script>
   </body>
 </html>

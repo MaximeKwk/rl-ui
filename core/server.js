@@ -242,6 +242,12 @@ class AppServer extends EventEmitter {
       const theme = ['light', 'dark'].includes(this.settings.app.theme) ? this.settings.app.theme : 'system';
       return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang(), THEME: theme });
     }
+    // éditeur de thèmes : comme le tableau de bord, seulement depuis ce PC
+    if (p === '/editor' || p === '/editor/') {
+      if (!isLoopback(req.socket.remoteAddress)) return this._text(res, 403, tr('s.dashLocal'));
+      const theme = ['light', 'dark'].includes(this.settings.app.theme) ? this.settings.app.theme : 'system';
+      return this._page(res, path.join(this.webDir, 'editor', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang(), THEME: theme });
+    }
     if (p === '/favicon.ico') return this._file(res, path.join(this.webDir, 'assets', 'icon.png'));
     let m = /^\/overlay\/([a-z]+)\/?$/.exec(p);
     if (m && OVERLAYS.has(m[1])) return this._page(res, path.join(this.webDir, 'overlay', `${m[1]}.html`), { LANG: getLang() }, OVERLAY_CSP);
@@ -382,6 +388,29 @@ class AppServer extends EventEmitter {
         const r = this.core.installTheme(buf);
         return this._json(res, r.ok ? 200 : 400, r);
       }
+      if (p === '/api/themes/create' && method === 'POST') {
+        const b = await this._body(req, true).catch(() => ({}));
+        const r = this.core.createTheme({ name: b.name, starter: b.starter });
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      m = /^\/api\/themes\/([a-z0-9-]+)\/(source|image|preview|check)$/.exec(p);
+      if (m && m[2] === 'source' && method === 'GET') {
+        const r = this.core.themeSource(m[1]);
+        return this._json(res, r.ok ? 200 : 404, r);
+      }
+      if (m && m[2] === 'source' && (method === 'PUT' || method === 'POST')) {
+        const r = this.core.saveThemeSource(m[1], await this._body(req, true, 512 * 1024));
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && m[2] === 'image' && method === 'POST') {
+        const r = this.core.saveThemeImage(m[1], await this._body(req, false, 2 * 1024 * 1024 + 1024), url.searchParams.get('name') || 'image');
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && m[2] === 'preview' && method === 'POST') {
+        const r = this.core.saveThemePreview(m[1], await this._body(req, false, 1024 * 1024 + 1024));
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && m[2] === 'check') return this._json(res, 200, this.core.checkTheme(m[1]));
       m = /^\/api\/themes\/([a-z0-9-]+)\/(duplicate|export)$/.exec(p);
       if (m && m[2] === 'duplicate' && method === 'POST') {
         const b = await this._body(req, true).catch(() => ({}));

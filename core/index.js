@@ -569,7 +569,11 @@ class Core extends EventEmitter {
     const v = Math.round(this.themes.stamp(t.id));
     const sounds = {};
     for (const [type, rel] of Object.entries(t.sounds)) sounds[type] = `/themes/${t.id}/${rel}?v=${v}`;
-    return { id: t.id, name: t.name, css: t.hasCss ? `/themes/${t.id}/theme.css?v=${v}` : null, sounds, colors: t.colors };
+    // un thème composé (éditeur) n'a pas de feuille de style : les overlays qu'il ne redessine pas
+    // (alertes, récap…) prennent l'habillage du thème intégré qu'il désigne (« base »)
+    const look = t.format === 2 ? this.themes.get(t.base) || this.themes.get(DEFAULT_THEME) : t;
+    const css = look && look.hasCss ? `/themes/${look.id}/theme.css?v=${Math.round(this.themes.stamp(look.id))}` : null;
+    return { id: t.id, name: t.name, css, sounds, colors: t.colors, compose: t.compose, assets: `/themes/${t.id}/`, v };
   }
 
   _themedOverlay() {
@@ -953,6 +957,61 @@ class Core extends EventEmitter {
       return { ok: true, ...r };
     } catch (e) {
       return { ok: false, error: e.message };
+    }
+  }
+
+  // ---- éditeur visuel : thèmes composés
+  createTheme({ name, starter } = {}) {
+    try {
+      const acct = this.logWatcher.account;
+      const r = this.themes.create({ name, kind: starter, author: acct ? acct.name : '' });
+      this.log(tr('s.themeCreated', { n: r.id }));
+      return { ok: true, id: r.id };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  themeSource(id) {
+    try {
+      return { ok: true, ...this.themes.source(id), active: (this.store.settings.overlay.themePack || DEFAULT_THEME) === id };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  saveThemeSource(id, data) {
+    try {
+      const r = this.themes.saveSource(id, data);
+      // (les overlays se rechargent tout seuls : le dossier des thèmes est surveillé)
+      return { ok: true, ...r };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  saveThemeImage(id, buf, name) {
+    try {
+      return { ok: true, ...this.themes.saveImage(id, buf, name) };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  saveThemePreview(id, buf) {
+    try {
+      return this.themes.savePreview(id, buf);
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  checkTheme(id) {
+    try {
+      const r = this.themes.check(id, this.version);
+      return { ok: r.ok, problems: r.problems };
+    } catch (e) {
+      return { ok: false, problems: [`theme:${e.message}`] };
     }
   }
 

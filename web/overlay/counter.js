@@ -27,6 +27,8 @@
   let hide = new Set();
   let prevMmr = null;
   let layout = 'horizontal';
+  let composed = null; // thème composé (éditeur visuel) : { update }
+  let composedSig = '';
 
   function opt(name, fallback) {
     return P.has(name) ? P.get(name) : fallback;
@@ -59,12 +61,38 @@
     layout = opt('layout', cfg.layout || 'horizontal');
     const boost = layout === 'boost';
     document.body.classList.toggle('layout-boost', boost);
-    w.classList.toggle('hidden', boost);
+    // Un thème fait avec l'éditeur dessine lui-même le compteur. La disposition « Boost » reste la même pour tous les thèmes.
+    const pack = (conf && conf.theme) || {};
+    const comp = !boost && pack.compose && pack.compose.counter ? pack.compose.counter : null;
+    mountCompose(comp, pack);
+    w.classList.toggle('hidden', boost || !!comp);
     w.classList.toggle('vertical', layout === 'vertical');
     $('boost').classList.toggle('hidden', !boost);
     $('bGuide').classList.toggle('hidden', !boost || !(preview || cfg.boostGuide || P.get('guide') === '1'));
     if (boost) layoutBoost();
     render(OT.state, false);
+  }
+
+  // ------------------------------------------------------------------ thème composé
+  function mountCompose(comp, theme) {
+    const host = $('cmp');
+    const s = OT.num('scale', Number(cfg.scale) || 1);
+    document.body.classList.toggle('composed', !!comp);
+    host.classList.toggle('hidden', !comp);
+    if (!comp) {
+      composed = null;
+      composedSig = '';
+      host.textContent = '';
+      return;
+    }
+    host.style.width = `${comp.width * s}px`;
+    host.style.height = `${comp.height * s}px`;
+    const sig = `${theme.id}|${theme.v}|${JSON.stringify(comp)}`;
+    if (sig === composedSig) return;
+    composedSig = sig;
+    host.textContent = '';
+    host.classList.remove('ready');
+    composed = window.Compose.mount(host, comp, { imageUrl: (src) => `${theme.assets || ''}${src}?v=${theme.v || 0}` });
   }
 
   // ------------------------------------------------------------------ disposition "boost"
@@ -201,6 +229,12 @@
     const showMmr = !!mm && cfg.showMmr !== false && !hide.has('mmr') && (mm.current != null || mm.games > 0);
     const streakHtml = s.streak > 0 ? String(s.streak) : s.streak < 0 ? String(-s.streak) : '—';
     const inOt = !!(live.inMatch && live.overtime && live.counted && live.me) && cfg.showOtBadge !== false && opt('otbadge', '1') !== '0';
+
+    // thème composé
+    if (composed) {
+      composed.update(window.Compose.dataFrom(st, cfg, OT.t));
+      $('cmp').classList.add('ready');
+    }
 
     // horizontal / vertical
     setNum($('wins'), s.wins, animate);
