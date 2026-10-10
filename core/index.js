@@ -79,6 +79,7 @@ class Core extends EventEmitter {
     this.themes.watch();
     this.chat.start();
     this.themes.on('changed', () => {
+      this._themesRev = (this._themesRev || 0) + 1; // (les aperçus des thèmes sont rechargés par le tableau de bord)
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
       this._changed();
     });
@@ -642,7 +643,7 @@ class Core extends EventEmitter {
       hotkeyErrors: this.hotkeyErrors,
       update: this.update,
       chat: this.chat.status(),
-      themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir },
+      themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir, rev: this._themesRev || 0 },
       mmr: {
         summary: this.mmrSummary(),
         known: this.mmr.known(this.logWatcher.account && this.logWatcher.account.id),
@@ -946,13 +947,15 @@ class Core extends EventEmitter {
     }
   }
 
-  async duplicateTheme(id, name) {
+  // open = false : copie d'un thème de l'éditeur, qui s'ouvre dans l'éditeur (ni dossier ouvert, ni thème changé)
+  async duplicateTheme(id, name, open = true) {
     try {
       const r = this.themes.duplicate(id, name);
+      this.log(tr('s.themeCreated', { n: r.id }));
+      if (!open) return { ok: true, ...r };
       this.store.patchSettings({ overlay: { themePack: r.id } });
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
       this._changed();
-      this.log(tr('s.themeCreated', { n: r.id }));
       if (this.hooks.openPath) await this.hooks.openPath(r.dir);
       return { ok: true, ...r };
     } catch (e) {
@@ -1046,8 +1049,13 @@ class Core extends EventEmitter {
     if (!def) return { ok: false, error: tr('s.unknownType') };
     try {
       // le compteur collé à la jauge de boost se pose en plein écran
-      const canvas = !!def.canvas || (id === 'counter' && this.store.settings.overlay.layout === 'boost');
-      const r = await this.obs.addBrowserSource({ ...def, canvas, url: this.overlayUrl(id) });
+      const boost = this.store.settings.overlay.layout === 'boost';
+      const canvas = !!def.canvas || (id === 'counter' && boost);
+      // un thème de l'éditeur a sa propre toile : la source prend sa taille
+      const th = this.themes.get(this.store.settings.overlay.themePack || DEFAULT_THEME);
+      const comp = id === 'counter' && !boost && th && th.compose ? th.compose.counter : null;
+      const size = comp ? { width: comp.width, height: comp.height } : {};
+      const r = await this.obs.addBrowserSource({ ...def, ...size, canvas, url: this.overlayUrl(id) });
       this.log(tr(r.created ? 's.obsAdded' : 's.obsUpdated', { n: def.name, c: r.scene, s: this.obs.status.name }));
       return { ok: true, ...r, name: def.name, software: this.obs.status.name };
     } catch (e) {

@@ -236,7 +236,8 @@ class ThemeManager extends EventEmitter {
     try {
       meta = JSON.parse(fs.readFileSync(metaFile, 'utf8').replace(/^﻿/, ''));
     } catch {}
-    fs.writeFileSync(metaFile, `${JSON.stringify({ ...meta, id: newId, name: newName, translations: undefined }, null, 2)}\n`);
+    // (une copie repart en 1.0.0 : c'est un nouveau thème)
+    fs.writeFileSync(metaFile, `${JSON.stringify({ ...meta, id: newId, name: newName, translations: undefined, ...(Number(meta.format) === themeFormat.FORMAT ? { version: '1.0.0' } : {}) }, null, 2)}\n`);
     this._changed();
     return { id: newId, dir: dest };
   }

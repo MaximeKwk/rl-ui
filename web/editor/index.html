@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="{{LANG}}" data-theme="{{THEME}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="ot-key" content="{{KEY}}" />
+    <title>RL-UI — Theme editor</title>
+    <link rel="icon" href="/static/assets/icon.png" />
+    <link rel="stylesheet" href="/static/shared/fonts.css" />
+    <link rel="stylesheet" href="/static/dashboard/style.css" />
+    <link rel="stylesheet" href="/static/editor/editor.css" />
+  </head>
+  <body class="ed">
+    <header class="ed-top">
+      <a class="btn small ghost nodrag" id="edBack" href="/"><span aria-hidden="true">←</span> <span data-i18n="h.e.back">Dashboard</span></a>
+      <input id="edName" class="ed-name nodrag" maxlength="60" aria-label="Theme name" data-i18n-aria="h.e.name" />
+      <span id="edStatus" class="pill"></span>
+      <div class="grow"></div>
+      <label class="ed-sample nodrag"><span class="muted small" data-i18n="h.e.sample">Preview with</span>
+        <select id="edSample" aria-label="Preview with" data-i18n-aria="h.e.sample"></select>
+      </label>
+      <div class="ed-zoom nodrag" role="group" aria-label="Zoom">
+        <button class="btn small ghost" id="zoomOut" title="Zoom out" data-i18n-title="h.e.zoomOut">−</button>
+        <button class="btn small ghost" id="zoomFit" title="Fit to the window" data-i18n-title="h.e.zoomFit">100 %</button>
+        <button class="btn small ghost" id="zoomIn" title="Zoom in" data-i18n-title="h.e.zoomIn">+</button>
+      </div>
+      <div class="ed-hist nodrag">
+        <button class="btn small ghost" id="edUndo" title="Undo (Ctrl + Z)" data-i18n-title="h.e.undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7L4 12l5 5" /><path d="M4 12h10a6 6 0 0 1 0 12" transform="translate(0 -6)" /></svg></button>
+        <button class="btn small ghost" id="edRedo" title="Redo (Ctrl + Y)" data-i18n-title="h.e.redo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7l5 5-5 5" /><path d="M20 12H10a6 6 0 0 0 0 12" transform="translate(0 -6)" /></svg></button>
+      </div>
+      <button class="btn small nodrag" id="edApply"></button>
+      <button class="btn primary nodrag" id="edSave" data-i18n="h.e.save">Save</button>
+    </header>
+
+    <div class="ed-body">
+      <aside class="ed-left" aria-label="Elements">
+        <h3 data-i18n="h.e.add">Add</h3>
+        <div id="edPalette" class="ed-palette"></div>
+        <h3><span data-i18n="h.e.layers">Layers</span> <span class="muted small" data-i18n="h.e.layersSub">front on top</span></h3>
+        <div id="edLayers" class="ed-layers"></div>
+      </aside>
+
+      <main class="ed-stage" id="edStage" tabindex="0" aria-label="Canvas">
+        <div class="ed-wrap" id="edWrap">
+          <div class="ed-canvas" id="edCanvas">
+            <div id="edComp"></div>
+            <div id="edOverlay" class="ed-overlay"></div>
+          </div>
+        </div>
+        <div class="ed-hint muted small" id="edHint" data-i18n="h.e.hint">Click an element to select it, drag to move it, pull a handle to resize it. Arrows nudge by 1 px (10 with Shift).</div>
+      </main>
+
+      <aside class="ed-right" id="edProps" aria-label="Properties"></aside>
+    </div>
+
+    <input type="file" id="edFile" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" />
+    <div id="edFatal" class="ed-fatal hidden"></div>
+    <div id="toasts"></div>
+    <script src="/static/shared/i18n.js"></script>
+    <script src="/static/shared/client.js"></script>
+    <script src="/static/shared/compose.js"></script>
+    <script src="/static/editor/editor.js"></script>
+  </body>
+</html>

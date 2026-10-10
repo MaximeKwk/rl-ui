@@ -405,6 +405,11 @@
 
     // Thèmes
     $('#themeGrid').addEventListener('click', onThemeClick);
+    bindThemeNew();
+    $('#cmpEdit').addEventListener('click', () => {
+      const th = activeTheme();
+      if (th) location.href = editorUrl(th.id);
+    });
     $('#themeFolder').addEventListener('click', () => post('/api/open', { target: 'themes' }));
     $('#themeInstall').addEventListener('click', pickTheme);
 
@@ -1191,10 +1196,26 @@
     vertical: { w: 340, h: 720, label: '340 × 720', desc: t('o.counterV') },
     boost: { w: 1920, h: 1080, label: t('o.fullscreen'), desc: t('o.counterB') },
   };
+  // Thème actif fait avec l'éditeur : il dessine lui-même le compteur (sauf en disposition Boost)
+  function activeTheme() {
+    const list = (D.themes && D.themes.list) || [];
+    return list.find((x) => x.id === (D.settings.overlay.themePack || 'signature')) || null;
+  }
+  const editorUrl = (id) => `/editor?theme=${encodeURIComponent(id)}${isApp ? '&app=1' : ''}`;
+
   function renderLayout() {
     const layout = D.settings.overlay.layout || 'horizontal';
     $('#boostOpts').classList.toggle('hidden', layout !== 'boost');
-    const dims = COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
+    const th = activeTheme();
+    const comp = th && th.compose && th.compose.counter && layout !== 'boost' ? th.compose.counter : null;
+    // avec un thème composé, ce qui est affiché se règle dans l'éditeur : les options du compteur classique s'effacent
+    $('#cmpNote').classList.toggle('hidden', !comp);
+    $('#cmpEdit').classList.toggle('hidden', !comp || !th.editable);
+    $$('#tab-stream [data-ovpane="counter"] .sub-head, #tab-stream [data-ovpane="counter"] .sw-row, #tab-stream [data-ovpane="counter"] details.more-opts').forEach((el) => el.classList.toggle('hidden', !!comp));
+    const seg = $('[data-choice="overlay.layout"]');
+    $('[data-val="vertical"]', seg).classList.toggle('hidden', !!comp || (!!th && !!th.compose && layout === 'boost'));
+    $('[data-val="horizontal"]', seg).textContent = th && th.compose ? t('d.cmpLayout') : t('h.ctr.sh') === 'h.ctr.sh' ? 'Horizontal' : t('h.ctr.sh');
+    const dims = comp ? { w: comp.width, h: comp.height, label: `${comp.width} × ${comp.height}`, desc: t('o.counterDesc') } : COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
     const ov = $('#tab-stream .ov[data-ov="counter"]');
     if (!ov) return;
     const crop = layout === 'boost' ? '1330,690,590,390' : '';
@@ -1247,7 +1268,7 @@
         const c = t.colors || {};
         const sw = [c.win || '#2ef2a0', c.loss || '#ff4d6d', c.ot || '#ffb020'];
         const thumb = t.hasPreview
-          ? `<img src="/themes/${esc(t.id)}/preview.png" alt="" loading="lazy" />`
+          ? `<img src="/themes/${esc(t.id)}/preview.png?v=${esc(t.version)}-${D.themes.rev || 0}" alt="" loading="lazy" />`
           : `<div class="sw">${sw.map((x) => `<i style="background:${esc(x)}"></i>`).join('')}</div>`;
         const on = t.id === cur;
         return `
@@ -1255,12 +1276,14 @@
           <div class="thumb">${thumb}${on ? `<span class="pill ok">${esc(tr('d.active'))}</span>` : ''}</div>
           <div class="info">
             <b>${esc(t.name)}</b>
-            <span class="muted small">${esc(tr(t.builtin ? 'd.builtin' : 'd.custom'))}${t.author ? ` · ${esc(tr('d.byAuthor', { a: t.author }))}` : ''} · v${esc(t.version)}</span>
+            <span class="muted small">${esc(tr(t.builtin ? 'd.builtin' : t.format === 2 ? 'd.madeInEditor' : 'd.custom'))}${t.author ? ` · ${esc(tr('d.byAuthor', { a: t.author }))}` : ''} · v${esc(t.version)}</span>
+            ${t.problem ? `<span class="desc warn-text">${esc(tr('d.themeBroken'))}</span>` : ''}
             ${t.description ? `<span class="desc">${esc(t.description)}</span>` : ''}
           </div>
           <div class="acts">
             ${on ? '' : `<button class="btn small primary" data-tact="use">${esc(tr('d.use'))}</button>`}
-            <button class="btn small" data-tact="custom">${esc(tr('d.customize'))}</button>
+            ${t.editable ? `<button class="btn small" data-tact="edit">${esc(tr('d.editTheme'))}</button>` : ''}
+            ${t.format === 2 ? `<button class="btn small ghost" data-tact="copy">${esc(tr('d.dupTheme'))}</button>` : `<button class="btn small ghost" data-tact="custom" title="${esc(tr('d.customizeTip'))}">${esc(tr('d.customize'))}</button>`}
             ${t.builtin ? '' : `<button class="btn small ghost" data-tact="folder">${esc(tr('d.folder'))}</button>`}
             <button class="btn small ghost" data-tact="export">${esc(tr('d.export'))}</button>
             ${t.builtin ? '' : `<button class="btn small ghost danger" data-tact="del">${esc(tr('d.delete'))}</button>`}
@@ -1282,6 +1305,13 @@
     } else if (act === 'custom') {
       const r = await post(`/api/themes/${id}/duplicate`, { name: t('d.customCopyName', { n: th.name }) });
       toast(r.ok ? t('d.copyCreated') : r.error || t('d.failed'), r.ok ? 'ok' : 'err');
+    } else if (act === 'edit') {
+      location.href = editorUrl(id);
+    } else if (act === 'copy') {
+      // copie d'un thème fait avec l'éditeur : elle s'ouvre tout de suite dans l'éditeur
+      const r = await post(`/api/themes/${id}/duplicate`, { name: t('d.customCopyName', { n: th.name }), open: false });
+      if (r.ok) location.href = editorUrl(r.id);
+      else toast(r.error || t('d.failed'), 'err');
     } else if (act === 'folder') {
       post('/api/open', { target: `theme:${id}` });
     } else if (act === 'export') {
@@ -1296,6 +1326,54 @@
       const r = await api(`/api/themes/${id}`, { method: 'DELETE' });
       toast(r.ok ? t('d.themeDeleted') : t('d.failed'), r.ok ? 'ok' : 'err');
     }
+  }
+
+  // Nouveau thème : un nom, un point de départ, puis l'éditeur
+  const STARTERS = {
+    signature: '<rect x="6" y="20" width="108" height="24" rx="5" /><path d="M16 32h14M38 32h14" class="hi" /><path d="M62 28v8M78 28v8M94 28v8" />',
+    bar: '<rect x="6" y="23" width="108" height="18" rx="9" /><path d="M14 32h22" class="hi" /><path d="M48 28h6v8h-6zM58 28h6v8h-6zM68 28h6v8h-6zM78 28h6v8h-6zM88 28h6v8h-6z" class="fill" />',
+    vertical: '<rect x="42" y="4" width="36" height="56" rx="6" /><path d="M52 16h16M52 30h16" class="hi" /><path d="M50 42h20M50 50h20" />',
+    blank: '<rect x="20" y="20" width="80" height="24" rx="5" /><path d="M46 32h28" class="hi" />',
+  };
+  let newStarter = 'signature';
+  function bindThemeNew() {
+    const box = $('#themeNew');
+    const draw = () => {
+      $('#themeNewStarters').innerHTML = Object.entries(STARTERS)
+        .map(([k, p]) => `<button type="button" role="radio" aria-checked="${k === newStarter}" class="new-st ${k === newStarter ? 'on' : ''}" data-starter="${k}"><svg viewBox="0 0 120 64" aria-hidden="true">${p}</svg><b>${esc(t(`d.starter.${k}`))}</b><span>${esc(t(`d.starter.${k}Text`))}</span></button>`)
+        .join('');
+    };
+    const close = () => box.classList.add('hidden');
+    $('#themeCreate').addEventListener('click', () => {
+      newStarter = 'signature';
+      draw();
+      $('#themeNewName').value = '';
+      $('#themeNewName').placeholder = t('cmp.newName');
+      box.classList.remove('hidden');
+      $('#themeNewName').focus();
+    });
+    $('#themeNewStarters').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-starter]');
+      if (!b) return;
+      newStarter = b.dataset.starter;
+      draw();
+    });
+    $('#themeNewClose').addEventListener('click', close);
+    box.addEventListener('click', (e) => {
+      if (e.target === box) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !box.classList.contains('hidden')) close();
+    });
+    const go = async () => {
+      const r = await post('/api/themes/create', { name: $('#themeNewName').value.trim(), starter: newStarter });
+      if (!r.ok) return toast(r.error || t('d.failed'), 'err');
+      location.href = editorUrl(r.id);
+    };
+    $('#themeNewGo').addEventListener('click', go);
+    $('#themeNewName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') go();
+    });
   }
 
   function pickTheme() {
@@ -1799,7 +1877,7 @@
     // le journal des parties vues se relit quand il a bougé, si la page Diagnostic est à l'écran
     if (D.diag.rev !== dgRev && $('#tab-diag').classList.contains('active')) loadDiag();
     if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds, D.status.obs, D.settings.obs.enabled])) renderStream();
-    if (changed('layout', D.settings.overlay.layout)) renderLayout();
+    if (changed('layout', [D.settings.overlay.layout, D.settings.overlay.themePack, D.themes])) renderLayout();
     if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
     if (changed('casterTheme', [D.themes, D.settings.overlay.themePack, D.settings.caster.themePack, D.settings.language])) renderCasterTheme();
     renderObs();

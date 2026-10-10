@@ -414,7 +414,7 @@ class AppServer extends EventEmitter {
       m = /^\/api\/themes\/([a-z0-9-]+)\/(duplicate|export)$/.exec(p);
       if (m && m[2] === 'duplicate' && method === 'POST') {
         const b = await this._body(req, true).catch(() => ({}));
-        const r = await this.core.duplicateTheme(m[1], b.name);
+        const r = await this.core.duplicateTheme(m[1], b.name, b.open !== false);
         return this._json(res, r.ok ? 200 : 400, r);
       }
       if (m && m[2] === 'export') {

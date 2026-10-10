@@ -404,6 +404,23 @@ button.link { padding: 0; border: 0; background: none; color: var(--violet); fon
 .home-pv { position: relative; height: 128px; overflow: hidden; border-radius: 10px; background: var(--stage); }
 .stream-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; }
 
+/* ------------------------------------------------------------ nouveau thème (éditeur) */
+.new-box { width: min(640px, 94vw); }
+.new-name { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; font-size: 13px; color: var(--muted); }
+.new-starters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.new-st { display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--well); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.new-st:hover { border-color: var(--line-2); }
+.new-st.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.new-st svg { width: 100%; border-radius: 8px; background: var(--stage); margin-bottom: 4px; fill: #1a2226; stroke: #3a474d; stroke-width: 1.5; stroke-linecap: round; }
+.new-st svg .hi { stroke: var(--accent); stroke-width: 3; fill: none; }
+.new-st svg .fill { fill: var(--accent); stroke: none; opacity: 0.8; }
+.new-st b { font-weight: 650; font-size: 13px; }
+.new-st span { font-size: 12px; color: var(--muted); }
+.new-box .actions { justify-content: flex-end; }
+@media (max-width: 700px) { .new-starters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cmp-note { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; border-color: color-mix(in srgb, var(--violet) 55%, transparent); }
+.cmp-note p { margin: 0; }
+
 /* ------------------------------------------------------------ aide : ce que l'app sait faire */
 .disc-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 1080px) { .disc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

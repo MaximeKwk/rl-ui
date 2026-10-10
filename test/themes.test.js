@@ -136,7 +136,7 @@ test('langue : anglais par défaut, français en option (serveur et pages)', () 
 test('langue : chaque texte des pages a sa traduction française', () => {
   const I = require('../web/shared/i18n.js');
   const web = path.join(__dirname, '..', 'web');
-  const pages = ['dashboard/index.html', 'overlay/counter.html', 'overlay/history.html', 'overlay/summary.html'];
+  const pages = ['dashboard/index.html', 'editor/index.html', 'overlay/counter.html', 'overlay/history.html', 'overlay/summary.html'];
   const keys = new Set();
   for (const p of pages) {
     const html = fs.readFileSync(path.join(web, p), 'utf8');

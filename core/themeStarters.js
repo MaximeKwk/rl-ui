@@ -3,9 +3,10 @@
 // Toile = taille conseillée de la source OBS du compteur (1000 × 220) sauf pour le modèle vertical.
 
 const PLATE = '#0a0f11';
+let LINE = ''; // nom des traits de séparation, dans la langue de l'app
 
 const box = (name, x, y, w, h, o = {}) => ({ type: 'box', name, x, y, w, h, fill: PLATE, fillOpacity: 0.94, ...o });
-const line = (x, y, w, h) => ({ type: 'box', name: '', x, y, w, h, fill: 'white', fillOpacity: 0.12 });
+const line = (x, y, w, h) => ({ type: 'box', name: LINE, x, y, w, h, fill: 'white', fillOpacity: 0.12 });
 const value = (name, bind, x, y, w, h, o = {}) => ({ type: 'value', name, bind, x, y, w, h, font: 'Unbounded', size: 24, weight: 700, color: 'white', align: 'center', ...o });
 const text = (name, t, x, y, w, h, o = {}) => ({ type: 'text', name, text: t, x, y, w, h, font: 'Onest', size: 13, weight: 500, color: 'white', align: 'center', opacity: 0.62, ...o });
 
@@ -101,6 +102,7 @@ const STARTERS = {
 };
 
 function starter(kind, tr) {
+  LINE = tr('cmp.n.line');
   return (STARTERS[kind] || STARTERS.signature)(tr);
 }
 
