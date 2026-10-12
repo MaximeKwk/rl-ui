@@ -1,8 +1,8 @@
 # Changelog
 
-## 2.0.0-beta.1
+## 2.0.0
 
-RL-UI V2, in beta on the `v2` branch.
+RL-UI V2 — stable release.
 
 - **New identity**: one look for the whole app (turquoise and violet, Unbounded and Onest), light and dark themes following your system, a guided home page, a collapsible icon menu, help bubbles. Three new built-in themes: Signature, Minimal, Contrast.
 - **Reliability**: every match now ends with a decision and its reason (counted, tracking paused, mode excluded, no winner, left early…). Coming back into a match you left corrects the result instead of counting it twice. New **Diagnostic** page: health check of each link (game, API, log, account, MMR, overlays), every match seen with the reason it was counted or not and a button to count it anyway, and a report to copy that holds no personal data.
