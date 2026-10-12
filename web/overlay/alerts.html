@@ -136,15 +136,20 @@
       @media (prefers-reduced-motion: reduce) {
         .al::after, .al::before, .kicker, .title, .subs { animation: none !important; }
       }
+
+      /* alertes dessinées par un thème de l'éditeur : la toile du thème, mise à l'échelle de l'écran et centrée */
+      #cmp { position: fixed; left: 0; top: 0; transform-origin: 0 0; pointer-events: none; }
     </style>
   </head>
   <body>
     <canvas id="fx"></canvas>
     <div id="stage" class="stage pos-center"></div>
+    <div id="cmp"></div>
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
     <script src="/static/shared/sfx.js"></script>
     <script src="/static/shared/fx.js"></script>
+    <script src="/static/shared/compose.js"></script>
     <script src="/static/overlay/alerts.js"></script>
   </body>
 </html>

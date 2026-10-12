@@ -27,6 +27,9 @@
   let hide = new Set();
   let prevMmr = null;
   let layout = 'horizontal';
+  let composed = null; // thème composé (éditeur visuel) : { update }
+  let composedSig = '';
+  let boostComp = null; // composition « boost » du thème, quand c'est elle qui est affichée
 
   function opt(name, fallback) {
     return P.has(name) ? P.get(name) : fallback;
@@ -35,6 +38,15 @@
   function applyConfig(conf) {
     cfg = (conf && conf.overlay) || {};
     OT.applyColors(cfg);
+    // Le compteur « Boost » ne suit pas les couleurs du thème : il garde celles réglées par l'utilisateur
+    // (sauf couleur forcée dans l'URL), pour rester identique quel que soit le thème choisi.
+    const base = cfg.baseColors || {};
+    for (const el of [$('boost'), $('bGuide')]) {
+      for (const k of ['win', 'loss', 'ot']) {
+        if (base[k] && !P.get(k)) el.style.setProperty(`--${k}`, base[k]);
+        else el.style.removeProperty(`--${k}`);
+      }
+    }
     const theme = opt('theme', cfg.theme || 'arena');
     w.className = w.className.replace(/theme-\S+/g, '').trim() + ` theme-${theme}`;
     document.documentElement.style.setProperty('--s', OT.num('scale', Number(cfg.scale) || 1));
@@ -50,12 +62,43 @@
     layout = opt('layout', cfg.layout || 'horizontal');
     const boost = layout === 'boost';
     document.body.classList.toggle('layout-boost', boost);
-    w.classList.toggle('hidden', boost);
+    // Un thème fait avec l'éditeur dessine lui-même le compteur. La disposition « Boost » garde son habillage,
+    // sauf si le thème la dessine aussi (composition « boost »).
+    const pack = (conf && conf.theme) || {};
+    const comp = pack.compose ? (boost ? pack.compose.boost : pack.compose.counter) || null : null;
+    boostComp = boost && comp ? comp : null;
+    mountCompose(comp, pack);
+    w.classList.toggle('hidden', boost || !!comp);
     w.classList.toggle('vertical', layout === 'vertical');
-    $('boost').classList.toggle('hidden', !boost);
+    $('boost').classList.toggle('hidden', !boost || !!comp);
     $('bGuide').classList.toggle('hidden', !boost || !(preview || cfg.boostGuide || P.get('guide') === '1'));
     if (boost) layoutBoost();
     render(OT.state, false);
+  }
+
+  // ------------------------------------------------------------------ thème composé
+  function mountCompose(comp, theme) {
+    const host = $('cmp');
+    const s = OT.num('scale', Number(cfg.scale) || 1);
+    document.body.classList.toggle('composed', !!comp && !boostComp);
+    host.classList.toggle('boost', !!boostComp);
+    host.classList.toggle('hidden', !comp);
+    if (!comp) {
+      composed = null;
+      composedSig = '';
+      host.textContent = '';
+      return;
+    }
+    // (compteur « Boost » : la toile est calée sur la jauge du jeu par layoutBoost, pas par l'échelle du compteur)
+    host.style.width = `${comp.width * (boostComp ? 1 : s)}px`;
+    host.style.height = `${comp.height * (boostComp ? 1 : s)}px`;
+    if (!boostComp) for (const k of ['right', 'bottom', 'transform']) host.style.removeProperty(k);
+    const sig = `${theme.id}|${theme.v}|${JSON.stringify(comp)}`;
+    if (sig === composedSig) return;
+    composedSig = sig;
+    host.textContent = '';
+    host.classList.remove('ready');
+    composed = window.Compose.mount(host, comp, { imageUrl: (src) => `${theme.assets || ''}${src}?v=${theme.v || 0}` });
   }
 
   // ------------------------------------------------------------------ disposition "boost"
@@ -71,6 +114,14 @@
     const k = vs * OT.num('bscale', Number(cfg.boostScale) || 1);
     const dx = OT.num('bx', Number(cfg.boostX) || 0) * vs;
     const dy = OT.num('by', Number(cfg.boostY) || 0) * vs;
+    // thème qui dessine lui-même ce compteur : sa toile est posée dans le coin bas droit de l'écran (la jauge du jeu
+    // y est à 156 px du bord droit et 150 px du bas), avec le même calibrage que le compteur de RL-UI
+    if (boostComp) {
+      const host = $('cmp');
+      host.style.right = `${-dx}px`;
+      host.style.bottom = `${-dy}px`;
+      host.style.transform = `scale(${k})`;
+    }
     const R = GAUGE.radius + PANEL.gap;
     const x0 = Math.sqrt(R * R - PANEL.top * PANEL.top); // centre -> bord droit du panneau, en haut
     const x1 = Math.sqrt(R * R - PANEL.bottom * PANEL.bottom); // idem en bas
@@ -192,6 +243,14 @@
     const showMmr = !!mm && cfg.showMmr !== false && !hide.has('mmr') && (mm.current != null || mm.games > 0);
     const streakHtml = s.streak > 0 ? String(s.streak) : s.streak < 0 ? String(-s.streak) : '—';
     const inOt = !!(live.inMatch && live.overtime && live.counted && live.me) && cfg.showOtBadge !== false && opt('otbadge', '1') !== '0';
+
+    // thème composé
+    if (composed) {
+      const d = window.Compose.dataFrom(st, cfg, OT.t);
+      if (boostComp) d.teamColor = accentColor(live); // couleur « ton équipe », comme la jauge du jeu
+      composed.update(d);
+      $('cmp').classList.add('ready');
+    }
 
     // horizontal / vertical
     setNum($('wins'), s.wins, animate);

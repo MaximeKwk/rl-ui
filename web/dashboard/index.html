@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{LANG}}">
+<html lang="{{LANG}}" data-theme="{{THEME}}">
   <head>
     <meta charset="utf-8" />
     <meta name="ot-key" content="{{KEY}}" />
@@ -12,43 +12,62 @@
   <body>
     <header class="topbar">
       <div class="brand">
-        <img src="/static/assets/icon.png" alt="" />
+        <!-- le logo : un cadre dont le coin supérieur est coupé, le ballon logé dans la lucarne -->
+        <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true"><path class="frame" d="M27 9H47L91 53V73A18 18 0 0 1 73 91H27A18 18 0 0 1 9 73V27A18 18 0 0 1 27 9Z" /><circle class="ball" cx="85" cy="15" r="13" /></svg>
         <span class="logo">RL<em>-UI</em></span>
         <span class="brand-sub" data-i18n="h.by">by Zoxam</span>
       </div>
       <div class="chips" id="statusChips"></div>
+      <div class="search nodrag">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" /></svg>
+        <input id="searchInput" type="text" role="combobox" aria-expanded="false" aria-controls="searchList" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Search settings" data-i18n-ph="h.search.ph" aria-label="Search settings" data-i18n-aria="h.search.ph" />
+        <kbd aria-hidden="true">Ctrl K</kbd>
+        <div id="searchList" class="search-list hidden" role="listbox"></div>
+      </div>
       <div id="updateBar" class="update-bar hidden nodrag"></div>
       <button id="pauseBtn" class="btn small ghost nodrag" data-act="toggle-pause">Pause</button>
     </header>
 
     <div class="layout">
       <nav class="side">
-        <button data-tab="session" class="active"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm8 0h8v-9h-8v9zm0-16v5h8V4h-8z" /></svg><span data-i18n="h.nav.session">Session</span></button>
-        <button data-tab="stream"><svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 00-2 2v12a2 2 0 002 2h5v2h8v-2h5a2 2 0 002-2V5a2 2 0 00-2-2zm0 14H3V5h18v12zM16 11l-7 4V7z" /></svg><span data-i18n="h.nav.stream">OBS overlays</span></button>
-        <button data-tab="history"><svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.9 3.9L9 12H6a7 7 0 117 7 6.9 6.9 0 01-4.9-2.1l-1.4 1.4A9 9 0 1013 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z" /></svg><span data-i18n="h.nav.history">History</span></button>
-        <button data-tab="obs"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 3.2a3.3 3.3 0 11-.01 6.61A3.3 3.3 0 0112 5.2zM6.6 16.6a3.3 3.3 0 116.6 0 3.3 3.3 0 01-6.6 0zm7.6-2.1a3.3 3.3 0 116.3-1.3 3.3 3.3 0 01-6.3 1.3z" /></svg><span data-i18n="h.nav.obs">Stream actions</span></button>
-        <button data-tab="twitch"><svg viewBox="0 0 24 24"><path d="M4.3 2 3 5.4V19h4.6v2.5h2.6l2.5-2.5h3.7l5-5V2H4.3zm15.7 11.1-2.9 2.9h-4.6l-2.5 2.5V16H6.1V3.8H20v9.3zM16.3 6.8v5h-1.8v-5h1.8zm-4.9 0v5H9.6v-5h1.8z" /></svg><span data-i18n="h.nav.twitch">Twitch</span></button>
-        <button data-tab="caster"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 006 6.9V21h2v-3.1A7 7 0 0019 11h-2z" /></svg><span data-i18n="h.nav.caster">Caster</span></button>
-        <button data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 000-2l2.1-1.6-2-3.5-2.5 1a7.3 7.3 0 00-1.7-1L15 3.3h-4l-.4 2.6a7.3 7.3 0 00-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 000 2l-2.1 1.6 2 3.5 2.5-1a7.3 7.3 0 001.7 1l.4 2.6h4l.4-2.6a7.3 7.3 0 001.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7z" transform="translate(-1 0)" /></svg><span data-i18n="h.nav.settings">Settings</span></button>
-        <button data-tab="help"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2v2zm2.1-7.7l-.9.9A3.4 3.4 0 0013 15h-2v-.5a4 4 0 011.2-2.8l1.2-1.3A2 2 0 0014 9a2 2 0 00-4 0H8a4 4 0 118 0 3.2 3.2 0 01-.9 2.3z" /></svg><span data-i18n="h.nav.help">Help</span></button>
-        <div class="side-foot">
-          <div id="versionInfo">RL-UI</div>
-          <div id="portInfo" class="muted"></div>
+        <button data-tab="session" class="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></svg><span class="lbl" data-i18n="h.nav.home">Home</span></button>
+        <button data-tab="stream"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l8 4-8 4-8-4z" /><path d="M4 12l8 4 8-4" /><path d="M4 16l8 4 8-4" /></svg><span class="lbl" data-i18n="h.nav.stream">Overlays</span></button>
+        <button data-tab="obs"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2" /><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14" /></svg><span class="lbl" data-i18n="h.nav.obs">Stream</span></button>
+        <button data-tab="caster"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg><span class="lbl" data-i18n="h.nav.caster">Caster</span></button>
+        <button data-tab="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7" /></svg><span class="lbl" data-i18n="h.nav.history">Stats</span></button>
+        <div class="side-end">
+          <button data-tab="diag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 4 12 2.5-6H21" /></svg><span class="lbl" data-i18n="h.nav.diag">Diagnostic</span><i class="nav-dot" aria-hidden="true"></i></button>
+          <button data-tab="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></svg><span class="lbl" data-i18n="h.nav.settings">Settings</span></button>
+          <button data-tab="help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" /><path d="M9.8 9.5a2.3 2.3 0 1 1 3.3 2.1c-.7.4-1.1.9-1.1 1.7M12 16.4v.2" /></svg><span class="lbl" data-i18n="h.nav.help">Help</span></button>
+          <button id="themeToggle" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" /></svg><span class="lbl" data-i18n="h.nav.theme">Light or dark theme</span></button>
+          <button id="navToggle" type="button" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M9 5v14" /><path class="when-closed" d="M13 10l2 2-2 2" /><path class="when-open" d="M15 10l-2 2 2 2" /></svg><span class="lbl when-closed" data-i18n="h.nav.expand">Expand menu</span><span class="lbl when-open" data-i18n="h.nav.collapse">Collapse menu</span></button>
+          <div class="side-foot">
+            <div id="versionInfo">RL-UI</div>
+            <div id="portInfo" class="muted"></div>
+          </div>
         </div>
       </nav>
 
       <main>
         <!-- ============================== SESSION ============================== -->
         <section id="tab-session" class="tab active">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.sess.title">Current session</h2>
+              <p class="muted" id="sessStart"></p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" data-act="undo" data-i18n="h.undo">Undo last match</button>
+              <button class="btn primary" id="newSessionBtn" data-i18n="h.newSession">New session</button>
+            </div>
+          </div>
+
           <div id="setupCard" class="card setup hidden"></div>
+          <div id="noticeCard" class="card notice hidden" role="status"></div>
           <div id="identityCard" class="card identity hidden"></div>
 
           <div class="grid-main">
             <div class="card score-card">
-              <div class="card-head">
-                <h2 data-i18n="h.sess.title">Current session</h2>
-                <span id="sessStart" class="muted"></span>
-              </div>
               <div class="readout">
                 <div class="count-col win">
                   <div class="count" id="cWins">0</div>
@@ -85,179 +104,382 @@
                 <div class="kpi"><span data-i18n="h.gas">Goals · assists · saves</span><b id="kGas">0 · 0 · 0</b></div>
                 <div class="kpi" title="Session MMR change (real value read when you queue, estimated in between)" data-i18n-title="h.mmrTip"><span id="kMmrLbl">MMR</span><b id="kMmr">—</b></div>
               </div>
-              <div class="actions">
-                <button class="btn" data-act="undo" data-i18n="h.undo">Undo last match</button>
-                <button class="btn ghost" id="newSessionBtn" data-i18n="h.newSession">New session</button>
+            </div>
+
+            <div class="home-side">
+              <div class="card live-card" id="liveCard"></div>
+              <!-- le compteur tel que les spectateurs le voient, avec son état dans OBS -->
+              <div class="card stream-card">
+                <div class="card-head"><h3 data-i18n="h.home.stream">On your stream</h3><span id="homeObs" class="pill"></span></div>
+                <div class="pv home-pv"><iframe id="homePv" data-w="1000" data-h="220" data-counter loading="lazy" tabindex="-1" title="Counter preview" data-i18n-title="h.home.pvTitle"></iframe></div>
+                <div class="stream-foot">
+                  <span class="muted small" id="homeTheme"></span>
+                  <button class="btn small" id="homeOverlays" data-i18n="h.home.adjust">Adjust the overlay</button>
+                </div>
               </div>
             </div>
-
-            <div class="card live-card" id="liveCard"></div>
           </div>
 
-          <div class="grid-2">
-            <div class="card">
-              <div class="card-head"><h3 data-i18n="h.sessMatches">Session matches</h3><span class="muted" id="sessCount"></span></div>
-              <div id="sessionList" class="match-list"></div>
-            </div>
-            <div class="card">
-              <div class="card-head"><h3 data-i18n="h.log">Log</h3></div>
-              <div id="logList" class="log-list"></div>
-            </div>
+          <div class="card">
+            <div class="card-head"><h3 data-i18n="h.sessMatches">Session matches</h3><span class="muted"><span id="sessCount"></span> <button class="link" id="homeRecap" data-i18n="h.home.recap">Session recap</button></span></div>
+            <div id="sessionList" class="match-list"></div>
           </div>
         </section>
 
         <!-- ============================== OVERLAYS ============================== -->
         <section id="tab-stream" class="tab">
-          <div class="card">
-            <div class="card-head">
-              <h2 data-i18n="h.ov.title">Overlays for OBS</h2>
-              <label class="check"><input type="checkbox" id="previewSound" /> <span data-i18n="h.ov.previewSound">Preview sound</span></label>
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.ov.title">Overlays</h2>
+              <p class="muted" data-i18n="h.ov.sub">What your viewers see on stream.</p>
             </div>
-            <p class="muted" data-i18n="h.ov.intro">
-              In OBS: <b>Sources → + → Browser</b>, paste the URL and set the size shown. For alerts, tick
-              <b>“Control audio via OBS”</b> so the sound plays on stream. Works in Streamlabs too.
-            </p>
-            <div class="overlay-grid" id="overlayGrid"></div>
-          </div>
-
-          <div class="card">
-            <div class="card-head">
-              <h2 data-i18n="h.th.title">Themes</h2>
-              <div class="head-actions">
-                <button class="btn small" id="themeInstall" data-i18n="h.th.install">Install a theme (.zip)</button>
-                <button class="btn small ghost" id="themeFolder" data-i18n="h.th.folder">Open themes folder</button>
-              </div>
+            <div class="seg big" id="ovTabs">
+              <button data-ovtab="counter" class="on" data-i18n="h.ov.tabCounter">Counter</button>
+              <button data-ovtab="alerts" data-i18n="h.ov.tabAlerts">Alerts</button>
+              <button data-ovtab="more" data-i18n="h.ov.tabMore">More overlays</button>
+              <button data-ovtab="themes" data-i18n="h.th.title">Themes</button>
+              <button data-ovtab="market" data-i18n="h.mk.tab">Gallery</button>
             </div>
-            <p class="muted" data-i18n="h.th.intro">
-              Pick a ready-made look, or click <b>Customize</b>: an editable copy is created and its folder opens. Replace the images,
-              the colors in <code>theme.json</code> or the <code>theme.css</code>: overlays update live, even in OBS.
-              Full guide in the <code>README.md</code> of the “Template” theme.
-            </p>
-            <div class="theme-grid" id="themeGrid"></div>
-            <label class="check"><input type="checkbox" data-set="overlay.themeColors" /> <span data-i18n="h.th.colors">Use the theme's colors (otherwise, the ones set below)</span></label>
           </div>
 
-          <div class="card">
-            <div class="card-head"><h2 data-i18n="h.test.title">Test alerts</h2><span class="muted" data-i18n="h.test.sub">Counters don't change</span></div>
-            <div class="test-row" id="testRow"></div>
-            <label class="check"><input type="checkbox" id="testObs" /> <span data-i18n="h.test.obs">Also trigger OBS / Streamlabs actions</span></label>
-          </div>
+          <!-- ............................ compteur ............................ -->
+          <div class="ov-pane" data-ovpane="counter">
+            <div class="split">
+              <div>
+                <div data-ovslot="counter" class="ov-big"></div>
 
-          <div class="grid-2">
-            <div class="card">
-              <h3 data-i18n="h.ctr.title">W/L counter</h3>
-              <div class="form">
-                <label><span data-i18n="h.ctr.layout">Layout</span>
-                  <select data-set="overlay.layout">
-                    <option value="horizontal" data-i18n="h.ctr.lh">Horizontal (bar)</option>
-                    <option value="vertical" data-i18n="h.ctr.lv">Vertical (column)</option>
-                    <option value="boost" data-i18n="h.ctr.lb">Boost: stuck to the left of the boost gauge</option>
-                  </select>
-                </label>
-                <div id="boostOpts" class="sub-opts hidden">
-                  <div class="muted small" data-i18n="h.ctr.boostHelp">
+                <div id="boostOpts" class="card hidden">
+                  <h3 data-i18n="h.ctr.boostTitle">Boost gauge calibration</h3>
+                  <p class="muted small" data-i18n="h.ctr.boostHelp">
                     <b>Full-screen</b> OBS source (canvas size), placed above the game capture: the counter snaps to the left of the gauge
                     and takes your team's color. If your HUD is different, turn on the guide and fit it on your gauge.
+                  </p>
+                  <div class="row2 sw-pair">
+                    <label class="sw-row"><span data-i18n="h.ctr.guide">Show the gauge guide (calibration)</span><input type="checkbox" class="switch" data-set="overlay.boostGuide" /></label>
+                    <label class="sw-row"><span data-i18n="h.ctr.team">My team's color, like the gauge</span><input type="checkbox" class="switch" data-set="overlay.boostTeamColor" /></label>
                   </div>
-                  <label class="check"><input type="checkbox" data-set="overlay.boostGuide" /> <span data-i18n="h.ctr.guide">Show the gauge guide (calibration)</span></label>
-                  <label class="check"><input type="checkbox" data-set="overlay.boostTeamColor" /> <span data-i18n="h.ctr.team">My team's color, like the gauge</span></label>
-                  <label><span data-i18n="h.ctr.hud">HUD size</span> <input type="range" min="0.6" max="1.6" step="0.01" data-set="overlay.boostScale" /></label>
-                  <div class="row2">
+                  <div class="form row3">
+                    <label><span data-i18n="h.ctr.hud">HUD size</span> <input type="range" min="0.6" max="1.6" step="0.01" data-set="overlay.boostScale" /></label>
                     <label><span data-i18n="h.ctr.x">Left ↔ right</span> <input type="range" min="-400" max="400" step="1" data-set="overlay.boostX" /></label>
                     <label><span data-i18n="h.ctr.y">Up ↕ down</span> <input type="range" min="-400" max="400" step="1" data-set="overlay.boostY" /></label>
                   </div>
-                  <div><button class="btn small ghost" id="boostReset" data-i18n="h.ctr.reset">Reset calibration</button></div>
+                  <div class="actions"><button class="btn small ghost" id="boostReset" data-i18n="h.ctr.reset">Reset calibration</button></div>
                 </div>
-                <label><span data-i18n="h.ctr.style">Counter style</span>
-                  <select data-set="overlay.theme">
-                    <option value="arena" data-i18n="h.ctr.arena">Arena (glass card)</option>
-                    <option value="broadcast" data-i18n="h.ctr.broadcast">Broadcast (RLCS style)</option>
-                    <option value="minimal" data-i18n="h.ctr.minimal">Minimal (text only)</option>
-                  </select>
-                </label>
-                <div class="row2">
-                  <label><span data-i18n="h.ctr.lw">Win letter</span> <input data-set="overlay.labelWin" maxlength="3" id="inLw" /></label>
-                  <label><span data-i18n="h.ctr.ll">Loss letter</span> <input data-set="overlay.labelLoss" maxlength="3" id="inLl" /></label>
-                </div>
-                <label class="check"><input type="checkbox" data-set="overlay.showWinrate" /> <span data-i18n="h.ctr.showWr">Show winrate</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showStreak" /> <span data-i18n="h.ctr.showStreak">Show streak</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showOt" /> <span data-i18n="h.ctr.showOt">Show overtime record</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showOtBadge" /> <span data-i18n="h.ctr.showOtBadge">“OVERTIME” badge during overtime</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showPlaylist" /> <span data-i18n="h.ctr.showPl">Show game mode during a match</span></label>
-                <label class="check"><input type="checkbox" data-set="overlay.showMmr" /> <span data-i18n="h.ctr.showMmr">Show MMR</span></label>
-                <label><span data-i18n="h.ctr.mmrMode">MMR display</span>
-                  <select data-set="overlay.mmrMode">
-                    <option value="session" data-i18n="h.ctr.mmrSession">Session gain (+45)</option>
-                    <option value="value" data-i18n="h.ctr.mmrValue">Current MMR (1175)</option>
-                    <option value="both" data-i18n="h.ctr.mmrBoth">Both (1175 +45)</option>
-                  </select>
-                </label>
-                <div class="row3">
-                  <label><span data-i18n="h.win">Win</span> <input type="color" data-set="overlay.winColor" /></label>
-                  <label><span data-i18n="h.loss">Loss</span> <input type="color" data-set="overlay.lossColor" /></label>
-                  <label>Overtime <input type="color" data-set="overlay.otColor" /></label>
-                </div>
-                <label><span data-i18n="h.size">Size</span> <input type="range" min="0.5" max="2" step="0.05" data-set="overlay.scale" /></label>
               </div>
-            </div>
-            <div class="card">
-              <h3 data-i18n="h.al.title">Alerts</h3>
-              <div class="form">
-                <label class="check"><input type="checkbox" data-set="alerts.sound" /> <span data-i18n="h.al.sound">Play sounds</span></label>
-                <label>Volume <input type="range" min="0" max="1" step="0.05" data-set="alerts.volume" /></label>
-                <label>Position
-                  <select data-set="alerts.position">
-                    <option value="center" data-i18n="h.al.center">Center of the screen</option>
-                    <option value="top" data-i18n="h.al.top">Top</option>
-                    <option value="bottom" data-i18n="h.al.bottom">Bottom</option>
-                  </select>
-                </label>
-                <label><span data-i18n="h.size">Size</span> <input type="range" min="0.4" max="1.6" step="0.05" data-set="alerts.scale" /></label>
-                <label><span data-i18n="h.al.milestones">“Streak” alert at these numbers of wins in a row</span>
-                  <input data-set="alerts.streakMilestones" data-type="list-number" placeholder="3, 5, 10" />
-                </label>
-                <label class="check"><input type="checkbox" data-set="alerts.alertOnAbandon" /> <span data-i18n="h.al.abandon">Also alert when I leave a match</span></label>
-                <label class="check"><input type="checkbox" data-set="mmr.showInAlerts" /> <span data-i18n="h.al.mmr">Show “+15 MMR” in end-of-match alerts</span></label>
+
+              <div>
+                <div class="card">
+                  <div class="card-head">
+                    <h3><span data-i18n="h.ctr.layout">Layout</span> <button type="button" class="help" data-tip="Horizontal: a bar. Vertical: a column. Boost: stuck to the left of the game's boost gauge." data-i18n-tip="h.tip.layout">?</button></h3>
+                    <div class="seg" data-choice="overlay.layout">
+                      <button data-val="horizontal" data-i18n="h.ctr.sh">Horizontal</button>
+                      <button data-val="vertical" data-i18n="h.ctr.sv">Vertical</button>
+                      <button data-val="boost">Boost</button>
+                    </div>
+                  </div>
+
+                  <h3 class="sub-head" data-i18n="h.ctr.shown">What is shown</h3>
+                  <div class="sw-row"><label for="sw-wr" data-i18n="h.ctr.showWr">Show winrate</label><button type="button" class="help" data-tip="Share of matches won this session." data-i18n-tip="h.tip.wr">?</button><input type="checkbox" class="switch" id="sw-wr" data-set="overlay.showWinrate" /></div>
+                  <div class="sw-row"><label for="sw-streak" data-i18n="h.ctr.showStreak">Show streak</label><button type="button" class="help" data-tip="Wins or losses in a row right now." data-i18n-tip="h.tip.streak">?</button><input type="checkbox" class="switch" id="sw-streak" data-set="overlay.showStreak" /></div>
+                  <div class="sw-row"><label for="sw-ot" data-i18n="h.ctr.showOt">Show overtime record</label><button type="button" class="help" data-tip="Overtime matches won and lost this session." data-i18n-tip="h.tip.ot">?</button><input type="checkbox" class="switch" id="sw-ot" data-set="overlay.showOt" /></div>
+                  <div class="sw-row"><label for="sw-mmr" data-i18n="h.ctr.showMmr">Show MMR</label><button type="button" class="help" data-tip="Your rank points. The real value is read when you queue; in between it is estimated." data-i18n-tip="h.tip.mmr">?</button><input type="checkbox" class="switch" id="sw-mmr" data-set="overlay.showMmr" /></div>
+
+                  <details class="adv more-opts">
+                    <summary data-i18n="h.ctr.more">More options: style, letters, colors, size</summary>
+                    <div class="form">
+                      <label class="sw-row"><span data-i18n="h.ctr.showOtBadge">“OVERTIME” badge during overtime</span><input type="checkbox" class="switch" data-set="overlay.showOtBadge" /></label>
+                      <label class="sw-row"><span data-i18n="h.ctr.showPl">Show game mode during a match</span><input type="checkbox" class="switch" data-set="overlay.showPlaylist" /></label>
+                      <label><span data-i18n="h.ctr.mmrMode">MMR display</span>
+                        <select data-set="overlay.mmrMode">
+                          <option value="session" data-i18n="h.ctr.mmrSession">Session gain (+45)</option>
+                          <option value="value" data-i18n="h.ctr.mmrValue">Current MMR (1175)</option>
+                          <option value="both" data-i18n="h.ctr.mmrBoth">Both (1175 +45)</option>
+                        </select>
+                      </label>
+                      <label><span data-i18n="h.ctr.style">Counter style</span>
+                        <select data-set="overlay.theme">
+                          <option value="arena" data-i18n="h.ctr.arena">Arena (glass card)</option>
+                          <option value="broadcast" data-i18n="h.ctr.broadcast">Broadcast (RLCS style)</option>
+                          <option value="minimal" data-i18n="h.ctr.minimal">Minimal (text only)</option>
+                        </select>
+                      </label>
+                      <div class="row2">
+                        <label><span data-i18n="h.ctr.lw">Win letter</span> <input data-set="overlay.labelWin" maxlength="3" id="inLw" /></label>
+                        <label><span data-i18n="h.ctr.ll">Loss letter</span> <input data-set="overlay.labelLoss" maxlength="3" id="inLl" /></label>
+                      </div>
+                      <label><span data-i18n="h.size">Size</span> <input type="range" min="0.5" max="2" step="0.05" data-set="overlay.scale" /></label>
+                      <label class="check"><input type="checkbox" data-set="overlay.themeColors" /> <span data-i18n="h.th.colors">Use the theme's colors (otherwise, the ones set below)</span></label>
+                      <div class="row3">
+                        <label><span data-i18n="h.win">Win</span> <input type="color" data-set="overlay.winColor" /></label>
+                        <label><span data-i18n="h.loss">Loss</span> <input type="color" data-set="overlay.lossColor" /></label>
+                        <label>Overtime <input type="color" data-set="overlay.otColor" /></label>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+
+                <div class="card cmp-note hidden" id="cmpNote">
+                  <p data-i18n="h.ctr.cmpNote">This theme draws the counter itself: what is shown, where and in which style is set in the theme editor.</p>
+                  <button class="btn small primary" id="cmpEdit" data-i18n="h.ctr.cmpEdit">Open the editor</button>
+                </div>
+
+                <div class="card theme-now">
+                  <div>
+                    <div class="muted small" data-i18n="h.ctr.themeNow">Theme</div>
+                    <b id="ovThemeName">—</b>
+                  </div>
+                  <button class="btn small" data-ovgo="themes" data-i18n="h.ctr.themeChange">Change theme</button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="card">
-            <h3 data-i18n="h.al.table">Alert texts, durations and sounds</h3>
-            <p class="muted" data-i18n="h.al.tableHelp">Leave a text empty to use the default one. In the streak text, <code>{n}</code> is replaced by the number of wins. Custom sounds: mp3, wav, ogg (8 MB max).</p>
-            <div class="alert-table" id="alertTable"></div>
+          <!-- ............................ alertes ............................ -->
+          <div class="ov-pane hidden" data-ovpane="alerts">
+            <div class="split">
+              <div>
+                <div data-ovslot="alerts" class="ov-big"></div>
+                <div class="card">
+                  <div class="card-head"><h3 data-i18n="h.test.title">Test alerts</h3><span class="muted" data-i18n="h.test.sub">Counters don't change</span></div>
+                  <div class="test-row" id="testRow"></div>
+                  <label class="sw-row"><span data-i18n="h.ov.previewSound">Preview sound</span><input type="checkbox" class="switch" id="previewSound" /></label>
+                  <label class="sw-row"><span data-i18n="h.test.obs">Also trigger OBS / Streamlabs actions</span><input type="checkbox" class="switch" id="testObs" /></label>
+                </div>
+              </div>
+              <div>
+                <div class="card cmp-note hidden" id="cmpAlertNote">
+                  <p data-i18n="h.al.cmpNote">This theme draws the alerts itself: where they appear, their size and their style are set in the theme editor.</p>
+                  <button class="btn small primary" id="cmpAlertEdit" data-i18n="h.ctr.cmpEdit">Open the editor</button>
+                </div>
+                <div class="card">
+                  <h3 data-i18n="h.al.title">Alerts</h3>
+                  <div class="form">
+                    <label class="sw-row"><span data-i18n="h.al.sound">Play sounds</span><input type="checkbox" class="switch" data-set="alerts.sound" /></label>
+                    <label>Volume <input type="range" min="0" max="1" step="0.05" data-set="alerts.volume" /></label>
+                    <label data-classic-alert>Position
+                      <select data-set="alerts.position">
+                        <option value="center" data-i18n="h.al.center">Center of the screen</option>
+                        <option value="top" data-i18n="h.al.top">Top</option>
+                        <option value="bottom" data-i18n="h.al.bottom">Bottom</option>
+                      </select>
+                    </label>
+                    <label data-classic-alert><span data-i18n="h.size">Size</span> <input type="range" min="0.4" max="1.6" step="0.05" data-set="alerts.scale" /></label>
+                    <label><span data-i18n="h.al.milestones">“Streak” alert at these numbers of wins in a row</span>
+                      <input data-set="alerts.streakMilestones" data-type="list-number" placeholder="3, 5, 10" />
+                    </label>
+                    <label class="sw-row"><span data-i18n="h.al.abandon">Also alert when I leave a match</span><input type="checkbox" class="switch" data-set="alerts.alertOnAbandon" /></label>
+                    <label class="sw-row"><span data-i18n="h.al.mmr">Show “+15 MMR” in end-of-match alerts</span><input type="checkbox" class="switch" data-set="mmr.showInAlerts" /></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="h.al.table">Alert texts, durations and sounds</h3>
+              <p class="muted" data-i18n="h.al.tableHelp">Leave a text empty to use the default one. In the streak text, <code>{n}</code> is replaced by the number of wins. Custom sounds: mp3, wav, ogg (8 MB max).</p>
+              <div class="alert-table" id="alertTable"></div>
+            </div>
           </div>
+
+          <!-- ............................ autres overlays ............................ -->
+          <div class="ov-pane hidden" data-ovpane="more">
+            <div class="overlay-grid">
+              <div data-ovslot="history"></div>
+              <div data-ovslot="summary"></div>
+            </div>
+          </div>
+
+          <!-- ............................ thèmes ............................ -->
+          <div class="ov-pane hidden" data-ovpane="themes">
+            <div class="card">
+              <div class="card-head">
+                <h3 data-i18n="h.th.title">Themes</h3>
+                <div class="head-actions">
+                  <button class="btn small ghost" id="themeFolder" data-i18n="h.th.folder">Open themes folder</button>
+                  <button class="btn small" id="themeInstall" data-i18n="h.th.install">Install a theme (.zip)</button>
+                  <button class="btn small primary" id="themeCreate" data-i18n="h.th.create">Create a theme</button>
+                </div>
+              </div>
+              <p class="muted" data-i18n="h.th.intro">
+                Pick a ready-made look, or <b>create your own</b> in the editor: you place the elements with the mouse and see the result
+                right away, without touching a file. A theme made in the editor can be shared safely: it is only data, never code.
+              </p>
+              <div class="theme-grid" id="themeGrid"></div>
+            </div>
+          </div>
+
+          <!-- ............................ galerie de la communauté ............................ -->
+          <div class="ov-pane hidden" data-ovpane="market">
+            <div class="card">
+              <div class="card-head">
+                <h3 data-i18n="h.mk.title">Community gallery</h3>
+                <div class="head-actions">
+                  <button class="btn small ghost" id="mkRefresh" data-i18n="h.mk.refresh">Refresh</button>
+                  <button class="btn small ghost hidden" id="mkSite" data-i18n="h.mk.site">Open the website</button>
+                  <button class="btn small" id="mkSubmit" data-i18n="h.mk.submit">Share my theme</button>
+                </div>
+              </div>
+              <p class="muted" data-i18n="h.mk.intro">
+                Themes made by other players with the editor. Install one in a click, then make it yours. A gallery theme is only data and
+                images, never code, and every file is checked before it is installed.
+              </p>
+              <div class="mk-bar">
+                <label class="mk-search">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+                  <input id="mkSearch" maxlength="60" autocomplete="off" spellcheck="false" placeholder="Search a theme or an author" data-i18n-ph="h.mk.searchPh" aria-label="Search the gallery" data-i18n-aria="h.mk.searchAria" />
+                </label>
+                <div class="seg" id="mkScope">
+                  <button data-scope="all" class="on" data-i18n="h.mk.all">All</button>
+                  <button data-scope="fav" data-i18n="h.mk.favs">Favorites</button>
+                  <button data-scope="installed" data-i18n="h.mk.installed">Installed</button>
+                </div>
+                <label class="mk-sort"><span data-i18n="h.mk.sort">Sort by</span>
+                  <select id="mkSort">
+                    <option value="likes" data-i18n="h.mk.sortLikes">Most liked</option>
+                    <option value="installs" data-i18n="h.mk.sortInstalls">Most installed</option>
+                    <option value="new" data-i18n="h.mk.sortNew">Newest</option>
+                    <option value="name" data-i18n="h.mk.sortName">Name</option>
+                  </select>
+                </label>
+              </div>
+              <div class="mk-tags" id="mkTags" role="group" aria-label="Style" data-i18n-aria="h.mk.style"></div>
+              <div class="mk-state hidden" id="mkState" role="status"></div>
+              <div class="theme-grid mk-grid" id="mkGrid"></div>
+              <p class="muted small mk-foot" id="mkFoot"></p>
+            </div>
+          </div>
+
+          <p class="muted small ov-foot" data-i18n="h.ov.intro">
+            Three ways to put an overlay on stream: <b>Add to OBS</b> in one click once OBS is connected (Stream tab), <b>drag the button</b> into
+            the OBS window, or copy the URL into <b>Sources → + → Browser</b> with the size shown. For alerts added by hand, tick
+            <b>“Control audio via OBS”</b> so the sound plays on stream. Streamlabs: one click or copy the URL.
+          </p>
         </section>
 
         <!-- ============================== HISTORY ============================== -->
         <section id="tab-history" class="tab">
-          <div class="card">
-            <div class="card-head">
-              <h2 data-i18n="h.nav.history">History</h2>
-              <div class="seg" id="histScope">
-                <button data-scope="session" class="on">Session</button>
-                <button data-scope="all" data-i18n="h.hist.all">All</button>
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.st.title">Statistics</h2>
+              <p class="muted" data-i18n="h.st.sub">Your matches, streaks and MMR, beyond the stream.</p>
+            </div>
+            <div class="seg big" id="stTabs">
+              <button data-sttab="overview" class="on" data-i18n="h.st.tabOverview">Overview</button>
+              <button data-sttab="sessions" data-i18n="h.st.tabSessions">Sessions</button>
+              <button data-sttab="matches" data-i18n="h.st.tabMatches">Matches</button>
+            </div>
+          </div>
+
+          <!-- ............................ vue d'ensemble ............................ -->
+          <div class="ov-pane" data-stpane="overview">
+            <div class="st-filters">
+              <div class="seg" id="stRange">
+                <button data-range="session" data-i18n="h.st.rSession">This session</button>
+                <button data-range="7d" data-i18n="h.st.r7">7 days</button>
+                <button data-range="30d" class="on" data-i18n="h.st.r30">30 days</button>
+                <button data-range="all" data-i18n="h.st.rAll">All time</button>
+              </div>
+              <select id="stMode" aria-label="Game mode" data-i18n-aria="h.st.mode"></select>
+              <span class="muted small" id="stScope"></span>
+            </div>
+
+            <div id="stEmpty" class="card empty hidden"></div>
+            <div id="stBody" class="ov-pane">
+              <div class="st-tiles" id="stTiles"></div>
+
+              <div class="split">
+                <div>
+                  <div class="card">
+                    <div class="card-head">
+                      <h3><span data-i18n="h.st.mmr">MMR over time</span> <button type="button" class="help" data-tip="One point per match. Real values are read from the game when you start a search; the last points can be estimates (≈) until then." data-i18n-tip="h.tip.stMmr">?</button></h3>
+                      <select id="stMmrMode" class="hidden" aria-label="Mode shown" data-i18n-aria="h.st.mmrMode"></select>
+                    </div>
+                    <div id="stMmr"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="card">
+                    <div class="card-head"><h3 data-i18n="h.st.streaks">Streaks</h3><span class="muted small" id="stStreakNow"></span></div>
+                    <div id="stStreaks"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="card">
+                  <div class="card-head"><h3 data-i18n="h.st.byMode">By game mode</h3><span class="muted small" data-i18n="h.st.byModeSub">Share of matches won</span></div>
+                  <div id="stModes"></div>
+                </div>
+                <div class="card">
+                  <div class="card-head">
+                    <h3><span data-i18n="h.st.byPos">As the session goes on</span> <button type="button" class="help" data-tip="Share of matches won depending on when the match comes in your session: the first three, the next three, and so on." data-i18n-tip="h.tip.stPos">?</button></h3>
+                  </div>
+                  <div id="stPos"></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h3 data-i18n="h.st.perMatch">Your play, per match</h3></div>
+                <div class="st-tiles small" id="stPerMatch"></div>
               </div>
             </div>
-            <div id="allTime" class="alltime"></div>
-            <div class="table-wrap">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th data-i18n="h.hist.date">Date</th><th data-i18n="h.hist.result">Result</th><th>Score</th>
-                    <th title="≈ = estimate waiting for the real value" data-i18n-title="h.hist.mmrTip">MMR</th><th data-i18n="h.hist.mode">Mode</th>
-                    <th data-i18n="h.hist.map">Map</th><th data-i18n="h.hist.duration">Duration</th>
-                    <th title="Goals · assists · saves · shots" data-i18n-title="h.hist.youTip" data-i18n="h.hist.you">You</th><th></th>
-                  </tr>
-                </thead>
-                <tbody id="histBody"></tbody>
-              </table>
+          </div>
+
+          <!-- ............................ sessions ............................ -->
+          <div class="ov-pane hidden" data-stpane="sessions">
+            <div class="st-sess">
+              <div class="card">
+                <div class="card-head"><h3 data-i18n="h.st.tabSessions">Sessions</h3><span class="muted small" id="stSessCount"></span></div>
+                <div id="stSessList" class="sess-list"></div>
+              </div>
+              <div id="stSessDetail" class="ov-pane"></div>
+            </div>
+          </div>
+
+          <!-- ............................ parties ............................ -->
+          <div class="ov-pane hidden" data-stpane="matches">
+            <div class="card">
+              <div class="card-head">
+                <h3 data-i18n="h.st.tabMatches">Matches</h3>
+                <div class="head-actions">
+                  <div class="seg" id="histScope">
+                    <button data-scope="session" class="on">Session</button>
+                    <button data-scope="all" data-i18n="h.hist.all">All</button>
+                  </div>
+                  <button class="btn small" id="histCsv" data-i18n="h.st.csv">Export (CSV)</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="h.hist.date">Date</th><th data-i18n="h.hist.result">Result</th><th>Score</th>
+                      <th title="≈ = estimate waiting for the real value" data-i18n-title="h.hist.mmrTip">MMR</th><th data-i18n="h.hist.mode">Mode</th>
+                      <th data-i18n="h.hist.map">Map</th><th data-i18n="h.hist.duration">Duration</th>
+                      <th title="Goals · assists · saves · shots" data-i18n-title="h.hist.youTip" data-i18n="h.hist.you">You</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="histBody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
 
         <!-- ============================== OBS ============================== -->
         <section id="tab-obs" class="tab">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.sm.title">Stream</h2>
+              <p class="muted" data-i18n="h.sm.sub">What RL-UI does in your streaming software and in your chat.</p>
+            </div>
+            <div class="seg big" data-panes="stream">
+              <button data-pane="software" class="on" data-i18n="h.sm.tabSoftware">Streaming software</button>
+              <button data-pane="twitch" data-i18n="h.sm.tabTwitch">Twitch chat</button>
+            </div>
+          </div>
+
+          <div class="ov-pane" data-pane-of="stream" data-pane-id="software">
           <div class="card">
             <div class="card-head"><h2 data-i18n="h.obs.title">Streaming software</h2><span id="obsState" class="pill"></span></div>
             <div class="form cols">
@@ -302,11 +524,9 @@
             </p>
             <div class="obs-table" id="obsTable"></div>
           </div>
+          </div>
 
-        </section>
-
-        <!-- ============================== TWITCH ============================== -->
-        <section id="tab-twitch" class="tab">
+          <div class="ov-pane hidden" data-pane-of="stream" data-pane-id="twitch">
           <div class="card" id="chatCard">
             <div class="card-head">
               <h2 data-i18n="h.tw.title">Twitch chat commands</h2>
@@ -325,8 +545,10 @@
             <div class="chat-table" id="chatTable"></div>
             <div class="actions"><button class="btn small ghost" id="chatAdd" data-i18n="h.tw.add">Add a command</button></div>
           </div>
+          </div>
         </section>
 
+        <!-- ============================== TWITCH ============================== -->
         <!-- ============================== CASTER ============================== -->
         <section id="tab-caster" class="tab">
           <div class="card">
@@ -380,7 +602,11 @@
               <h3 data-i18n="h.cs.display">Display</h3>
               <div class="form">
                 <label><span data-i18n="h.cs.theme">Look (theme)</span> <select data-set="caster.themePack" id="casterTheme"></select></label>
-                <p class="muted small" data-i18n="h.cs.themeHelp">Install, customize or create themes in <b>OBS overlays → Themes</b>. A theme can change the scorebug, boosts, goal banner and scoreboard (see docs/THEMES.md).</p>
+                <p class="muted small" data-i18n="h.cs.themeHelp">Install, customize or create themes in <b>Overlays → Themes</b>. A theme can change the scorebug, boosts, goal banner and scoreboard (see docs/THEMES.md).</p>
+                <div class="card cmp-note hidden" id="cmpCasterNote">
+                  <p data-i18n="h.cs.cmpNote">This theme draws the caster overlay itself: its layout and style are set in the theme editor. The options below still choose which blocks are shown.</p>
+                  <button class="btn small primary" id="cmpCasterEdit" data-i18n="h.ctr.cmpEdit">Open the editor</button>
+                </div>
                 <label class="check"><input type="checkbox" data-set="caster.showSeries" /> <span data-i18n="h.cs.showSeries">Series score and game number</span></label>
                 <label class="check"><input type="checkbox" data-set="caster.showBoosts" /> <span data-i18n="h.cs.showBoosts">Every player's boost</span></label>
                 <label class="check"><input type="checkbox" data-set="caster.showTarget" /> <span data-i18n="h.cs.showTarget">Spectated player card</span></label>
@@ -422,7 +648,19 @@
 
         <!-- ============================== SETTINGS ============================== -->
         <section id="tab-settings" class="tab">
-          <div class="grid-2">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.nav.settings">Settings</h2>
+              <p class="muted" data-i18n="h.set.sub">Everything is saved as you go.</p>
+            </div>
+            <div class="seg big" data-panes="settings">
+              <button data-pane="general" class="on" data-i18n="h.set.tabGeneral">General</button>
+              <button data-pane="tracking" data-i18n="h.set.tabTracking">Match tracking</button>
+              <button data-pane="links" data-i18n="h.set.tabLinks">Game and tools</button>
+            </div>
+          </div>
+
+          <div class="grid-2" data-pane-of="settings" data-pane-id="general">
             <div class="card lang-card">
               <h3>Language (langue)</h3>
               <div class="form">
@@ -435,6 +673,45 @@
               </div>
             </div>
 
+            <div class="card">
+              <h3 data-i18n="h.set.look">Appearance</h3>
+              <div class="form">
+                <label><span data-i18n="h.set.theme">Theme</span>
+                  <select data-set="app.theme">
+                    <option value="system" data-i18n="h.set.themeSystem">Same as my system</option>
+                    <option value="light" data-i18n="h.set.themeLight">Light</option>
+                    <option value="dark" data-i18n="h.set.themeDark">Dark</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="h.set.hotkeys">Global hotkeys</h3>
+              <p class="muted" data-i18n="h.set.hotkeysHelp">Work even in game. Click a field then press the key combination (Delete to clear).</p>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="hotkeys.enabled" /> <span data-i18n="h.set.hotkeysOn">Enable hotkeys</span></label>
+                <label><span data-i18n="h.plusWin">+1 win</span> <input class="hotkey" data-set="hotkeys.win" readonly /></label>
+                <label><span data-i18n="h.plusLoss">+1 loss</span> <input class="hotkey" data-set="hotkeys.loss" readonly /></label>
+                <label><span data-i18n="h.undo">Undo last match</span> <input class="hotkey" data-set="hotkeys.undo" readonly /></label>
+              </div>
+              <div id="hotkeyErrors" class="warn-text"></div>
+            </div>
+
+            <div class="card" id="appCard">
+              <h3>Application</h3>
+              <div class="form">
+                <label class="check"><input type="checkbox" data-set="app.minimizeToTray" /> <span data-i18n="h.set.tray">Close = minimize to the system tray (tracking keeps running)</span></label>
+                <label class="check" id="startWinRow"><input type="checkbox" data-set="app.startWithWindows" /> <span data-i18n="h.set.startWin">Start with Windows</span></label>
+                <label class="check"><input type="checkbox" data-set="app.startMinimized" /> <span data-i18n="h.set.startMin">Start minimized</span></label>
+                <label class="check" id="autoUpdateRow"><input type="checkbox" data-set="app.autoUpdate" /> <span data-i18n="h.set.autoUpdate">Check for updates automatically</span></label>
+              </div>
+              <div class="update-info" id="updateInfo"></div>
+              <div class="actions"><button class="btn ghost small" id="openDataDir" data-i18n="h.set.openData">Open data folder</button></div>
+            </div>
+          </div>
+
+          <div class="grid-2 hidden" data-pane-of="settings" data-pane-id="tracking">
             <div class="card">
               <h3 data-i18n="h.set.counted">Counted matches</h3>
               <div class="form" id="countingForm"></div>
@@ -485,7 +762,9 @@
                 </label>
               </div>
             </div>
+          </div>
 
+          <div class="grid-2 hidden" data-pane-of="settings" data-pane-id="links">
             <div class="card">
               <h3>Rocket League Stats API</h3>
               <div id="rlInfo" class="info-box"></div>
@@ -512,15 +791,12 @@
             </div>
 
             <div class="card">
-              <h3 data-i18n="h.set.hotkeys">Global hotkeys</h3>
-              <p class="muted" data-i18n="h.set.hotkeysHelp">Work even in game. Click a field then press the key combination (Delete to clear).</p>
+              <h3 data-i18n="h.set.server">Local server</h3>
               <div class="form">
-                <label class="check"><input type="checkbox" data-set="hotkeys.enabled" /> <span data-i18n="h.set.hotkeysOn">Enable hotkeys</span></label>
-                <label><span data-i18n="h.plusWin">+1 win</span> <input class="hotkey" data-set="hotkeys.win" readonly /></label>
-                <label><span data-i18n="h.plusLoss">+1 loss</span> <input class="hotkey" data-set="hotkeys.loss" readonly /></label>
-                <label><span data-i18n="h.undo">Undo last match</span> <input class="hotkey" data-set="hotkeys.undo" readonly /></label>
+                <label><span data-i18n="h.set.port">Overlays port</span> <input type="number" data-set="port" /></label>
+                <label class="check"><input type="checkbox" data-set="lanAccess" /> <span data-i18n="h.set.lan">Reachable from the local network (2-PC setup)</span></label>
               </div>
-              <div id="hotkeyErrors" class="warn-text"></div>
+              <div id="lanInfo" class="muted small"></div>
             </div>
 
             <div class="card">
@@ -543,69 +819,171 @@
               </div>
               <div class="actions"><button class="btn ghost small" id="openTextDir" data-i18n="h.set.openDir">Open folder</button><span class="muted small" id="textDir"></span></div>
             </div>
-
-            <div class="card">
-              <h3 data-i18n="h.set.server">Local server</h3>
-              <div class="form">
-                <label><span data-i18n="h.set.port">Overlays port</span> <input type="number" data-set="port" /></label>
-                <label class="check"><input type="checkbox" data-set="lanAccess" /> <span data-i18n="h.set.lan">Reachable from the local network (2-PC setup)</span></label>
-              </div>
-              <div id="lanInfo" class="muted small"></div>
-            </div>
-
-            <div class="card" id="appCard">
-              <h3>Application</h3>
-              <div class="form">
-                <label class="check"><input type="checkbox" data-set="app.minimizeToTray" /> <span data-i18n="h.set.tray">Close = minimize to the system tray (tracking keeps running)</span></label>
-                <label class="check" id="startWinRow"><input type="checkbox" data-set="app.startWithWindows" /> <span data-i18n="h.set.startWin">Start with Windows</span></label>
-                <label class="check"><input type="checkbox" data-set="app.startMinimized" /> <span data-i18n="h.set.startMin">Start minimized</span></label>
-                <label class="check" id="autoUpdateRow"><input type="checkbox" data-set="app.autoUpdate" /> <span data-i18n="h.set.autoUpdate">Check for updates automatically</span></label>
-              </div>
-              <div class="update-info" id="updateInfo"></div>
-              <div class="actions"><button class="btn ghost small" id="openDataDir" data-i18n="h.set.openData">Open data folder</button></div>
-            </div>
           </div>
         </section>
 
         <!-- ============================== HELP ============================== -->
-        <section id="tab-help" class="tab">
-          <div class="card help">
-            <div class="card-head"><h2 data-i18n="h.help.start">Get started in 3 steps</h2><button class="btn small primary" id="onbReopen" data-i18n="h.help.guide">Open the guided setup</button></div>
-            <ol class="steps">
-              <li data-i18n="h.help.s1">
-                <b>Rocket League Stats API.</b> It is enabled by default in recent versions of the game. Otherwise: Settings →
-                “Enable / repair the API”, then restart Rocket League. No mods, no BakkesMod, EAC-compatible.
-              </li>
-              <li data-i18n="h.help.s2">
-                <b>Play.</b> The app recognizes your account from the game log, then counts every win / loss, overtimes, the
-                mode (2v2 ranked, 3v3…), MVPs and early leaves.
-              </li>
-              <li data-i18n="h.help.s3">
-                <b>Add the overlays in OBS or Streamlabs</b> (OBS overlays tab): the counter (horizontal, vertical or next to the boost
-                gauge), full-screen alerts, recent matches and the end-of-stream recap.
-              </li>
-            </ol>
-            <h2 data-i18n="h.help.faq">FAQ</h2>
-            <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Check the log (Session tab): the match may be from an excluded mode (private match, offline…) or the tracker was paused. You can always fix it with the + / − buttons.</p></details>
-            <details><summary data-i18n="h.faq.q2">“Stats API: closed” while the game is running</summary><p data-i18n="h.faq.a2">The game only opens the API when started with PacketSendRate &gt; 0. Click “Enable / repair the API” in Settings, then fully restart Rocket League (also after a game update).</p></details>
-            <details><summary data-i18n="h.faq.q3">Alerts have no sound on stream</summary><p data-i18n="h.faq.a3">In the OBS browser source properties, tick “Control audio via OBS”, then set the source volume in the audio mixer.</p></details>
-            <details><summary data-i18n="h.faq.q4">The “Boost” counter isn't aligned with my gauge</summary><p data-i18n="h.faq.a4">OBS overlays → Counter: turn on “Show the gauge guide”, then adjust the HUD size and offsets until the guide covers your gauge in the OBS preview. Then turn the guide off. The source must be the size of your canvas (e.g. 1920 × 1080).</p></details>
-            <details><summary data-i18n="h.faq.q5">Automatic actions with Streamlabs</summary><p data-i18n="h.faq.a5">Stream actions tab → Software: Streamlabs Desktop. In Streamlabs: Settings → Remote Control → click the QR code → Show details → copy the API token.</p></details>
-            <details><summary data-i18n="h.faq.q6">2-PC setup</summary><p data-i18n="h.faq.a6">Turn on “Reachable from the local network” (Settings → Local server) and use the gaming PC's IP address in the overlay URLs on the streaming PC. Allow the app in the Windows firewall if asked.</p></details>
-            <details><summary data-i18n="h.faq.q7">I play duos, does it count for me?</summary><p data-i18n="h.faq.a7">Yes: the app follows your own account (the Steam/Epic ID read from the game log), not your teammate's.</p></details>
-            <details><summary data-i18n="h.faq.q8">Where does the MMR come from?</summary><p data-i18n="h.faq.a8">From the game log: when you start a matchmaking search (solo or party leader), Rocket League writes your MMR for that mode. So the change of a match is known at the next search; meanwhile, the app shows an estimate based on your recent real changes (marked ≈ in the dashboard). If your teammate starts the search, only the estimate is available.</p></details>
-            <p class="legal" data-i18n="h.legal">RL-UI — made by Zoxam. Not affiliated with Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC. Everything runs locally: no data is sent over the Internet.</p>
+        <!-- ============================== DIAGNOSTIC ============================== -->
+        <section id="tab-diag" class="tab">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.dg.title">Diagnostic</h2>
+              <p class="muted" data-i18n="h.dg.sub">What RL-UI sees, and why each match is counted or not.</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" id="dgSave" data-i18n="h.dg.save">Save the report</button>
+              <button class="btn primary" id="dgCopy" data-i18n="h.dg.copy">Copy the report</button>
+            </div>
           </div>
+
+          <div class="split">
+            <div>
+              <div class="card">
+                <div class="card-head">
+                  <h3><span data-i18n="h.dg.matches">Matches seen</span> <button type="button" class="help" data-tip="Every match the game reported, counted or not. A match that was not counted can still be added from here, with its real score." data-i18n-tip="h.tip.dgMatches">?</button></h3>
+                  <span class="muted small" id="dgCount"></span>
+                </div>
+                <div id="dgJournal" class="dg-journal"></div>
+              </div>
+            </div>
+            <div>
+              <div class="card">
+                <div class="card-head"><h3 data-i18n="h.dg.health">Detection status</h3><span id="dgLevel" class="pill"></span></div>
+                <ul id="dgChecks" class="dg-checks"></ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3 data-i18n="h.log">Log</h3><span class="muted small" data-i18n="h.dg.logSub">What the app did, most recent first</span></div>
+            <div id="logList" class="log-list"></div>
+          </div>
+
+          <p class="muted small ov-foot" data-i18n="h.dg.privacy">
+            The report holds the detection status, the matches seen and the log. It contains no access key, no password and no other
+            player's name. Nothing is sent anywhere: you decide who you give it to.
+          </p>
+        </section>
+
+        <section id="tab-help" class="tab">
+          <div class="page-head">
+            <div>
+              <h2 data-i18n="h.nav.help">Help</h2>
+              <p class="muted" data-i18n="h.help.sub">Get started, find a feature, fix a problem.</p>
+            </div>
+            <div class="head-actions">
+              <button class="btn" data-go="diag" data-i18n="h.help.toDiag">Something not working? Open Diagnostic</button>
+              <button class="btn primary" id="onbReopen" data-i18n="h.help.guide">Open the guided setup</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3 data-i18n="h.disc.title">What RL-UI can do</h3><span class="muted small" data-i18n="h.disc.sub">Click a card to go there</span></div>
+            <div class="disc-grid">
+              <button type="button" class="disc-card" data-go="stream/counter"><b data-i18n="h.disc.counter">W/L counter</b><span data-i18n="h.disc.counterText">Wins, losses, streak and MMR live on your stream.</span></button>
+              <button type="button" class="disc-card" data-go="stream/alerts"><b data-i18n="h.disc.alerts">Alerts</b><span data-i18n="h.disc.alertsText">A full-screen announcement for every win, loss and overtime.</span></button>
+              <button type="button" class="disc-card" data-go="stream/themes"><b data-i18n="h.disc.themes">Themes</b><span data-i18n="h.disc.themesText">Change the look of all your overlays in one click.</span></button>
+              <button type="button" class="disc-card" data-go="stream/market"><b data-i18n="h.disc.market">Theme gallery</b><span data-i18n="h.disc.marketText">Themes made by other players, installed in one click. Share yours.</span></button>
+              <button type="button" class="disc-card" data-go="history/overview"><b data-i18n="h.disc.stats">Statistics</b><span data-i18n="h.disc.statsText">Your streaks, your MMR curve and your sessions compared.</span></button>
+              <button type="button" class="disc-card" data-go="diag"><b data-i18n="h.disc.diag">Diagnostic</b><span data-i18n="h.disc.diagText">Why a match was counted or not, and how to fix it.</span></button>
+              <button type="button" class="disc-card" data-go="obs/software"><b data-i18n="h.disc.obs">Actions in OBS</b><span data-i18n="h.disc.obsText">Switch scene or show a source on every win or overtime.</span></button>
+              <button type="button" class="disc-card" data-go="obs/twitch"><b data-i18n="h.disc.chat">Twitch chat commands</b><span data-i18n="h.disc.chatText">!wl, !mmr… RL-UI answers in your chat.</span></button>
+              <button type="button" class="disc-card" data-go="caster"><b data-i18n="h.disc.caster">Caster mode</b><span data-i18n="h.disc.casterText">Scores, boost and players to commentate a match.</span></button>
+              <button type="button" class="disc-card" data-go="settings/links"><b data-i18n="h.disc.deck">Stream Deck and hotkeys</b><span data-i18n="h.disc.deckText">+1 win, pause or new session from a single key.</span></button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card help-page">
+              <div class="card-head"><h3 data-i18n="h.help.start">Get started in 3 steps</h3></div>
+              <ol class="steps">
+                <li data-i18n="h.help.s1">
+                  <b>Rocket League Stats API.</b> It is enabled by default in recent versions of the game. Otherwise: Settings →
+                  “Enable / repair the API”, then restart Rocket League. No mods, no BakkesMod, EAC-compatible.
+                </li>
+                <li data-i18n="h.help.s2">
+                  <b>Play.</b> The app recognizes your account from the game log, then counts every win / loss, overtimes, the
+                  mode (2v2 ranked, 3v3…), MVPs and early leaves.
+                </li>
+                <li data-i18n="h.help.s3">
+                  <b>Add the overlays in OBS or Streamlabs</b> (Overlays tab): the counter (horizontal, vertical or next to the boost
+                  gauge), full-screen alerts, recent matches and the end-of-stream recap.
+                </li>
+              </ol>
+            </div>
+            <div class="card help-page">
+              <div class="card-head"><h3 data-i18n="h.help.faq">FAQ</h3></div>
+              <details><summary data-i18n="h.faq.q1">A match wasn't counted</summary><p data-i18n="h.faq.a1">Open Diagnostic: every match the game reported is listed there with the reason it was counted or not (excluded mode, tracking paused, account not recognized…), and a button to count it afterwards with its real score.</p></details>
+              <details><summary data-i18n="h.faq.q2">“Stats API: closed” while the game is running</summary><p data-i18n="h.faq.a2">The game only opens the API when started with PacketSendRate &gt; 0. Click “Enable / repair the API” in Settings, then fully restart Rocket League (also after a game update).</p></details>
+              <details><summary data-i18n="h.faq.q3">Alerts have no sound on stream</summary><p data-i18n="h.faq.a3">In the OBS browser source properties, tick “Control audio via OBS”, then set the source volume in the audio mixer.</p></details>
+              <details><summary data-i18n="h.faq.q4">The “Boost” counter isn't aligned with my gauge</summary><p data-i18n="h.faq.a4">Overlays → Counter: turn on “Show the gauge guide”, then adjust the HUD size and offsets until the guide covers your gauge in the OBS preview. Then turn the guide off. The source must be the size of your canvas (e.g. 1920 × 1080).</p></details>
+              <details><summary data-i18n="h.faq.q5">Automatic actions with Streamlabs</summary><p data-i18n="h.faq.a5">Stream tab → Software: Streamlabs Desktop. In Streamlabs: Settings → Remote Control → click the QR code → Show details → copy the API token.</p></details>
+              <details><summary data-i18n="h.faq.q6">2-PC setup</summary><p data-i18n="h.faq.a6">Turn on “Reachable from the local network” (Settings → Local server) and use the gaming PC's IP address in the overlay URLs on the streaming PC. Allow the app in the Windows firewall if asked.</p></details>
+              <details><summary data-i18n="h.faq.q7">I play duos, does it count for me?</summary><p data-i18n="h.faq.a7">Yes: the app follows your own account (the Steam/Epic ID read from the game log), not your teammate's.</p></details>
+              <details><summary data-i18n="h.faq.q8">Where does the MMR come from?</summary><p data-i18n="h.faq.a8">From the game log: when you start a matchmaking search (solo or party leader), Rocket League writes your MMR for that mode. So the change of a match is known at the next search; meanwhile, the app shows an estimate based on your recent real changes (marked ≈ in the dashboard). If your teammate starts the search, only the estimate is available.</p></details>
+            </div>
+          </div>
+          <p class="support muted small hidden" id="supportLine"><span data-i18n="h.support">RL-UI is free and stays free. If it helps your stream, you can leave a tip to support its development.</span> <button type="button" class="link" id="supportBtn" data-i18n="h.supportBtn">Leave a tip on Ko-fi</button></p>
+          <p class="legal muted small" data-i18n="h.legal">RL-UI — made by Zoxam. Not affiliated with Psyonix LLC or Epic Games, Inc. Rocket League is a trademark of Psyonix LLC. Tracking runs locally: your matches and statistics never leave your PC. The theme gallery is read online when you open it.</p>
         </section>
       </main>
     </div>
 
     <div id="modal" class="modal hidden"><div class="modal-box"><p id="modalText"></p><div class="actions"><button class="btn ghost" id="modalNo" data-i18n="h.cancel">Cancel</button><button class="btn primary" id="modalYes">Confirm</button></div></div></div>
+    <div id="themeNew" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="themeNewTitle">
+      <div class="modal-box new-box">
+        <div class="card-head"><h3 id="themeNewTitle" data-i18n="h.th.newTitle">New theme</h3><button class="btn small ghost" id="themeNewClose" data-i18n="h.close">Close</button></div>
+        <label class="new-name"><span data-i18n="h.th.newName">Name</span> <input id="themeNewName" maxlength="60" /></label>
+        <p class="muted small" data-i18n="h.th.newStart">Start from:</p>
+        <div class="new-starters" id="themeNewStarters" role="radiogroup" aria-labelledby="themeNewTitle"></div>
+        <div class="actions"><button class="btn primary" id="themeNewGo" data-i18n="h.th.newGo">Create and open the editor</button></div>
+      </div>
+    </div>
+    <div id="mkModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mkmName">
+      <div class="modal-box mk-box">
+        <div class="card-head"><h3 id="mkmName"></h3><button class="btn small ghost" id="mkmClose" data-i18n="h.close">Close</button></div>
+        <div class="mk-stage" id="mkmStage"></div>
+        <div class="seg mk-kinds hidden" id="mkmKinds"></div>
+        <div class="mk-live">
+          <span class="muted small" data-i18n="h.e.sample">Preview with</span>
+          <div class="seg" id="mkmSample"></div>
+        </div>
+        <p class="mk-desc" id="mkmDesc"></p>
+        <dl class="mk-facts" id="mkmFacts"></dl>
+        <div class="actions" id="mkmActs"></div>
+      </div>
+    </div>
+    <div id="mkShare" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mksTitle">
+      <div class="modal-box mk-box">
+        <div class="card-head"><h3 id="mksTitle" data-i18n="h.mk.shareTitle">Share a theme in the gallery</h3><button class="btn small ghost" id="mksClose" data-i18n="h.close">Close</button></div>
+        <p class="muted" data-i18n="h.mk.shareIntro">
+          Any theme made with the editor can join the gallery. You publish it on the gallery website with your account, it is checked
+          automatically, then everyone can install it. Your theme keeps your name.
+        </p>
+        <div id="mksBody"></div>
+      </div>
+    </div>
+    <div id="shareModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <div class="modal-box share-box">
+        <div class="card-head"><h3 id="shareTitle" data-i18n="h.st.shareTitle">Image to share</h3><button class="btn small ghost" id="shareClose" data-i18n="h.close">Close</button></div>
+        <div class="share-stage"><canvas id="shareCanvas" width="1200" height="630"></canvas></div>
+        <div class="share-opts">
+          <label class="check"><input type="checkbox" id="shareName" checked /> <span data-i18n="h.st.shareName">Show my name</span></label>
+          <label class="check"><input type="checkbox" id="shareMmr" checked /> <span data-i18n="h.st.shareMmr">Show my MMR</span></label>
+          <div class="seg" id="shareLook"><button data-look="dark" class="on" data-i18n="h.set.themeDark">Dark</button><button data-look="light" data-i18n="h.set.themeLight">Light</button></div>
+        </div>
+        <div class="actions"><button class="btn" id="shareSave" data-i18n="h.st.shareSave">Save the image</button><button class="btn primary" id="shareCopy" data-i18n="h.st.shareCopy">Copy the image</button></div>
+      </div>
+    </div>
     <div id="toasts"></div>
     <div id="onb" class="onb hidden"><div class="onb-box"><div class="onb-dots" id="onbDots"></div><div class="onb-body" id="onbBody"></div><div class="onb-nav"><button class="btn ghost" id="onbSkip"></button><div class="grow"></div><button class="btn ghost" id="onbBack"></button><button class="btn primary" id="onbNext"></button></div></div></div>
 
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
+    <script src="/static/shared/compose.js"></script>
     <script src="/static/dashboard/app.js"></script>
+    <script src="/static/dashboard/stats.js"></script>
+    <script src="/static/dashboard/market.js"></script>
+    <script src="/static/dashboard/search.js"></script>
   </body>
 </html>

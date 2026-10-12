@@ -114,6 +114,9 @@
   const LL = () => (D && D.settings.overlay.labelLoss) || t('lbl.l');
   const baseUrl = () => `http://127.0.0.1:${D ? D.port : location.port}`;
 
+  // Outils communs aux autres scripts du tableau de bord (stats.js)
+  window.RLUI = { $, $$, esc, t, tn, api, post, toast, confirmBox, copy: (text) => copy(text), editor: (id) => editorUrl(id), openUrl: (url) => post('/api/open', { target: 'url', url }), pad, fmtHour, fmtDate, fmtDur, LW, LL, key: KEY, resPill: (r) => resPill(r), state: () => D, go: (target) => showTab(target) };
+
   function resPill(r) {
     const cls = ['res', r.result, r.ot || r.overtime ? 'ot' : '', r.abandon ? 'ab' : '', r.manual ? 'man' : ''].join(' ');
     const lbl = r.result === 'W' ? (D && D.settings.overlay.labelWin) || t('lbl.w') : (D && D.settings.overlay.labelLoss) || t('lbl.l');
@@ -122,20 +125,117 @@
   }
 
   // ------------------------------------------------------------------ onglets
-  function showTab(name) {
+  // Une entrée du menu peut réunir plusieurs sections : une section porte data-with="<entrée>"
+  // (les commandes Twitch sont rangées sous « Stream », avec les actions OBS).
+  // Une cible peut viser un volet d'une page : « settings/tracking », « obs/twitch », « stream/themes », « history/sessions ».
+  const TAB_ALIAS = { twitch: 'obs/twitch' };
+  const PANE_GROUP = { settings: 'settings', obs: 'stream' };
+  function showPane(group, id) {
+    const panes = $$(`[data-pane-of="${group}"]`);
+    if (!panes.some((p) => p.dataset.paneId === id)) id = panes.length ? panes[0].dataset.paneId : id;
+    $$(`[data-panes="${group}"] button`).forEach((b) => b.classList.toggle('on', b.dataset.pane === id));
+    panes.forEach((p) => p.classList.toggle('hidden', p.dataset.paneId !== id));
+    try {
+      localStorage.setItem(`rlui-pane-${group}`, id);
+    } catch {}
+  }
+  $$('[data-panes]').forEach((seg) => {
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-pane]');
+      if (b) showPane(seg.dataset.panes, b.dataset.pane);
+    });
+    let id = null;
+    try {
+      id = localStorage.getItem(`rlui-pane-${seg.dataset.panes}`);
+    } catch {}
+    if (id) showPane(seg.dataset.panes, id);
+  });
+
+  function showTab(target) {
+    const [name, pane] = String(TAB_ALIAS[target] || target).split('/');
+    if (pane) {
+      if (name === 'stream') showOvTab(pane);
+      else if (name === 'history' && window.RLUI.stats) window.RLUI.stats.open(pane);
+      else if (PANE_GROUP[name]) showPane(PANE_GROUP[name], pane);
+    }
+    const own = $(`#tab-${name}`);
+    const entry = (own && own.dataset.with) || name;
     // tous les onglets partagent la même zone de défilement : on repart du haut en changeant d'onglet
     const cur = $('.tab.active');
-    if (!cur || cur.id !== `tab-${name}`) $('main').scrollTop = 0;
-    $$('.side button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
-    $$('.tab').forEach((t) => t.classList.toggle('active', t.id === `tab-${name}`));
+    if (!cur || (cur.dataset.with || cur.id.slice(4)) !== entry) $('main').scrollTop = 0;
+    $$('.side button[data-tab]').forEach((b) => {
+      const on = b.dataset.tab === entry;
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    $$('.tab').forEach((t) => t.classList.toggle('active', t.id === `tab-${entry}` || t.dataset.with === entry));
     try {
-      localStorage.setItem('rlui-tab', name);
+      localStorage.setItem('rlui-tab', entry);
     } catch {}
-    if (name === 'history') loadHistory();
-    if (name === 'stream') layoutPreviews();
-    if (name === 'caster') layoutCasterPv();
+    if (entry === 'history') {
+      loadHistory();
+      if (window.RLUI.stats) window.RLUI.stats.show();
+    }
+    if (entry === 'diag') loadDiag();
+    if (entry === 'stream' || entry === 'session') layoutPreviews();
+    if (entry === 'stream' && window.RLUI.market && !$('[data-ovpane="market"]').classList.contains('hidden')) window.RLUI.market.show();
+    if (entry === 'caster') layoutCasterPv();
+    // section demandée rangée sous une autre entrée : on l'amène à l'écran
+    if (own && entry !== name) own.scrollIntoView({ block: 'start' });
   }
-  $$('.side button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  $$('.side button[data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  // n'importe quel bouton ou carte peut mener à une page ou à un volet : data-go="settings/tracking"
+  document.addEventListener('click', (e) => {
+    const g = e.target.closest('[data-go]');
+    if (g) showTab(g.dataset.go);
+  });
+
+  // ------------------------------------------------------------------ menu réduit / déplié
+  function setNav(open) {
+    document.body.classList.toggle('nav-open', open);
+    $('#navToggle').setAttribute('aria-expanded', String(open));
+    // menu déplié : le nom est affiché ; réduit : il sert d'infobulle, on le donne aussi aux lecteurs d'écran
+    $$('.side button').forEach((b) => {
+      const lbl = $(open ? '.lbl:not(.when-closed)' : '.lbl:not(.when-open)', b);
+      if (lbl) b.setAttribute('aria-label', lbl.textContent);
+    });
+  }
+  {
+    let open = false;
+    try {
+      open = localStorage.getItem('rlui-nav') === 'open';
+    } catch {}
+    setNav(open);
+    $('#navToggle').addEventListener('click', () => {
+      const next = !document.body.classList.contains('nav-open');
+      setNav(next);
+      try {
+        localStorage.setItem('rlui-nav', next ? 'open' : 'closed');
+      } catch {}
+      // la largeur utile change : les aperçus se recalent
+      layoutPreviews();
+      layoutCasterPv();
+    });
+  }
+
+  // ------------------------------------------------------------------ thème clair / sombre
+  // Réglage app.theme : « system » (suit le système), « light » ou « dark ». Le bouton du menu bascule
+  // vers l'inverse de ce qui est affiché ; « Comme mon système » se choisit dans les Réglages.
+  const THEMES = ['system', 'light', 'dark'];
+  function applyTheme(theme) {
+    document.documentElement.dataset.theme = THEMES.includes(theme) ? theme : 'system';
+  }
+  function shownTheme() {
+    const th = document.documentElement.dataset.theme;
+    if (th === 'light' || th === 'dark') return th;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  $('#themeToggle').addEventListener('click', () => {
+    const next = shownTheme() === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    saveSetting('app.theme', next, true);
+  });
 
   // ------------------------------------------------------------------ actions
   document.addEventListener('click', async (e) => {
@@ -188,7 +288,25 @@
       if (el.classList.contains('rec')) return;
       writeInput(el, getPath(D.settings, el.dataset.set));
     });
+    syncPicks();
   }
+  // Choix segmentés : <div class="seg" data-choice="chemin.du.réglage"><button data-val="valeur">…
+  function syncPicks() {
+    $$('[data-choice]').forEach((g) => {
+      const v = String(getPath(D.settings, g.dataset.choice));
+      $$('button[data-val]', g).forEach((b) => {
+        b.classList.toggle('on', b.dataset.val === v);
+        b.setAttribute('aria-pressed', String(b.dataset.val === v));
+      });
+    });
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-choice] button[data-val]');
+    if (!b) return;
+    const g = b.closest('[data-choice]');
+    $$('button[data-val]', g).forEach((x) => x.classList.toggle('on', x === b));
+    saveSetting(g.dataset.choice, b.dataset.val, true);
+  });
 
   // Raccourcis : capture de la combinaison
   const CODE_KEYS = {
@@ -245,32 +363,63 @@
     if (built) return;
     built = true;
 
+    bindDiag();
+
     // Parties comptées
     $('#countingForm').innerHTML = CATS.map(([k, label]) => `<label class="check"><input type="checkbox" data-set="counting.${k}" /> ${esc(label)}</label>`).join('');
 
     // Overlays
-    $('#overlayGrid').innerHTML = OVERLAYS.map(
-      (o) => `
+    // chaque overlay a sa carte (aperçu, taille, lien), posée dans son emplacement data-ovslot
+    OVERLAYS.forEach((o) => {
+      $(`[data-ovslot="${o.id}"]`).innerHTML = `
       <div class="ov" data-ov="${o.id}">
         <div class="pv"><iframe data-w="${o.w}" data-h="${o.h}" loading="lazy"></iframe></div>
         <div class="body">
           <div class="title"><b>${esc(o.name)}</b><span>${o.w} × ${o.h}</span></div>
           <div class="desc">${esc(o.desc)} <span class="live-dot" data-live="${o.id}"></span></div>
-          <div class="url"><input readonly data-url="${o.id}" /><button class="btn small" data-copy="${o.id}">${esc(t('d.copy'))}</button><button class="btn small ghost" data-open="${o.id}">${esc(t('d.open'))}</button></div>
+          <div class="ov-add">${obsAddHtml(o)}</div>
+          <div class="url"><input readonly data-url="${o.id}" aria-label="URL" /><button class="btn small" data-copy="${o.id}">${esc(t('d.copy'))}</button><button class="btn small ghost" data-open="${o.id}">${esc(t('d.open'))}</button></div>
         </div>
-      </div>`
-    ).join('');
-    $('#overlayGrid').addEventListener('click', (e) => {
+      </div>`;
+    });
+    document.addEventListener('click', onObsAdd);
+    document.addEventListener('dragstart', onObsDrag);
+    $('#tab-stream').addEventListener('click', (e) => {
       const c = e.target.closest('[data-copy]');
       if (c) copy($(`[data-url="${c.dataset.copy}"]`).value);
       const o = e.target.closest('[data-open]');
       if (o) post('/api/open', { target: 'url', url: $(`[data-url="${o.dataset.open}"]`).value });
+      const tab = e.target.closest('[data-ovtab], [data-ovgo]');
+      if (tab) showOvTab(tab.dataset.ovtab || tab.dataset.ovgo);
     });
     $('#previewSound').addEventListener('change', () => setPreviewSrc(true));
-    new ResizeObserver(layoutPreviews).observe($('#overlayGrid'));
+    $('#homeOverlays').addEventListener('click', goCounter);
+    new ResizeObserver(layoutPreviews).observe($('#tab-stream'));
+    new ResizeObserver(layoutPreviews).observe($('#tab-session'));
+    {
+      let ovTab = 'counter';
+      try {
+        ovTab = localStorage.getItem('rlui-ovtab') || 'counter';
+      } catch {}
+      showOvTab(ovTab);
+    }
 
     // Thèmes
     $('#themeGrid').addEventListener('click', onThemeClick);
+    bindThemeNew();
+    $('#supportBtn').addEventListener('click', () => D.donate && window.RLUI.openUrl(D.donate));
+    $('#cmpEdit').addEventListener('click', () => {
+      const th = activeTheme();
+      if (th) location.href = `${editorUrl(th.id)}${D.settings.overlay.layout === 'boost' ? '&overlay=boost' : ''}`;
+    });
+    $('#cmpCasterEdit').addEventListener('click', () => {
+      const th = casterTheme();
+      if (th) location.href = `${editorUrl(th.id)}&overlay=caster`;
+    });
+    $('#cmpAlertEdit').addEventListener('click', () => {
+      const th = activeTheme();
+      if (th) location.href = `${editorUrl(th.id)}&overlay=alerts`;
+    });
     $('#themeFolder').addEventListener('click', () => post('/api/open', { target: 'themes' }));
     $('#themeInstall').addEventListener('click', pickTheme);
 
@@ -398,12 +547,23 @@
       $$('#histScope button').forEach((x) => x.classList.toggle('on', x === b));
       loadHistory(true);
     });
+    $('#homeRecap').addEventListener('click', () => {
+      if (window.RLUI.stats) window.RLUI.stats.open('sessions');
+      showTab('history');
+    });
+    $('#histCsv').addEventListener('click', () => {
+      const a = document.createElement('a');
+      a.href = `/api/history.csv?scope=${historyScope}&key=${encodeURIComponent(KEY)}`;
+      a.download = 'rl-ui-matches.csv';
+      a.click();
+    });
     document.addEventListener('click', async (e) => {
       const d = e.target.closest('[data-del]');
       if (!d) return;
       if (await confirmBox(t('d.deleteMatchQ'), t('d.delete'))) {
         await api(`/api/matches/${encodeURIComponent(d.dataset.del)}`, { method: 'DELETE' });
         historyDirty = true;
+        if (window.RLUI.stats) window.RLUI.stats.dirty();
         loadHistory(true);
       }
     });
@@ -640,20 +800,70 @@
       <div class="pick">${L.players.map((p) => `<button class="btn ${p.team === 0 ? '' : 'ghost'}" data-pick="${esc(p.key)}">${esc(p.name)}</button>`).join('')}</div>`;
   }
 
+  // Premiers pas : trois étapes, cochées dès qu'elles sont faites. Les deux premières sont nécessaires
+  // au suivi (la carte reste tant qu'elles manquent) ; la troisième se masque si on n'utilise pas OBS.
   function renderSetup() {
     const st = D.status;
     const cfg = st.rlConfig;
-    const items = [];
     const apiOff = cfg && cfg.known && !cfg.enabled;
-    if (apiOff) items.push(`<li>${t('d.setupApiOff', { btn: `<button class="btn small primary" id="setupEnable">${esc(t('d.enable'))}</button>` })}</li>`);
-    else if (cfg && !cfg.known) items.push(`<li>${t('d.setupNoCfg')}</li>`);
-    if (!st.logFound) items.push(`<li>${t('d.setupNoLog')}</li>`);
+    const noCfg = cfg && !cfg.known;
+    const inObs = Object.values(st.overlays || {}).some((n) => n > 0);
+    const steps = [
+      {
+        label: t('d.stepApi'),
+        done: !apiOff && !noCfg,
+        help: apiOff ? t('d.setupApiOff', { btn: `<button class="btn small primary" id="setupEnable">${esc(t('d.enable'))}</button>` }) : t('d.setupNoCfg'),
+      },
+      { label: t('d.stepLog'), done: !!st.logFound, help: t('d.setupNoLog') },
+      {
+        label: t('d.stepObs'),
+        done: inObs,
+        optional: true,
+        help: `${esc(t('d.stepObsHelp'))} <button class="btn small primary" id="setupObs">${esc(t('d.stepObsBtn'))}</button>`,
+      },
+    ];
+    let hidden = false;
+    try {
+      hidden = localStorage.getItem('rlui-steps') === 'hidden';
+    } catch {}
+    const todo = steps.filter((s) => !s.done);
     const card = $('#setupCard');
-    if (!items.length) return card.classList.add('hidden');
+    if (!todo.length || (hidden && todo.every((s) => s.optional))) return card.classList.add('hidden');
     card.classList.remove('hidden');
-    card.innerHTML = `<h3>${esc(t('d.setupTitle'))}</h3><ol>${items.join('')}</ol>`;
+    const next = todo[0];
+    const canHide = todo.every((s) => s.optional);
+    card.innerHTML = `
+      <div class="card-head">
+        <h3>${esc(t('d.stepsTitle'))}</h3>
+        <span class="muted small">${esc(t('d.stepsCount', { n: steps.length - todo.length, t: steps.length }))}${canHide ? ` · <button class="link" id="setupHide">${esc(t('d.stepsHide'))}</button>` : ''}</span>
+      </div>
+      <ol class="steps-list">${steps
+        .map(
+          (s, i) => `
+        <li class="step ${s.done ? 'done' : s === next ? 'now' : ''}">
+          <span class="n" aria-hidden="true">${s.done ? '<svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10" /></svg>' : i + 1}</span>
+          <div><div class="lbl">${esc(s.label)}</div>${s.done ? '' : `<div class="detail">${s.help}</div>`}</div>
+        </li>`
+        )
+        .join('')}</ol>`;
     const b = $('#setupEnable');
     if (b) b.onclick = enableApi;
+    const o = $('#setupObs');
+    if (o) o.onclick = () => goCounter();
+    const h = $('#setupHide');
+    if (h) {
+      h.onclick = () => {
+        try {
+          localStorage.setItem('rlui-steps', 'hidden');
+        } catch {}
+        card.classList.add('hidden');
+      };
+    }
+  }
+  // Ouvre Overlays → Compteur (lien OBS, réglages)
+  function goCounter() {
+    showTab('stream');
+    showOvTab('counter');
   }
 
   function matchRow(m) {
@@ -686,23 +896,295 @@
       .join('');
   }
 
+  // ------------------------------------------------------------------ ajouter un overlay dans OBS
+  // Deux chemins sans copier-coller : un clic si le logiciel de stream est connecté (onglet Stream),
+  // sinon un lien à glisser dans la fenêtre d'OBS (il crée la source navigateur à la bonne taille).
+  const OBS_NAMES = { counter: 'RL-UI Counter', alerts: 'RL-UI Alerts', history: 'RL-UI Matches', summary: 'RL-UI Recap' };
+  const dragUrl = (o) => `${baseUrl()}/overlay/${o.id}?layer-name=${encodeURIComponent(OBS_NAMES[o.id] || `RL-UI ${o.id}`)}&layer-width=${o.w}&layer-height=${o.h}`;
+  function obsAddHtml(o) {
+    return `<button class="btn small primary hidden" data-obsadd="${o.id}"></button>
+      <a class="ov-drag" draggable="true" data-obsdrag="${o.id}" href="#" title="${esc(t('d.obsDragTip'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" /></svg>${esc(t('d.obsDrag'))}</a>
+      <button class="link hidden" data-obsconnect>${esc(t('d.obsConnect'))}</button>`;
+  }
+  // (re)règle les boutons selon l'état du logiciel de stream : un clic s'il est connecté, sinon le lien à glisser
+  function syncObsAdd() {
+    const obs = D.status.obs || {};
+    const on = obs.state === 'connected';
+    $$('[data-obsadd]').forEach((b) => {
+      b.classList.toggle('hidden', !on);
+      b.textContent = t('d.obsAdd', { s: obs.name || 'OBS' });
+    });
+    $$('[data-obsconnect]').forEach((b) => b.classList.toggle('hidden', on));
+    $$('[data-obsdrag]').forEach((a) => {
+      const o = OVERLAYS.find((x) => x.id === a.dataset.obsdrag);
+      if (o) a.href = dragUrl(o);
+      // Streamlabs ne crée pas de source à partir d'un lien glissé
+      a.classList.toggle('hidden', obs.software === 'streamlabs' && D.settings.obs.enabled);
+    });
+  }
+  async function onObsAdd(e) {
+    const drag = e.target.closest('[data-obsdrag]');
+    if (drag) {
+      // un simple clic ne fait rien d'utile : on explique le geste
+      e.preventDefault();
+      return toast(t('d.obsDragHow'));
+    }
+    if (e.target.closest('[data-obsconnect]')) {
+      if (onbStep >= 0) onbClose(false);
+      return showTab('obs/software');
+    }
+    const b = e.target.closest('[data-obsadd]');
+    if (!b) return;
+    b.disabled = true;
+    const r = await post('/api/obs/add-overlay', { id: b.dataset.obsadd });
+    b.disabled = false;
+    toast(r.ok ? t(r.created ? 'd.obsAdded' : 'd.obsUpdated', { c: r.scene, s: r.software }) : r.error || t('d.failed'), r.ok ? 'ok' : 'err');
+  }
+  function onObsDrag(e) {
+    const a = e.target.closest && e.target.closest('[data-obsdrag]');
+    if (!a) return;
+    e.dataTransfer.setData('text/uri-list', a.href);
+    e.dataTransfer.setData('text/plain', a.href);
+    e.dataTransfer.effectAllowed = 'copyLink';
+  }
+
+  // ------------------------------------------------------------------ diagnostic
+  const DG_ICON = {
+    ok: '<path d="M7 12.5l3.2 3.2L17 9" />',
+    warn: '<path d="M12 7v6M12 16.6v.2" />',
+    bad: '<path d="M8.5 8.5l7 7M15.5 8.5l-7 7" />',
+    idle: '<path d="M8 12h8" />',
+  };
+  const DG_FIX = { 'enable-api': 'd.dg.enable', resume: 'd.dg.resume', counting: 'd.dg.toSettings', identity: 'd.dg.toSettings', overlays: 'd.dg.toOverlays' };
+
+  // Bilan de santé : un point par maillon de la détection, avec ce qu'il faut faire si ça coince
+  function renderDiagChecks() {
+    const dg = D.diag;
+    const lvl = $('#dgLevel');
+    lvl.className = `pill ${dg.level === 'ok' ? 'ok' : dg.level === 'bad' ? 'err' : 'wait'}`;
+    lvl.textContent = t(`d.dg.${dg.level}`);
+    $('#dgChecks').innerHTML = dg.checks
+      .map(
+        (c) => `
+      <li class="dg-check ${c.level}">
+        <span class="dg-ic" role="img" aria-label="${esc(t(`d.dg.${c.level}`))}"><svg viewBox="0 0 24 24" aria-hidden="true">${DG_ICON[c.level] || DG_ICON.idle}</svg></span>
+        <div>
+          <b>${esc(c.title)}</b>
+          <p>${esc(c.detail)}</p>
+          ${c.fix && DG_FIX[c.fix] && c.level !== 'ok' ? `<button class="btn small" data-dgdo="${esc(c.fix)}">${esc(t(DG_FIX[c.fix]))}</button>` : ''}
+        </div>
+      </li>`
+      )
+      .join('');
+    // pastille sur l'entrée du menu : un point de contrôle bloquant, ou une partie non comptée à regarder
+    const b = $('.side button[data-tab="diag"]');
+    b.classList.toggle('dot-bad', dg.level === 'bad');
+    b.classList.toggle('dot-warn', dg.level !== 'bad' && !!dg.notice);
+  }
+
+  const dgScore = (e) => (e.score ? (e.mySide ? e.score : `${t('team.blue')} ${e.score} ${t('team.orange')}`) : '');
+
+  // Avis sur l'accueil : la dernière partie vue n'a pas été comptée
+  function renderNotice() {
+    const n = D.diag.notice;
+    const card = $('#noticeCard');
+    if (!n) return card.classList.add('hidden');
+    card.classList.remove('hidden');
+    const direct = n.canFix && !n.needs.length;
+    card.innerHTML = `
+      <div class="notice-txt">
+        <b>${esc(t('d.dg.noticeTitle'))}</b>
+        <span class="muted">${esc([n.mode, dgScore(n), n.when].filter(Boolean).join(' · '))}</span>
+        <p>${esc(n.why)}</p>
+      </div>
+      <div class="head-actions">
+        <button class="link" data-dgnotice="hide">${esc(t('d.dg.noticeHide'))}</button>
+        ${direct ? `<button class="btn" data-dgnotice="why">${esc(t('d.dg.noticeWhy'))}</button><button class="btn primary" data-dgnotice="count">${esc(t(n.leftDraft ? 'd.dg.countLoss' : 'd.dg.count'))}</button>` : `<button class="btn primary" data-dgnotice="why">${esc(t(n.canFix ? 'd.dg.noticeChoose' : 'd.dg.noticeWhy'))}</button>`}
+      </div>`;
+  }
+
+  // Journal des parties vues (lu à la demande : il porte la trace technique de chaque partie)
+  let DG = null;
+  let dgRev = -1;
+  let dgBusy = false;
+  async function loadDiag() {
+    if (dgBusy) return;
+    dgBusy = true;
+    const r = await api('/api/diagnostic');
+    dgBusy = false;
+    if (!r || !Array.isArray(r.journal)) return;
+    dgRev = r.rev;
+    DG = r;
+    if (changed('dgJournal', r.journal)) renderDiagJournal();
+  }
+
+  function dgEntry(e) {
+    const kind = e.removed ? 'rm' : e.result ? e.result : 'no';
+    const fix = [];
+    if (e.canFix) {
+      if (e.needs.includes('player')) {
+        const group = (team) => {
+          const ps = e.players.filter((p) => p.team === team);
+          return ps.length ? `<optgroup label="${esc(t(team === 0 ? 'team.blue' : 'team.orange'))}">${ps.map((p) => `<option value="${p.i}">${esc(p.name)}</option>`).join('')}</optgroup>` : '';
+        };
+        fix.push(`<select data-dgplayer aria-label="${esc(t('d.dg.who'))}"><option value="">${esc(t('d.dg.who'))}</option>${group(0)}${group(1)}</select>`);
+      }
+      if (e.needs.includes('result')) {
+        fix.push(`<button class="btn small" data-dgfix="W">${esc(t('d.dg.asWin'))}</button><button class="btn small" data-dgfix="L">${esc(t('d.dg.asLoss'))}</button>`);
+      } else {
+        fix.push(`<button class="btn small primary" data-dgfix="">${esc(t(e.leftDraft ? 'd.dg.countLoss' : 'd.dg.count'))}</button>`);
+      }
+    } else if (e.warn && e.recorded) {
+      fix.push(`<button class="btn small" data-dgremove>${esc(t('d.dg.remove'))}</button>`);
+    }
+    const trace = (e.trace || []).map((l) => `<span>${String(l.t.toFixed(1)).padStart(6)} s</span> ${esc(l.text)}`).join('\n');
+    return `
+      <article class="dg-entry ${kind}" data-dgid="${esc(e.id)}">
+        <header>
+          <span class="dg-badge ${kind}">${esc(e.label)}</span>
+          <b>${esc(e.mode)}</b>
+          <span class="sc">${esc(dgScore(e))}</span>
+          <time>${esc(e.when)}</time>
+        </header>
+        <p>${esc(e.why)}</p>
+        ${e.warn ? `<p class="dg-warn">${esc(e.warn)}</p>` : ''}
+        ${fix.length ? `<div class="dg-fix">${fix.join('')}</div>` : ''}
+        ${trace ? `<details class="dg-trace"><summary>${esc(t('d.dg.trace'))}</summary><p class="muted small">${esc(t('d.dg.traceHelp'))}</p><pre>${trace}</pre></details>` : ''}
+      </article>`;
+  }
+
+  function renderDiagJournal() {
+    const list = DG ? DG.journal : [];
+    $('#dgCount').textContent = list.length ? tn('d.dg.nSeen', list.length) : '';
+    // on garde ce qui est ouvert ou choisi pendant le rafraîchissement
+    const open = new Set($$('#dgJournal details[open]').map((d) => d.closest('[data-dgid]').dataset.dgid));
+    const picked = new Map($$('#dgJournal select[data-dgplayer]').map((s) => [s.closest('[data-dgid]').dataset.dgid, s.value]));
+    $('#dgJournal').innerHTML = list.length ? list.map(dgEntry).join('') : `<div class="empty">${esc(t('d.dg.empty'))}</div>`;
+    for (const el of $$('#dgJournal [data-dgid]')) {
+      if (open.has(el.dataset.dgid)) $('details', el).open = true;
+      const sel = $('select[data-dgplayer]', el);
+      if (sel && picked.get(el.dataset.dgid)) sel.value = picked.get(el.dataset.dgid);
+    }
+  }
+
+  async function dgCount(id, body) {
+    const r = await post('/api/diagnostic/count', { id, ...body });
+    if (!r.ok) return toast(r.error || t('d.failed'), 'err');
+    const word = t(r.result === 'W' ? 'type.win' : 'type.loss');
+    toast(t(r.inSession ? 'd.dg.done' : 'd.dg.doneOld', { r: word }), 'ok');
+    loadDiag();
+  }
+
+  async function dgReport() {
+    try {
+      const r = await fetch(`/api/diagnostic/report?key=${encodeURIComponent(KEY)}`);
+      if (!r.ok) throw new Error(String(r.status));
+      return await r.text();
+    } catch {
+      toast(t('d.dg.reportFail'), 'err');
+      return null;
+    }
+  }
+
+  function bindDiag() {
+    $('#dgJournal').addEventListener('click', async (e) => {
+      const entry = e.target.closest('[data-dgid]');
+      if (!entry) return;
+      const id = entry.dataset.dgid;
+      const fix = e.target.closest('[data-dgfix]');
+      if (fix) {
+        const body = {};
+        const sel = $('select[data-dgplayer]', entry);
+        if (sel) {
+          if (sel.value === '') {
+            sel.focus();
+            return toast(t('d.dg.pickFirst'), 'err');
+          }
+          body.player = Number(sel.value);
+        }
+        if (fix.dataset.dgfix) body.result = fix.dataset.dgfix;
+        return dgCount(id, body);
+      }
+      if (e.target.closest('[data-dgremove]') && (await confirmBox(t('d.dg.removeQ'), t('d.dg.remove')))) {
+        await api(`/api/matches/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        loadDiag();
+      }
+    });
+    $('#dgChecks').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-dgdo]');
+      if (!b) return;
+      const act = b.dataset.dgdo;
+      if (act === 'enable-api') enableApi();
+      else if (act === 'resume') post('/api/action/resume');
+      else if (act === 'overlays') showTab('stream');
+      else showTab('settings/tracking');
+    });
+    $('#noticeCard').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-dgnotice]');
+      const n = D && D.diag.notice;
+      if (!b || !n) return;
+      if (b.dataset.dgnotice === 'hide') post('/api/diagnostic/dismiss', { id: n.id });
+      else if (b.dataset.dgnotice === 'count') dgCount(n.id, {});
+      else showTab('diag');
+    });
+    $('#dgCopy').addEventListener('click', async () => {
+      const text = await dgReport();
+      if (text == null) return;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      toast(t('d.dg.reportCopied'), 'ok');
+    });
+    $('#dgSave').addEventListener('click', async () => {
+      const text = await dgReport();
+      if (text == null) return;
+      const d = new Date();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+      a.download = `rl-ui-diagnostic-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.txt`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    });
+  }
+
   // ------------------------------------------------------------------ overlays / aperçus
   let lastSrcSig = '';
   function setPreviewSrc(force) {
     const sig = `${D.port}|${$('#previewSound').checked}`;
     if (!force && sig === lastSrcSig) return;
     lastSrcSig = sig;
-    $$('#overlayGrid .ov').forEach((ov) => {
+    $$('#tab-stream .ov').forEach((ov) => {
       const id = ov.dataset.ov;
       const url = `${baseUrl()}/overlay/${id}`;
       $(`[data-url="${id}"]`, ov).value = url;
       const extra = id === 'alerts' && !$('#previewSound').checked ? '&mute=1' : '';
       $('iframe', ov).src = `${url}?preview=1${extra}`;
     });
+    $('#homePv').src = `${baseUrl()}/overlay/counter?preview=1`;
     layoutPreviews();
   }
+  // Sous-onglets de la page Overlays : compteur, alertes, autres overlays, thèmes
+  function showOvTab(name) {
+    if (!$(`[data-ovpane="${name}"]`)) name = 'counter';
+    $$('#ovTabs button').forEach((b) => b.classList.toggle('on', b.dataset.ovtab === name));
+    $$('[data-ovpane]').forEach((p) => p.classList.toggle('hidden', p.dataset.ovpane !== name));
+    try {
+      localStorage.setItem('rlui-ovtab', name);
+    } catch {}
+    layoutPreviews(); // un aperçu caché n'a pas de taille : on le recale quand il apparaît
+    // la galerie n'est lue en ligne que lorsqu'on l'ouvre
+    if (name === 'market' && window.RLUI.market && $('#tab-stream').classList.contains('active')) window.RLUI.market.show();
+  }
   function layoutPreviews() {
-    $$('#overlayGrid .pv').forEach((pv) => {
+    $$('#tab-stream .pv, #tab-session .pv').forEach((pv) => {
+      if (!pv.clientWidth) return;
       const f = $('iframe', pv);
       const w = Number(f.dataset.w);
       const h = Number(f.dataset.h);
@@ -713,8 +1195,11 @@
       f.style.width = `${w}px`;
       f.style.height = `${h}px`;
       f.style.transform = `scale(${k})`;
-      f.style.left = `${(pv.clientWidth - cw * k) / 2 - cx * k}px`;
-      f.style.top = `${(pv.clientHeight - ch * k) / 2 - cy * k}px`;
+      // zone centrée ; si la page de l'overlay est plus grande que le cadre, elle le remplit jusqu'aux bords
+      // (la jauge de boost est dans un coin : sans ça, il resterait une bande vide à côté)
+      const fill = (box, size, at) => (size * k > box ? Math.min(0, Math.max(box - size * k, at)) : at);
+      f.style.left = `${fill(pv.clientWidth, w, (pv.clientWidth - cw * k) / 2 - cx * k)}px`;
+      f.style.top = `${fill(pv.clientHeight, h, (pv.clientHeight - ch * k) / 2 - cy * k)}px`;
     });
   }
   // Taille conseillée du compteur selon sa disposition
@@ -723,20 +1208,51 @@
     vertical: { w: 340, h: 720, label: '340 × 720', desc: t('o.counterV') },
     boost: { w: 1920, h: 1080, label: t('o.fullscreen'), desc: t('o.counterB') },
   };
+  // Thème de l'overlay caster : le sien s'il en a un, sinon celui des autres overlays
+  function casterTheme() {
+    const list = (D.themes && D.themes.list) || [];
+    return list.find((x) => x.id === (D.settings.caster.themePack || D.settings.overlay.themePack || 'signature')) || null;
+  }
+  // Thème actif fait avec l'éditeur : il dessine lui-même le compteur (et le compteur « Boost » s'il le compose aussi)
+  function activeTheme() {
+    const list = (D.themes && D.themes.list) || [];
+    return list.find((x) => x.id === (D.settings.overlay.themePack || 'signature')) || null;
+  }
+  const editorUrl = (id) => `/editor?theme=${encodeURIComponent(id)}${isApp ? '&app=1' : ''}`;
+
   function renderLayout() {
     const layout = D.settings.overlay.layout || 'horizontal';
     $('#boostOpts').classList.toggle('hidden', layout !== 'boost');
-    const dims = COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
-    const ov = $('#overlayGrid .ov[data-ov="counter"]');
+    const th = activeTheme();
+    const comp = th && th.compose ? (layout === 'boost' ? th.compose.boost : th.compose.counter) || null : null;
+    // avec un thème composé, ce qui est affiché se règle dans l'éditeur : les options du compteur classique s'effacent
+    $('#cmpNote').classList.toggle('hidden', !comp);
+    $('#cmpEdit').classList.toggle('hidden', !comp || !th.editable);
+    // alertes dessinées par le thème : leur place et leur taille viennent de l'éditeur
+    const alertComp = !!(th && th.compose && th.compose.alerts);
+    $('#cmpAlertNote').classList.toggle('hidden', !alertComp);
+    $('#cmpAlertEdit').classList.toggle('hidden', !alertComp || !th.editable);
+    $$('[data-classic-alert]').forEach((el) => el.classList.toggle('hidden', alertComp));
+    // (le calibrage de la jauge, lui, sert aussi au compteur « Boost » d'un thème)
+    $$('#tab-stream [data-ovpane="counter"] .sub-head, #tab-stream [data-ovpane="counter"] .sw-row, #tab-stream [data-ovpane="counter"] details.more-opts').forEach((el) => !el.closest('#boostOpts') && el.classList.toggle('hidden', !!comp));
+    const seg = $('[data-choice="overlay.layout"]');
+    $('[data-val="vertical"]', seg).classList.toggle('hidden', !!comp || (!!th && !!th.compose && layout === 'boost'));
+    $('[data-val="horizontal"]', seg).textContent = th && th.compose ? t('d.cmpLayout') : t('h.ctr.sh') === 'h.ctr.sh' ? 'Horizontal' : t('h.ctr.sh');
+    const dims = comp && layout !== 'boost' ? { w: comp.width, h: comp.height, label: `${comp.width} × ${comp.height}`, desc: t('o.counterDesc') } : COUNTER_DIMS[layout] || COUNTER_DIMS.horizontal;
+    const ov = $('#tab-stream .ov[data-ov="counter"]');
     if (!ov) return;
-    const f = $('iframe', ov);
     const crop = layout === 'boost' ? '1330,690,590,390' : '';
-    if (f.dataset.w !== String(dims.w) || f.dataset.h !== String(dims.h) || (f.dataset.crop || '') !== crop) {
-      f.dataset.w = dims.w;
-      f.dataset.h = dims.h;
-      f.dataset.crop = crop;
-      layoutPreviews();
+    // les deux aperçus du compteur : celui de la page Overlays et celui de l'accueil
+    let moved = false;
+    for (const f of [$('iframe', ov), $('#homePv')]) {
+      if (f.dataset.w !== String(dims.w) || f.dataset.h !== String(dims.h) || (f.dataset.crop || '') !== crop) {
+        f.dataset.w = dims.w;
+        f.dataset.h = dims.h;
+        f.dataset.crop = crop;
+        moved = true;
+      }
     }
+    if (moved) layoutPreviews();
     $('.title span', ov).textContent = dims.label;
     $('.desc', ov).firstChild.textContent = `${dims.desc} `;
   }
@@ -748,6 +1264,12 @@
       const el = $(`[data-live="${o.id}"]`);
       if (el) el.textContent = ovs[o.id] ? tn('o.sources', ovs[o.id]) : '';
     });
+    syncObsAdd();
+    // accueil : le compteur est-il affiché dans OBS ?
+    const live = ovs.counter > 0;
+    const pill = $('#homeObs');
+    pill.className = `pill ${live ? 'ok' : 'wait'}`;
+    pill.textContent = t(live ? 'd.inObs' : 'd.notInObs');
     const cs = D.settings.alerts.customSounds || {};
     TYPES.forEach(([t]) => {
       const lab = $(`[data-snd="${t}"]`);
@@ -760,13 +1282,16 @@
   // ------------------------------------------------------------------ thèmes
   function renderThemes() {
     const list = (D.themes && D.themes.list) || [];
-    const cur = D.settings.overlay.themePack || 'classique';
+    const cur = D.settings.overlay.themePack || 'signature';
+    const active = list.find((x) => x.id === cur);
+    $('#ovThemeName').textContent = active ? active.name : cur;
+    $('#homeTheme').textContent = t('d.themeIs', { n: active ? active.name : cur });
     $('#themeGrid').innerHTML = list
       .map((t) => {
         const c = t.colors || {};
         const sw = [c.win || '#2ef2a0', c.loss || '#ff4d6d', c.ot || '#ffb020'];
         const thumb = t.hasPreview
-          ? `<img src="/themes/${esc(t.id)}/preview.png" alt="" loading="lazy" />`
+          ? `<img src="/themes/${esc(t.id)}/preview.png?v=${esc(t.version)}-${D.themes.rev || 0}" alt="" loading="lazy" />`
           : `<div class="sw">${sw.map((x) => `<i style="background:${esc(x)}"></i>`).join('')}</div>`;
         const on = t.id === cur;
         return `
@@ -774,14 +1299,17 @@
           <div class="thumb">${thumb}${on ? `<span class="pill ok">${esc(tr('d.active'))}</span>` : ''}</div>
           <div class="info">
             <b>${esc(t.name)}</b>
-            <span class="muted small">${esc(tr(t.builtin ? 'd.builtin' : 'd.custom'))}${t.author ? ` · ${esc(tr('d.byAuthor', { a: t.author }))}` : ''} · v${esc(t.version)}</span>
+            <span class="muted small">${esc(tr(t.builtin ? 'd.builtin' : t.market ? 'd.fromGallery' : t.format === 2 ? 'd.madeInEditor' : 'd.custom'))}${t.author ? ` · ${esc(tr('d.byAuthor', { a: t.author }))}` : ''} · v${esc(t.version)}</span>
+            ${t.problem ? `<span class="desc warn-text">${esc(tr('d.themeBroken'))}</span>` : ''}
             ${t.description ? `<span class="desc">${esc(t.description)}</span>` : ''}
           </div>
           <div class="acts">
             ${on ? '' : `<button class="btn small primary" data-tact="use">${esc(tr('d.use'))}</button>`}
-            <button class="btn small" data-tact="custom">${esc(tr('d.customize'))}</button>
+            ${t.editable && !t.market ? `<button class="btn small" data-tact="edit">${esc(tr('d.editTheme'))}</button>` : ''}
+            ${t.market ? `<button class="btn small" data-tact="copy" title="${esc(tr('d.mk.customizeTip'))}">${esc(tr('d.mk.customize'))}</button>` : t.format === 2 ? `<button class="btn small ghost" data-tact="copy">${esc(tr('d.dupTheme'))}</button>` : `<button class="btn small ghost" data-tact="custom" title="${esc(tr('d.customizeTip'))}">${esc(tr('d.customize'))}</button>`}
             ${t.builtin ? '' : `<button class="btn small ghost" data-tact="folder">${esc(tr('d.folder'))}</button>`}
             <button class="btn small ghost" data-tact="export">${esc(tr('d.export'))}</button>
+            ${t.editable && !t.market ? `<button class="btn small ghost" data-tact="share">${esc(tr('d.mk.shareBtn'))}</button>` : ''}
             ${t.builtin ? '' : `<button class="btn small ghost danger" data-tact="del">${esc(tr('d.delete'))}</button>`}
           </div>
         </div>`;
@@ -801,6 +1329,15 @@
     } else if (act === 'custom') {
       const r = await post(`/api/themes/${id}/duplicate`, { name: t('d.customCopyName', { n: th.name }) });
       toast(r.ok ? t('d.copyCreated') : r.error || t('d.failed'), r.ok ? 'ok' : 'err');
+    } else if (act === 'edit') {
+      location.href = editorUrl(id);
+    } else if (act === 'copy') {
+      // copie d'un thème fait avec l'éditeur : elle s'ouvre tout de suite dans l'éditeur
+      const r = await post(`/api/themes/${id}/duplicate`, { name: t('d.customCopyName', { n: th.name }), open: false });
+      if (r.ok) location.href = editorUrl(r.id);
+      else toast(r.error || t('d.failed'), 'err');
+    } else if (act === 'share') {
+      window.RLUI.market.share(id);
     } else if (act === 'folder') {
       post('/api/open', { target: `theme:${id}` });
     } else if (act === 'export') {
@@ -815,6 +1352,54 @@
       const r = await api(`/api/themes/${id}`, { method: 'DELETE' });
       toast(r.ok ? t('d.themeDeleted') : t('d.failed'), r.ok ? 'ok' : 'err');
     }
+  }
+
+  // Nouveau thème : un nom, un point de départ, puis l'éditeur
+  const STARTERS = {
+    signature: '<rect x="6" y="20" width="108" height="24" rx="5" /><path d="M16 32h14M38 32h14" class="hi" /><path d="M62 28v8M78 28v8M94 28v8" />',
+    bar: '<rect x="6" y="23" width="108" height="18" rx="9" /><path d="M14 32h22" class="hi" /><path d="M48 28h6v8h-6zM58 28h6v8h-6zM68 28h6v8h-6zM78 28h6v8h-6zM88 28h6v8h-6z" class="fill" />',
+    vertical: '<rect x="42" y="4" width="36" height="56" rx="6" /><path d="M52 16h16M52 30h16" class="hi" /><path d="M50 42h20M50 50h20" />',
+    blank: '<rect x="20" y="20" width="80" height="24" rx="5" /><path d="M46 32h28" class="hi" />',
+  };
+  let newStarter = 'signature';
+  function bindThemeNew() {
+    const box = $('#themeNew');
+    const draw = () => {
+      $('#themeNewStarters').innerHTML = Object.entries(STARTERS)
+        .map(([k, p]) => `<button type="button" role="radio" aria-checked="${k === newStarter}" class="new-st ${k === newStarter ? 'on' : ''}" data-starter="${k}"><svg viewBox="0 0 120 64" aria-hidden="true">${p}</svg><b>${esc(t(`d.starter.${k}`))}</b><span>${esc(t(`d.starter.${k}Text`))}</span></button>`)
+        .join('');
+    };
+    const close = () => box.classList.add('hidden');
+    $('#themeCreate').addEventListener('click', () => {
+      newStarter = 'signature';
+      draw();
+      $('#themeNewName').value = '';
+      $('#themeNewName').placeholder = t('cmp.newName');
+      box.classList.remove('hidden');
+      $('#themeNewName').focus();
+    });
+    $('#themeNewStarters').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-starter]');
+      if (!b) return;
+      newStarter = b.dataset.starter;
+      draw();
+    });
+    $('#themeNewClose').addEventListener('click', close);
+    box.addEventListener('click', (e) => {
+      if (e.target === box) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !box.classList.contains('hidden')) close();
+    });
+    const go = async () => {
+      const r = await post('/api/themes/create', { name: $('#themeNewName').value.trim(), starter: newStarter });
+      if (!r.ok) return toast(r.error || t('d.failed'), 'err');
+      location.href = editorUrl(r.id);
+    };
+    $('#themeNewGo').addEventListener('click', go);
+    $('#themeNewName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') go();
+    });
   }
 
   function pickTheme() {
@@ -924,7 +1509,14 @@
     const cfg = st.rlConfig;
     const ok = (v, yes, no) => `<div class="onb-check ${v ? 'ok' : 'todo'}"><i>${v ? '✓' : '•'}</i><span>${yes && v ? yes : no}</span></div>`;
     const url = (id, extra = '') => `${baseUrl()}/overlay/${id}${extra}`;
-    const urlRow = (label, u, size) => `<div class="onb-url"><b>${esc(label)}</b><span class="muted small">${esc(size)}</span><input readonly value="${esc(u)}" /><button class="btn small" data-onbcopy="${esc(u)}">${esc(t('d.copy'))}</button></div>`;
+    const ovs = st.overlays || {};
+    const urlRow = (id, label, u, size) => {
+      const o = OVERLAYS.find((x) => x.id === id);
+      return `<div class="onb-ov ${ovs[id] ? 'ok' : ''}">
+        <div class="onb-ov-head"><i>${ovs[id] ? '✓' : '•'}</i><b>${esc(label)}</b><span class="muted small">${esc(ovs[id] ? t('d.inObs') : size)}</span><span class="ov-add">${obsAddHtml(o)}</span></div>
+        <div class="onb-url"><input readonly value="${esc(u)}" aria-label="URL" /><button class="btn small" data-onbcopy="${esc(u)}">${esc(t('d.copy'))}</button></div>
+      </div>`;
+    };
     let html = '';
     switch (onbStep) {
       case 0:
@@ -944,28 +1536,31 @@
       }
       case 2:
         html = `<h2>${esc(t('o.obsTitle'))}</h2><p>${t('o.obsText')}</p>
-          ${urlRow(t('o.counter'), url('counter'), '1000 × 220')}
-          ${urlRow(t('o.alerts'), url('alerts'), '1920 × 1080')}
+          ${urlRow('counter', t('o.counter'), url('counter'), '1000 × 220')}
+          ${urlRow('alerts', t('o.alerts'), url('alerts'), '1920 × 1080')}
           <p class="muted small">${t('o.obsAudio')}</p>`;
         break;
       case 3: {
-        const cur = D.settings.overlay.themePack || 'classique';
+        const cur = D.settings.overlay.themePack || 'signature';
         const layout = D.settings.overlay.layout || 'horizontal';
         html = `<h2>${esc(t('o.lookTitle'))}</h2><p>${esc(t('o.lookText'))}</p>
           <div class="onb-themes">${((D.themes && D.themes.list) || [])
             .filter((x) => x.builtin && x.hasPreview)
             .map((x) => `<button class="onb-th${x.id === cur ? ' on' : ''}" data-onbtheme="${esc(x.id)}"><img src="/themes/${esc(x.id)}/preview.png" alt="" /><span>${esc(x.name)}</span></button>`)
             .join('')}</div>
-          <div class="onb-layouts">${['horizontal', 'vertical', 'boost'].map((l) => `<button class="btn small ${layout === l ? 'primary' : ''}" data-onblayout="${l}">${esc(t(`o.layout.${l}`))}</button>`).join('')}</div>`;
+          <div class="onb-layouts">${['horizontal', 'vertical', 'boost'].map((l) => `<button class="btn small ${layout === l ? 'primary' : ''}" data-onblayout="${l}">${esc(t(`o.layout.${l}`))}</button>`).join('')}</div>
+          <p class="muted small">${esc(t('o.lookMore'))}</p>`;
         break;
       }
       case 4:
         html = `<h2>${esc(t('o.doneTitle'))}</h2><p>${esc(t('o.doneText'))}</p>
-          <div class="onb-more">
-            <button class="onb-card" data-onbtab="caster"><b>${esc(t('o.moreCaster'))}</b><span>${esc(t('o.moreCasterText'))}</span></button>
-            <button class="onb-card" data-onbtab="twitch"><b>${esc(t('o.moreChat'))}</b><span>${esc(t('o.moreChatText'))}</span></button>
-            <button class="onb-card" data-onbtab="settings"><b>${esc(t('o.moreDeck'))}</b><span>${esc(t('o.moreDeckText'))}</span></button>
-          </div>`;
+          <div class="onb-more">${['stream/market', 'history/overview', 'diag', 'obs/twitch', 'caster', 'settings/links']
+            .map((go) => {
+              // les mêmes cartes que sur la page Aide (« ce que RL-UI sait faire »), déjà dans la bonne langue
+              const c = $(`.disc-card[data-go="${go}"]`);
+              return c ? `<button class="onb-card" data-onbtab="${go}"><b>${esc($('b', c).textContent)}</b><span>${esc($('span', c).textContent)}</span></button>` : '';
+            })
+            .join('')}</div>`;
         break;
     }
     $('#onbBody').innerHTML = html;
@@ -976,6 +1571,7 @@
     $('#onbNext').textContent = t(onbStep === ONB_STEPS - 1 ? 'o.finish' : 'o.next');
     const b = $('#onbApi');
     if (b) b.onclick = enableApi;
+    if (onbStep === 2) syncObsAdd();
   }
 
   // ------------------------------------------------------------------ commandes du chat
@@ -1067,12 +1663,17 @@
   function renderCasterTheme() {
     const sel = $('#casterTheme');
     const list = (D.themes && D.themes.list) || [];
-    const main = list.find((x) => x.id === (D.settings.overlay.themePack || 'classique'));
+    const main = list.find((x) => x.id === (D.settings.overlay.themePack || 'signature'));
     sel.innerHTML =
       `<option value="">${esc(t('d.cs.sameTheme', { n: main ? main.name : 'Classic' }))}</option>` +
       list.map((x) => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('');
     const cur = D.settings.caster.themePack || '';
     sel.value = list.some((x) => x.id === cur) ? cur : '';
+    // thème qui dessine lui-même l'overlay caster : son apparence se règle dans l'éditeur
+    const th = casterTheme();
+    const drawn = !!(th && th.compose && th.compose.caster);
+    $('#cmpCasterNote').classList.toggle('hidden', !drawn);
+    $('#cmpCasterEdit').classList.toggle('hidden', !drawn || !th.editable);
   }
 
   function renderCasterStatic() {
@@ -1200,13 +1801,6 @@
     if (!force && !historyDirty) return;
     historyDirty = false;
     const h = await api(`/api/history?scope=${historyScope}&limit=1000`);
-    const a = D.allTime;
-    $('#allTime').innerHTML = `
-      <div class="kpi"><span>${esc(t('d.totalAll'))}</span><b>${a.wins}${esc(LW())} - ${a.losses}${esc(LL())}</b></div>
-      <div class="kpi"><span>${esc(t('d.globalWr'))}</span><b>${a.played ? `${a.winRate}%` : '—'}</b></div>
-      <div class="kpi ot"><span>${esc(t('d.otwl'))}</span><b>${a.otWins}-${a.otLosses}</b></div>
-      <div class="kpi"><span>${esc(t('d.best'))}</span><b>${a.bestWinStreak}</b></div>
-      <div class="bypl">${a.byPlaylist.map((p) => `<span class="pl-chip"><b>${esc(p.name)}</b> ${p.wins}${esc(LW())}-${p.losses}${esc(LL())} · ${p.winRate}%</span>`).join('')}</div>`;
     const rows = (h.matches || []).map((m) => {
       const tags = `${m.overtime ? '<span class="tag ot">OT</span>' : ''}${m.mvp ? '<span class="tag mvp">MVP</span>' : ''}${m.abandon ? `<span class="tag">${esc(t('d.tagAbandon'))}</span>` : ''}`;
       const me = m.me ? `${m.me.goals} · ${m.me.assists} · ${m.me.saves} · ${m.me.shots}` : '';
@@ -1300,16 +1894,32 @@
   function renderAll() {
     if (!D) return;
     buildOnce();
-    if (changed('settings', D.settings)) syncInputs();
+    if (changed('settings', D.settings)) {
+      syncInputs();
+      applyTheme(D.settings.app.theme);
+    }
     renderChips();
-    if (changed('setup', [D.status.rlConfig, D.status.logFound])) renderSetup();
+    $('#supportLine').classList.toggle('hidden', !D.donate);
+    if (changed('setup', [D.status.rlConfig, D.status.logFound, D.status.overlays])) renderSetup();
     if (changed('identity', D.live && D.live.needsIdentity ? D.live.players : null)) renderIdentity();
     renderLive();
     if (changed('matches', [D.sessionMatches, D.settings.overlay.labelWin, D.settings.overlay.labelLoss])) renderSessionList();
     if (changed('logs', D.logs.length && D.logs[D.logs.length - 1])) renderLogs();
-    if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds])) renderStream();
-    if (changed('layout', D.settings.overlay.layout)) renderLayout();
-    if (changed('themes', [D.themes, D.settings.overlay.themePack])) renderThemes();
+    if (changed('dgChecks', [D.diag.checks, D.diag.level, !!D.diag.notice])) renderDiagChecks();
+    if (changed('dgNotice', D.diag.notice)) renderNotice();
+    // le journal des parties vues se relit quand il a bougé, si la page Diagnostic est à l'écran
+    if (D.diag.rev !== dgRev && $('#tab-diag').classList.contains('active')) loadDiag();
+    if (changed('stream', [D.port, D.status.overlays, D.settings.alerts.customSounds, D.status.obs, D.settings.obs.enabled])) renderStream();
+    if (changed('layout', [D.settings.overlay.layout, D.settings.overlay.themePack, D.themes])) renderLayout();
+    if (changed('themes', [D.themes, D.settings.overlay.themePack])) {
+      renderThemes();
+      if (window.RLUI.market) window.RLUI.market.sync();
+    }
+    // lien « Installer dans RL-UI » cliqué sur le site : on ouvre la fiche du thème dans la galerie
+    if (D.intent && D.intent.type === 'market' && changed('intent', D.intent.n) && Date.now() - D.intent.at < 30000 && window.RLUI.market) {
+      showTab('stream/market');
+      window.RLUI.market.open(D.intent.id);
+    }
     if (changed('casterTheme', [D.themes, D.settings.overlay.themePack, D.settings.caster.themePack, D.settings.language])) renderCasterTheme();
     renderObs();
     if (changed('update', [D.update, D.version])) renderUpdate();
@@ -1325,9 +1935,11 @@
   OT.on('dashboard', (d) => {
     if (d.settings.language && d.settings.language !== OT.lang) return location.reload();
     const n = d.sessionMatches.length + (d.allTime ? d.allTime.played : 0);
-    if (n !== lastMatches) historyDirty = true;
+    const moved = n !== lastMatches;
+    if (moved) historyDirty = true;
     lastMatches = n;
     D = d;
+    if (moved && window.RLUI.stats) window.RLUI.stats.dirty();
     renderAll();
   });
   OT.on('caster', (c) => {

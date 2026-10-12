@@ -157,13 +157,19 @@ class AppServer extends EventEmitter {
       ws.isAlive = true;
       this.clients.add(ws);
       ws.on('pong', () => (ws.isAlive = true));
-      ws.on('close', () => this.clients.delete(ws));
+      ws.on('close', () => {
+        this.clients.delete(ws);
+        if (ws.overlay) this._overlaysChanged(); // une source OBS s'est fermée
+      });
       ws.on('error', () => {});
       ws.on('message', (raw) => {
         // les overlays peuvent signaler qu'ils sont prêts ; rien d'autre n'est accepté
         try {
           const m = JSON.parse(raw.toString());
-          if (m.type === 'hello' && typeof m.overlay === 'string') ws.overlay = m.overlay.slice(0, 20);
+          if (m.type === 'hello' && typeof m.overlay === 'string') {
+            ws.overlay = m.overlay.slice(0, 20);
+            this._overlaysChanged(); // une source OBS vient de s'ouvrir
+          }
           // abonnement aux données du mode caster (nombreuses : envoyées seulement à qui les demande)
           if (m.type === 'sub' && m.topic === 'caster') {
             ws.subs = ws.subs || new Set();
@@ -205,6 +211,11 @@ class AppServer extends EventEmitter {
     }
   }
 
+  // Le tableau de bord affiche quels overlays sont ouverts dans OBS : on le prévient tout de suite
+  _overlaysChanged() {
+    if (this.core && typeof this.core._changed === 'function') this.core._changed();
+  }
+
   overlayClients() {
     const out = {};
     for (const c of this.clients) if (c.overlay) out[c.overlay] = (out[c.overlay] || 0) + 1;
@@ -227,7 +238,15 @@ class AppServer extends EventEmitter {
     const method = req.method;
     if (p === '/' || p === '/index.html') {
       if (!isLoopback(req.socket.remoteAddress)) return this._text(res, 403, tr('s.dashLocal'));
-      return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang() });
+      // THEME : posé dès le HTML pour que la page s'affiche directement dans le bon thème
+      const theme = ['light', 'dark'].includes(this.settings.app.theme) ? this.settings.app.theme : 'system';
+      return this._page(res, path.join(this.webDir, 'dashboard', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang(), THEME: theme });
+    }
+    // éditeur de thèmes : comme le tableau de bord, seulement depuis ce PC
+    if (p === '/editor' || p === '/editor/') {
+      if (!isLoopback(req.socket.remoteAddress)) return this._text(res, 403, tr('s.dashLocal'));
+      const theme = ['light', 'dark'].includes(this.settings.app.theme) ? this.settings.app.theme : 'system';
+      return this._page(res, path.join(this.webDir, 'editor', 'index.html'), { KEY: this.settings.apiKey, LANG: getLang(), THEME: theme });
     }
     if (p === '/favicon.ico') return this._file(res, path.join(this.webDir, 'assets', 'icon.png'));
     let m = /^\/overlay\/([a-z]+)\/?$/.exec(p);
@@ -320,6 +339,29 @@ class AppServer extends EventEmitter {
       }
       m = /^\/api\/matches\/([^/]+)$/.exec(p);
       if (m && (method === 'DELETE' || method === 'POST')) return this._json(res, 200, { ok: this.core.deleteMatch(m[1]) });
+      if (p === '/api/diagnostic') return this._json(res, 200, this.core.diagnostic());
+      if (p === '/api/diagnostic/report') return this._text(res, 200, this.core.diagnosticReport());
+      if (p === '/api/diagnostic/count' && method === 'POST') {
+        const b = await this._body(req, true);
+        const r = this.core.countSkipped(b.id, { player: Number.isInteger(b.player) ? b.player : null, result: b.result });
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/diagnostic/dismiss' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, { ok: this.core.dismissNotice(b.id) });
+      }
+      if (p === '/api/stats') return this._json(res, 200, this.core.statsOverview({ range: url.searchParams.get('range') || 'session', mode: url.searchParams.get('mode') || 'all' }));
+      if (p === '/api/stats/mmr') return this._json(res, 200, this.core.mmrSeries({ range: url.searchParams.get('range') || 'all' }));
+      if (p === '/api/sessions') return this._json(res, 200, this.core.sessionList(Math.min(500, Number(url.searchParams.get('limit')) || 100)));
+      m = /^\/api\/sessions\/([\w-]+)$/.exec(p);
+      if (m) {
+        const d = this.core.sessionDetail(m[1]);
+        return d ? this._json(res, 200, d) : this._json(res, 404, { ok: false });
+      }
+      if (p === '/api/history.csv') {
+        res.writeHead(200, { ...this._headers('text/csv; charset=utf-8'), 'Content-Disposition': 'attachment; filename="rl-ui-matches.csv"' });
+        return res.end(this.core.historyCsv(url.searchParams.get('scope') || 'all'));
+      }
       if (p === '/api/history') {
         return this._json(res, 200, this.core.history(url.searchParams.get('scope') || 'session', Number(url.searchParams.get('limit')) || 500));
       }
@@ -329,6 +371,11 @@ class AppServer extends EventEmitter {
       }
       if (p === '/api/statsapi/refresh' && method === 'POST') return this._json(res, 200, await this.core.refreshRlConfig());
       if (p === '/api/obs/scenes') return this._json(res, 200, await this.core.obsScenes());
+      if (p === '/api/obs/add-overlay' && method === 'POST') {
+        const b = await this._body(req, true);
+        const r = await this.core.obsAddOverlay(String(b.id || ''));
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
       m = /^\/api\/sounds\/([a-z_]+)$/.exec(p);
       if (m && method === 'POST') {
         const buf = await this._body(req, false, 8 * 1024 * 1024);
@@ -336,15 +383,67 @@ class AppServer extends EventEmitter {
         return this._json(res, r.ok ? 200 : 400, r);
       }
       if (m && method === 'DELETE') return this._json(res, 200, this.core.deleteSound(m[1]));
+      // galerie de thèmes de la communauté
+      if (p === '/api/market') return this._json(res, 200, await this.core.marketView(url.searchParams.get('refresh') === '1'));
+      if (p === '/api/market/install' && method === 'POST') {
+        const b = await this._body(req, true);
+        const r = await this.core.marketInstall(b.id, !!b.use);
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/market/open' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, { ok: this.core.openMarketTheme(b.id) });
+      }
+      if (p === '/api/market/favorite' && method === 'POST') {
+        const b = await this._body(req, true);
+        return this._json(res, 200, this.core.marketFavorite(b.id, b.on));
+      }
+      if (p === '/api/market/theme') {
+        const t = await this.core.market.theme(url.searchParams.get('id') || '');
+        return t ? this._json(res, 200, { ok: true, id: t.id, colors: t.colors, counter: t.counter, compose: t.compose, images: t.images }) : this._json(res, 404, { ok: false });
+      }
+      if (p === '/api/market/file') {
+        const f = await this.core.market.file(url.searchParams.get('id') || '', url.searchParams.get('path') || '');
+        if (!f) return this._text(res, 404, 'Introuvable');
+        res.writeHead(200, { 'Content-Type': f.type, 'Cache-Control': 'private, max-age=86400', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox" });
+        return res.end(f.data);
+      }
       if (p === '/api/themes/install' && method === 'POST') {
         const buf = await this._body(req, false, 60 * 1024 * 1024);
         const r = this.core.installTheme(buf);
         return this._json(res, r.ok ? 200 : 400, r);
       }
+      if (p === '/api/themes/create' && method === 'POST') {
+        const b = await this._body(req, true).catch(() => ({}));
+        const r = this.core.createTheme({ name: b.name, starter: b.starter });
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (p === '/api/themes/starter') {
+        const r = this.core.overlayStarter(url.searchParams.get('overlay'));
+        return this._json(res, r.ok ? 200 : 404, r);
+      }
+      m = /^\/api\/themes\/([a-z0-9-]+)\/(source|image|preview|check)$/.exec(p);
+      if (m && m[2] === 'source' && method === 'GET') {
+        const r = this.core.themeSource(m[1]);
+        return this._json(res, r.ok ? 200 : 404, r);
+      }
+      if (m && m[2] === 'source' && (method === 'PUT' || method === 'POST')) {
+        const r = this.core.saveThemeSource(m[1], await this._body(req, true, 512 * 1024));
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && m[2] === 'image' && method === 'POST') {
+        const r = this.core.saveThemeImage(m[1], await this._body(req, false, 2 * 1024 * 1024 + 1024), url.searchParams.get('name') || 'image');
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && m[2] === 'preview' && method === 'POST') {
+        const r = this.core.saveThemePreview(m[1], await this._body(req, false, 1024 * 1024 + 1024));
+        return this._json(res, r.ok ? 200 : 400, r);
+      }
+      if (m && m[2] === 'check') return this._json(res, 200, this.core.checkTheme(m[1]));
       m = /^\/api\/themes\/([a-z0-9-]+)\/(duplicate|export)$/.exec(p);
       if (m && m[2] === 'duplicate' && method === 'POST') {
         const b = await this._body(req, true).catch(() => ({}));
-        const r = await this.core.duplicateTheme(m[1], b.name);
+        const r = await this.core.duplicateTheme(m[1], b.name, b.open !== false);
         return this._json(res, r.ok ? 200 : 400, r);
       }
       if (m && m[2] === 'export') {

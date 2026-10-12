@@ -13,6 +13,53 @@
   let lastScores = [null, null];
   let postTimer = null;
 
+  // ---------------------------------------------------------------- thème composé (éditeur visuel)
+  // Le thème dessine lui-même l'overlay : une toile (1920 × 1080 par défaut) à l'échelle de l'écran. L'overlay ne fait
+  // plus que lui dire ce qui se passe : l'état de la partie, le but ou l'action à l'écran, le tableau final.
+  let conf = null;
+  let composed = null; // { view, comp }
+  let composedSig = '';
+  const now = { goal: null, feed: null, post: false, hide: [...hidden] };
+  function composition() {
+    const pack = conf && (conf.casterTheme || conf.theme);
+    return pack && pack.compose && pack.compose.caster ? { comp: pack.compose.caster, pack } : null;
+  }
+  function placeComposed() {
+    if (!composed) return;
+    const { comp } = composed;
+    const host = $('cmp');
+    const k = (Math.min(window.innerWidth / comp.width, window.innerHeight / comp.height) || 1) * OT.num('scale', 1);
+    host.style.width = `${comp.width}px`;
+    host.style.height = `${comp.height}px`;
+    host.style.left = `${(window.innerWidth - comp.width * k) / 2}px`;
+    host.style.top = `${(window.innerHeight - comp.height * k) / 2}px`;
+    host.style.transform = `scale(${k})`;
+  }
+  window.addEventListener('resize', placeComposed);
+  function mountCompose() {
+    const c = composition();
+    const host = $('cmp');
+    host.classList.toggle('hide', !c);
+    $('root').classList.toggle('hide', !!c);
+    if (!c) {
+      composed = null;
+      composedSig = '';
+      host.textContent = '';
+      return;
+    }
+    const sig = `${c.pack.id}|${c.pack.v}|${JSON.stringify(c.comp)}`;
+    if (sig === composedSig) return;
+    composedSig = sig;
+    host.textContent = '';
+    composed = { comp: c.comp, view: window.Compose.mount(host, c.comp, { imageUrl: (src) => `${c.pack.assets || ''}${src}?v=${c.pack.v || 0}` }) };
+    placeComposed();
+  }
+  function renderComposed() {
+    if (!composed || !S) return;
+    $('cmp').classList.toggle('on', !!S.match.active || !!P.get('demo'));
+    composed.view.update(window.Compose.casterData(S, t, now));
+  }
+
   function updateScale() {
     const vs = Math.min(window.innerWidth / 1920, window.innerHeight / 1080) || 1;
     root.setProperty('--s', vs * OT.num('scale', 1));
@@ -49,6 +96,22 @@
     const m = st.match;
     const o = st.options;
     const ser = st.series;
+    if (composed) {
+      // tableau final : après un court délai, pour laisser voir le but gagnant
+      const want = m.ended && o.showPostgame && (m.winner === 0 || m.winner === 1);
+      if (want && !now.post && !postTimer) {
+        postTimer = setTimeout(() => {
+          postTimer = null;
+          now.post = true;
+          renderComposed();
+        }, P.get('demo') === 'post' ? 0 : 2500);
+      } else if (!want) {
+        clearTimeout(postTimer);
+        postTimer = null;
+        now.post = false;
+      }
+      return renderComposed();
+    }
     $('root').classList.toggle('on', !!m.active || !!P.get('demo'));
     teamColors(m.teams);
 
@@ -177,6 +240,16 @@
   let goalTimer = null;
   function showGoal(e) {
     if (!S || !S.options.showGoals || hidden.has('goals')) return;
+    if (composed) {
+      now.goal = e;
+      renderComposed();
+      clearTimeout(goalTimer);
+      goalTimer = setTimeout(() => {
+        now.goal = null;
+        renderComposed();
+      }, 5600);
+      return;
+    }
     const g = $('goal');
     const sp = speed(e.speed);
     g.className = `goal c${e.team}`;
@@ -211,6 +284,17 @@
       return;
     }
     feedBusy = true;
+    if (composed) {
+      now.feed = e;
+      renderComposed();
+      const keep = feedQueue.length > 1 ? FEED_MS * 0.7 : FEED_MS;
+      setTimeout(() => {
+        now.feed = null;
+        renderComposed();
+      }, keep);
+      setTimeout(nextFeed, keep + 400);
+      return;
+    }
     const box = $('feed');
     const it = document.createElement('div');
     it.className = `it c${e.team}`;
@@ -225,7 +309,11 @@
     }, hold + 400);
   }
 
-  OT.on('config', () => S && render(S));
+  OT.on('config', (c) => {
+    conf = c;
+    mountCompose();
+    if (S) render(S);
+  });
   OT.on('lang', () => S && render(S));
   OT.on('caster', (st) => {
     if (!P.get('demo')) render(st);

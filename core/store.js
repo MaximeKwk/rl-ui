@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { makeVault, SECRET_SETTINGS } = require('./vault');
+const { DEFAULT_THEME, RETIRED_THEMES } = require('./themes');
 
 const ALERT_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
 
@@ -16,6 +17,10 @@ const OLD_DEFAULTS = {
 
 function migrateDefaults(s) {
   if (!['en', 'fr'].includes(s.language)) s.language = 'en';
+  if (!['system', 'light', 'dark'].includes(s.app.theme)) s.app.theme = 'system';
+  // thèmes intégrés retirés avec la V2 : retour au thème par défaut (le thème du caster vide = celui des overlays)
+  if (RETIRED_THEMES.includes(s.overlay.themePack)) s.overlay.themePack = DEFAULT_THEME;
+  if (s.caster && RETIRED_THEMES.includes(s.caster.themePack)) s.caster.themePack = '';
   for (const [k, v] of Object.entries(OLD_DEFAULTS.texts)) if (s.alerts.texts[k] === v) s.alerts.texts[k] = '';
   if (s.overlay.labelWin === 'V') s.overlay.labelWin = '';
   if (s.overlay.labelLoss === 'D') s.overlay.labelLoss = '';
@@ -40,7 +45,7 @@ function defaultSettings() {
     mmr: { enabled: true, includeCasual: false, defaultDelta: 10, showInAlerts: true },
     overlay: {
       theme: 'arena', // arena | minimal | broadcast
-      themePack: 'classique', // thème (DA) : intégré ou perso
+      themePack: DEFAULT_THEME, // thème (DA) : intégré ou perso
       themeColors: true, // utiliser les couleurs du thème
       layout: 'horizontal', // horizontal | vertical | boost (collé à la jauge de boost du jeu)
       boostScale: 1, // calibrage de la disposition "boost" (taille du HUD du jeu)
@@ -99,7 +104,8 @@ function defaultSettings() {
       loss: 'Ctrl+Alt+Shift+Down',
       undo: 'Ctrl+Alt+Shift+Backspace',
     },
-    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true, onboarded: false },
+    // theme : system (suit le système d'exploitation) | light | dark
+    app: { minimizeToTray: true, startWithWindows: false, startMinimized: false, trayHintShown: false, autoUpdate: true, onboarded: false, theme: 'system' },
     // Commandes du chat Twitch (texte vide = réponse par défaut dans la langue choisie)
     chat: {
       enabled: true,
@@ -112,6 +118,8 @@ function defaultSettings() {
         { name: 'ot', aliases: 'overtime', enabled: false, text: '' },
       ],
     },
+    // Galerie de thèmes de la communauté. url vide = le catalogue officiel (dépôt GitHub de RL-UI)
+    market: { url: '' },
     // Mode caster : noms d'équipe (vide = nom du jeu), série (BO), options d'affichage de l'overlay
     caster: {
       title: '',
@@ -189,7 +197,7 @@ class Store {
   }
 
   _load() {
-    const base = { version: 1, settings: defaultSettings(), sessions: [], currentSessionId: null, matches: [] };
+    const base = { version: 1, settings: defaultSettings(), sessions: [], currentSessionId: null, matches: [], journal: [], market: { installed: {}, favorites: [] } };
     for (const f of [this.file, this.file + '.bak']) {
       try {
         // (un fichier retouché à la main peut commencer par un BOM UTF-8)
@@ -200,6 +208,7 @@ class Store {
         this._openSecrets(data.settings);
         if (!Array.isArray(data.matches)) data.matches = [];
         if (!Array.isArray(data.sessions)) data.sessions = [];
+        if (!Array.isArray(data.journal)) data.journal = [];
         if (!data.currentSessionId) this._newSession(data);
         return data;
       } catch (e) {
@@ -304,6 +313,19 @@ class Store {
     record.sessionId = this.data.currentSessionId;
     this.data.matches.push(record);
     if (this.data.matches.length > 20000) this.data.matches.splice(0, this.data.matches.length - 20000);
+    this.save();
+    return record;
+  }
+
+  // Partie comptée après coup (depuis le diagnostic) : rangée à sa place dans le temps, dans la session de l'époque.
+  insertMatch(record) {
+    const sessions = this.data.sessions.filter((s) => s.startedAt <= record.endedAt);
+    const sess = sessions.length ? sessions[sessions.length - 1] : this.session;
+    record.sessionId = sess.id;
+    const ms = this.data.matches;
+    let i = ms.length;
+    while (i > 0 && ms[i - 1].endedAt > record.endedAt) i--;
+    ms.splice(i, 0, record);
     this.save();
     return record;
   }

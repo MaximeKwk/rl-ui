@@ -36,7 +36,7 @@ function settings(obs) {
 // ---- faux OBS
 function fakeObs(password) {
   const log = [];
-  const state = { scene: 'Jeu', items: { Jeu: [{ sceneItemId: 7, sourceName: 'Cam hype', enabled: false }], Victoire: [] } };
+  const state = { scene: 'Jeu', inputs: {}, items: { Jeu: [{ sceneItemId: 7, sourceName: 'Cam hype', enabled: false }], Victoire: [] } };
   const wss = new WebSocketServer({ port: 0 });
   wss.on('connection', (ws) => {
     const salt = 'sel';
@@ -54,10 +54,21 @@ function fakeObs(password) {
       let data = {};
       if (t === 'GetCurrentProgramScene') data = { currentProgramSceneName: state.scene };
       if (t === 'SetCurrentProgramScene') state.scene = d.sceneName;
-      if (t === 'GetSceneItemId') data = { sceneItemId: state.items[d.sceneName].find((i) => i.sourceName === d.sourceName).sceneItemId };
+      if (t === 'GetSceneItemId') data = { sceneItemId: (state.items[d.sceneName].find((i) => i.sourceName === d.sourceName) || {}).sceneItemId };
       if (t === 'SetSceneItemEnabled') state.items[d.sceneName].find((i) => i.sceneItemId === d.sceneItemId).enabled = d.sceneItemEnabled;
       if (t === 'GetSceneList') data = { currentProgramSceneName: state.scene, scenes: [{ sceneName: 'Victoire' }, { sceneName: 'Jeu' }] };
       if (t === 'GetSceneItemList') data = { sceneItems: state.items[d.sceneName].map((i) => ({ sourceName: i.sourceName })) };
+      let okStatus = true;
+      if (t === 'GetSceneItemId' && !state.items[d.sceneName].some((i) => i.sourceName === d.sourceName)) okStatus = false;
+      if (t === 'GetVideoSettings') data = { baseWidth: 2560, baseHeight: 1440 };
+      if (t === 'GetInputList') data = { inputs: Object.keys(state.inputs).map((inputName) => ({ inputName, inputKind: 'browser_source' })) };
+      if (t === 'CreateInput') {
+        state.inputs[d.inputName] = d.inputSettings;
+        state.items[d.sceneName].push({ sceneItemId: 100 + state.items[d.sceneName].length, sourceName: d.inputName, enabled: true });
+      }
+      if (t === 'SetInputSettings') Object.assign(state.inputs[d.inputName], d.inputSettings);
+      if (t === 'CreateSceneItem') state.items[d.sceneName].push({ sceneItemId: 100 + state.items[d.sceneName].length, sourceName: d.sourceName, enabled: true });
+      if (!okStatus) return ws.send(JSON.stringify({ op: 7, d: { requestType: t, requestId, requestStatus: { result: false, code: 600, comment: 'No source was found' } } }));
       ws.send(JSON.stringify({ op: 7, d: { requestType: t, requestId, requestStatus: { result: true, code: 100 }, responseData: data } }));
     });
   });
@@ -96,6 +107,14 @@ function fakeStreamlabs(token) {
         }
         if (m.method === 'getItems') {
           return reply(resource === 'Scene["s1"]' ? [{ _type: 'HELPER', resourceId: 'SceneItem["s1","i1","src1"]', sceneItemId: 'i1', sourceId: 'src1', name: 'Cam hype', visible: state.visible }] : []);
+        }
+        if (m.method === 'createAndAddSource' && resource === 'Scene["s1"]') {
+          state.added = { name: args[0], type: args[1], settings: args[2] };
+          return reply({ sceneItemId: 'i2', sourceId: 'src2', name: args[0] });
+        }
+        if (m.method === 'updateSettings' && resource === 'Source["src1"]') {
+          state.updated = args[0];
+          return reply(null);
         }
         if (m.method === 'setVisibility' && resource === 'SceneItem["s1","i1","src1"]') {
           state.visible = args[0];
@@ -187,4 +206,52 @@ test('Streamlabs : source introuvable signalée dans le journal', async () => {
   b.stop();
   fake.wss.close();
   fake.server.close();
+});
+
+test('OBS : ajouter un overlay comme source navigateur, puis le mettre à jour sans doublon', async () => {
+  const fake = await fakeObs('');
+  const b = new StreamBridge(() => settings({ port: fake.port }));
+  b.apply();
+  assert.ok(await waitFor(() => b.state === 'connected'));
+  const src = { name: 'RL-UI Counter', url: 'http://127.0.0.1:5757/overlay/counter', width: 1000, height: 220 };
+  const r1 = await b.addBrowserSource(src);
+  assert.deepStrictEqual(r1, { scene: 'Jeu', created: true, width: 1000, height: 220 });
+  assert.deepStrictEqual(fake.state.inputs['RL-UI Counter'], { url: src.url, width: 1000, height: 220, reroute_audio: false });
+  assert.ok(fake.state.items.Jeu.some((i) => i.sourceName === 'RL-UI Counter'));
+  // la même source dans une autre scène : adresse mise à jour, posée dans la scène affichée, pas recréée
+  fake.state.scene = 'Victoire';
+  const r2 = await b.addBrowserSource({ ...src, url: 'http://127.0.0.1:5999/overlay/counter' });
+  assert.strictEqual(r2.created, false);
+  assert.strictEqual(fake.state.inputs['RL-UI Counter'].url, 'http://127.0.0.1:5999/overlay/counter');
+  assert.strictEqual(fake.state.items.Victoire.filter((i) => i.sourceName === 'RL-UI Counter').length, 1);
+  assert.strictEqual(fake.log.filter((t) => t === 'CreateInput').length, 1);
+  // alertes : taille du canevas d'OBS, son renvoyé vers OBS
+  const r3 = await b.addBrowserSource({ name: 'RL-UI Alerts', url: 'http://127.0.0.1:5757/overlay/alerts', width: 1920, height: 1080, audio: true, canvas: true });
+  assert.deepStrictEqual([r3.width, r3.height], [2560, 1440]);
+  assert.strictEqual(fake.state.inputs['RL-UI Alerts'].reroute_audio, true);
+  b.stop();
+  fake.wss.close();
+});
+
+test('Streamlabs : ajouter un overlay, ou mettre à jour la source du même nom', async () => {
+  const fake = await fakeStreamlabs('t');
+  const b = new StreamBridge(() => settings({ software: 'streamlabs', slPort: fake.port, slToken: 't' }));
+  b.apply();
+  assert.ok(await waitFor(() => b.state === 'connected'));
+  const r = await b.addBrowserSource({ name: 'RL-UI Counter', url: 'http://127.0.0.1:5757/overlay/counter', width: 1000, height: 220 });
+  assert.strictEqual(r.created, true);
+  assert.deepStrictEqual(fake.state.added, { name: 'RL-UI Counter', type: 'browser_source', settings: { url: 'http://127.0.0.1:5757/overlay/counter', width: 1000, height: 220 } });
+  const r2 = await b.addBrowserSource({ name: 'Cam hype', url: 'http://x/', width: 10, height: 10 });
+  assert.strictEqual(r2.created, false);
+  assert.deepStrictEqual(fake.state.updated, { url: 'http://x/', width: 10, height: 10 });
+  b.stop();
+  fake.wss.close();
+  fake.server.close();
+});
+
+test('ajouter un overlay sans logiciel connecté : erreur claire', async () => {
+  const s = settings({ enabled: false });
+  const b = new StreamBridge(() => s);
+  b.apply();
+  await assert.rejects(() => b.addBrowserSource({ name: 'x', url: 'http://x/', width: 1, height: 1 }), /OBS/);
 });

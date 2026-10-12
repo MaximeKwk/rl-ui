@@ -8,18 +8,18 @@ const path = require('path');
 const { EventEmitter } = require('events');
 const { readZip, writeZip } = require('./zip');
 const { t: tr, getLang } = require('./i18n');
+const themeFormat = require('./themeFormat');
+const { starter, STARTER_IDS } = require('./themeStarters');
+const Compose = require('../web/shared/compose.js');
 
 const ALLOWED = new Set(['.json', '.css', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.woff2', '.woff', '.ttf', '.otf', '.mp3', '.wav', '.ogg', '.md', '.txt']);
 const SOUND_TYPES = ['win', 'loss', 'overtime', 'ot_win', 'ot_loss', 'streak'];
+// Thème par défaut, et celui sur lequel on retombe quand le thème choisi n'existe plus
+const DEFAULT_THEME = 'signature';
+// Thèmes intégrés des versions 1.x, retirés avec la V2 : un réglage qui les désigne revient au thème par défaut
+const RETIRED_THEMES = ['classique', 'neon', 'or-noir'];
 
-const slug = (s) =>
-  String(s || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'theme';
+const { COMPOSED_FILE, imageKind, slug } = themeFormat;
 
 function safeRel(rel) {
   const r = String(rel || '').replace(/\\/g, '/').replace(/^\/+/, '');
@@ -71,7 +71,26 @@ class ThemeManager extends EventEmitter {
     for (const k of ['win', 'loss', 'ot']) {
       if (meta.colors && /^#[0-9a-f]{6}$/i.test(meta.colors[k] || '')) colors[k] = meta.colors[k];
     }
+    // thème composé (format 2, celui de l'éditeur) : décrit par des données validées, sans feuille de style
+    const isComposed = Number(meta.format) === themeFormat.FORMAT;
+    let composed = null;
+    let problem = '';
+    if (isComposed) {
+      try {
+        composed = themeFormat.cleanTheme(meta);
+      } catch (e) {
+        problem = e.message;
+      }
+    }
     return {
+      format: isComposed ? themeFormat.FORMAT : 1,
+      problem,
+      base: composed ? composed.base : null,
+      tags: composed ? composed.tags : [],
+      minApp: composed ? composed.minApp : null,
+      // overlays que le thème dessine lui-même : { counter, alerts, history, summary } (ceux qu'il compose seulement)
+      compose: composed && composed.counter ? Object.fromEntries(Compose.KINDS.filter((k) => composed[k]).map((k) => [k, composed[k]])) : null,
+      editable: !builtin && !!composed,
       id,
       builtin,
       name: String(loc.name || meta.name || id).slice(0, 60),
@@ -80,7 +99,7 @@ class ThemeManager extends EventEmitter {
       description: String(loc.description || meta.description || '').slice(0, 300),
       colors,
       sounds,
-      hasCss: files.includes('theme.css'),
+      hasCss: !isComposed && files.includes('theme.css'),
       hasPreview: files.includes('preview.png'),
       dir,
     };
@@ -101,8 +120,8 @@ class ThemeManager extends EventEmitter {
         if (m && !(builtin === false && out.some((t) => t.id === m.id))) out.push(m);
       }
     }
-    // intégrés d'abord, "classique" en tête
-    return out.sort((a, b) => (a.id === 'classique' ? -1 : b.id === 'classique' ? 1 : a.builtin === b.builtin ? a.name.localeCompare(b.name) : a.builtin ? -1 : 1));
+    // intégrés d'abord, le thème par défaut en tête
+    return out.sort((a, b) => (a.id === DEFAULT_THEME ? -1 : b.id === DEFAULT_THEME ? 1 : a.builtin === b.builtin ? a.name.localeCompare(b.name) : a.builtin ? -1 : 1));
   }
 
   get(id) {
@@ -154,16 +173,26 @@ class ThemeManager extends EventEmitter {
     const existing = this.get(wanted);
     const id = existing && !existing.builtin ? wanted : this._freeId(meta.id || meta.name);
     const dest = path.join(this.userDir, id);
+    // thème composé : son contenu est ramené au format (rien d'autre que des données et des médias)
+    const composed = Number(meta.format) === themeFormat.FORMAT;
+    let cleaned = null;
+    if (composed) {
+      try {
+        cleaned = themeFormat.cleanTheme(meta);
+      } catch {
+        throw new Error(tr('s.zipBadManifest'));
+      }
+    }
     const files = [];
     const refused = [];
     for (const e of entries) {
       if (!e.name.startsWith(prefix)) continue;
       const rel = safeRel(e.name.slice(prefix.length));
-      if (!rel) {
+      if (!rel || (composed && !COMPOSED_FILE.test(rel))) {
         refused.push(e.name);
         continue;
       }
-      files.push({ rel, data: e.data });
+      files.push({ rel, data: rel === 'theme.json' && cleaned ? Buffer.from(`${JSON.stringify({ id, ...cleaned }, null, 2)}\n`) : e.data });
     }
     fs.rmSync(dest, { recursive: true, force: true });
     for (const f of files) {
@@ -193,9 +222,139 @@ class ThemeManager extends EventEmitter {
     try {
       meta = JSON.parse(fs.readFileSync(metaFile, 'utf8').replace(/^﻿/, ''));
     } catch {}
-    fs.writeFileSync(metaFile, `${JSON.stringify({ ...meta, id: newId, name: newName, translations: undefined }, null, 2)}\n`);
+    // (une copie repart en 1.0.0 : c'est un nouveau thème)
+    fs.writeFileSync(metaFile, `${JSON.stringify({ ...meta, id: newId, name: newName, translations: undefined, ...(Number(meta.format) === themeFormat.FORMAT ? { version: '1.0.0' } : {}) }, null, 2)}\n`);
     this._changed();
     return { id: newId, dir: dest };
+  }
+
+  // Installe un thème composé reçu fichier par fichier (galerie de la communauté).
+  // files : [{ path, data }] déjà vérifiés ; id : thème à remplacer (mise à jour), sinon un identifiant libre est pris.
+  installFiles(files, { id = null, wanted = '' } = {}) {
+    const manifest = files.find((f) => f.path === 'theme.json');
+    if (!manifest) throw new Error(tr('s.zipNoManifest'));
+    let cleaned;
+    try {
+      cleaned = themeFormat.cleanTheme(JSON.parse(manifest.data.toString('utf8').replace(/^\ufeff/, '')));
+    } catch {
+      throw new Error(tr('s.zipBadManifest'));
+    }
+    const existing = id ? this.get(id) : null;
+    const target = existing && !existing.builtin ? existing.id : this._freeId(wanted || cleaned.name);
+    const dest = path.join(this.userDir, target);
+    fs.rmSync(dest, { recursive: true, force: true });
+    for (const f of files) {
+      if (!COMPOSED_FILE.test(f.path) || !safeRel(f.path)) continue;
+      // une image doit en être une (le nom du fichier ne suffit pas)
+      if (/\.(png|jpe?g|webp|gif)$/i.test(f.path) && !imageKind(f.data)) continue;
+      const p = path.join(dest, f.path);
+      fs.mkdirSync(path.dirname(p), { recursive: true });
+      fs.writeFileSync(p, f.path === 'theme.json' ? Buffer.from(`${JSON.stringify({ id: target, ...cleaned }, null, 2)}\n`) : f.data);
+    }
+    this._changed();
+    return { id: target, name: cleaned.name, version: cleaned.version };
+  }
+
+  // ---------------------------------------------------------------- thèmes composés (éditeur visuel)
+  _userTheme(id) {
+    const t = this.get(id);
+    if (!t) throw new Error(tr('s.themeMissing'));
+    if (t.builtin) throw new Error(tr('s.themeBuiltin'));
+    return t;
+  }
+
+  _readMeta(t) {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(t.dir, 'theme.json'), 'utf8').replace(/^\ufeff/, ''));
+    } catch {
+      return {};
+    }
+  }
+
+  // Nouveau thème composé, à partir d'un point de départ (signature, bar, vertical, blank)
+  create({ name, kind = 'signature', author = '' } = {}) {
+    const label = String(name || '').trim().slice(0, 60) || tr('cmp.newName');
+    const id = this._freeId(label);
+    const dir = path.join(this.userDir, id);
+    const theme = themeFormat.cleanTheme({
+      format: themeFormat.FORMAT,
+      name: label,
+      author,
+      version: '1.0.0',
+      colors: { win: '#8bd95a', loss: '#f2685f', ot: '#f0b03f' },
+      base: 'signature',
+      counter: starter(STARTER_IDS.includes(kind) ? kind : 'signature', tr),
+    });
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'theme.json'), `${JSON.stringify({ id, ...theme }, null, 2)}\n`);
+    this._changed();
+    return { id, dir };
+  }
+
+  // Contenu d'un thème composé, tel que l'éditeur le lit
+  source(id) {
+    const t = this.get(id);
+    if (!t) throw new Error(tr('s.themeMissing'));
+    if (t.format !== themeFormat.FORMAT || t.problem) throw new Error(tr('s.themeNotComposed'));
+    const theme = themeFormat.cleanTheme(this._readMeta(t));
+    const images = walk(t.dir).filter((f) => /^images\//.test(f) && COMPOSED_FILE.test(f));
+    return { id: t.id, builtin: t.builtin, theme, images };
+  }
+
+  // Enregistre un thème composé (thèmes perso seulement) ; les images qui ne servent plus sont retirées
+  saveSource(id, data) {
+    const t = this._userTheme(id);
+    if (t.format !== themeFormat.FORMAT) throw new Error(tr('s.themeNotComposed'));
+    const theme = themeFormat.cleanTheme({ ...(data || {}), format: themeFormat.FORMAT });
+    const used = new Set(themeFormat.usedImages(theme));
+    for (const f of walk(t.dir)) {
+      if (/^images\//.test(f) && !used.has(f)) {
+        try {
+          fs.unlinkSync(path.join(t.dir, f));
+        } catch {}
+      }
+    }
+    fs.writeFileSync(path.join(t.dir, 'theme.json'), `${JSON.stringify({ id: t.id, ...theme }, null, 2)}\n`);
+    this._changed();
+    return { id: t.id, theme };
+  }
+
+  // Ajoute une image au dossier d'un thème composé. Le type est lu dans le fichier lui-même, pas dans son nom.
+  saveImage(id, buf, name) {
+    const t = this._userTheme(id);
+    if (!Buffer.isBuffer(buf) || !buf.length) throw new Error(tr('s.emptyFile'));
+    if (buf.length > 2 * 1024 * 1024) throw new Error(tr('s.imageTooBig'));
+    const kind = imageKind(buf);
+    if (!kind) throw new Error(tr('s.imageFormats'));
+    const base = slug(String(name || 'image').replace(/\.[^.]+$/, ''));
+    let rel = `images/${base}.${kind}`;
+    for (let i = 2; fs.existsSync(path.join(t.dir, rel)); i++) rel = `images/${base}-${i}.${kind}`;
+    fs.mkdirSync(path.join(t.dir, 'images'), { recursive: true });
+    fs.writeFileSync(path.join(t.dir, rel), buf);
+    return { src: rel };
+  }
+
+  // Aperçu du thème (image fabriquée par l'éditeur à l'enregistrement)
+  savePreview(id, buf) {
+    const t = this._userTheme(id);
+    if (!Buffer.isBuffer(buf) || buf.length > 1024 * 1024 || imageKind(buf) !== 'png') throw new Error(tr('s.imageFormats'));
+    fs.writeFileSync(path.join(t.dir, 'preview.png'), buf);
+    this._changed();
+    return { ok: true };
+  }
+
+  // Le thème est-il prêt à être partagé ? Liste des problèmes (vide = oui).
+  check(id, appVersion = null) {
+    const t = this.get(id);
+    if (!t) throw new Error(tr('s.themeMissing'));
+    const files = walk(t.dir);
+    const sizes = {};
+    for (const f of files) {
+      try {
+        sizes[f] = fs.statSync(path.join(t.dir, f)).size;
+      } catch {}
+    }
+    return themeFormat.check(this._readMeta(t), files, sizes, appVersion);
   }
 
   exportZip(id) {
@@ -234,4 +393,4 @@ class ThemeManager extends EventEmitter {
   }
 }
 
-module.exports = { ThemeManager, safeRel, slug, SOUND_TYPES };
+module.exports = { ThemeManager, safeRel, slug, walk, imageKind, COMPOSED_FILE, SOUND_TYPES, DEFAULT_THEME, RETIRED_THEMES };

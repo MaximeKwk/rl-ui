@@ -161,6 +161,42 @@
     } catch {}
   }
 
+  // ------------------------------------------------------------------ thème composé (éditeur visuel)
+  // Le thème dessine lui-même l'alerte : une toile (1920 × 1080 par défaut) posée au centre de l'écran, à son échelle.
+  const composition = () => (conf.theme && conf.theme.compose && conf.theme.compose.alerts) || null;
+  let shown = null; // { view, comp } de l'alerte composée à l'écran
+  function placeComposed() {
+    if (!shown) return;
+    const host = document.getElementById('cmp');
+    const k = Math.min(window.innerWidth / shown.comp.width, window.innerHeight / shown.comp.height) || 1;
+    host.style.width = `${shown.comp.width}px`;
+    host.style.height = `${shown.comp.height}px`;
+    host.style.left = `${(window.innerWidth - shown.comp.width * k) / 2}px`;
+    host.style.top = `${(window.innerHeight - shown.comp.height * k) / 2}px`;
+    host.style.transform = `scale(${k})`;
+  }
+  window.addEventListener('resize', placeComposed);
+
+  async function showComposed(a, comp) {
+    const theme = conf.theme;
+    const host = document.getElementById('cmp');
+    host.textContent = '';
+    await window.Compose.loadFonts(comp);
+    const view = window.Compose.mount(host, comp, { animate: false, imageUrl: (src) => `${theme.assets || ''}${src}?v=${theme.v || 0}` });
+    shown = { view, comp };
+    placeComposed();
+    // (&mmr=0 dans l'adresse : la variation de MMR n'est pas montrée)
+    const data = P.get('mmr') === '0' && a.data ? { ...a.data, mmr: null } : a.data;
+    view.update(window.Compose.dataFrom(OT.state, conf.overlay, OT.t, { type: a.type, title: a.title, data }));
+    view.enter(comp.enter || 'slide');
+    sound(a);
+    await sleep(Math.max(1.5, Number(a.duration) || 4) * 1000);
+    view.leave();
+    await sleep(380);
+    view.destroy();
+    shown = null;
+  }
+
   async function next() {
     const a = queue.shift();
     if (!a) {
@@ -171,6 +207,12 @@
     try {
       await document.fonts.ready;
     } catch {}
+    const comp = composition();
+    if (comp) {
+      await showComposed(a, comp);
+      await sleep(120);
+      return next();
+    }
     const el = build(a);
     stage.appendChild(el);
     fit(el);

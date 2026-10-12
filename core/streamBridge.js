@@ -112,6 +112,34 @@ class ObsDriver {
     await this.request('SetSceneItemEnabled', { sceneName: scene, sceneItemId, sceneItemEnabled: visible });
   }
 
+  // Ajoute (ou met à jour) une source navigateur dans la scène affichée.
+  // canvas = source à la taille du canevas (alertes plein écran, compteur collé à la jauge de boost).
+  async addBrowserSource({ name, url, width, height, audio = false, canvas = false }) {
+    const scene = await this.currentScene();
+    if (canvas) {
+      try {
+        const v = await this.request('GetVideoSettings');
+        if (v.baseWidth > 0 && v.baseHeight > 0) [width, height] = [v.baseWidth, v.baseHeight];
+      } catch {}
+    }
+    const settings = { url, width, height, reroute_audio: !!audio };
+    const { inputs = [] } = await this.request('GetInputList', { inputKind: 'browser_source' });
+    if (inputs.some((i) => i.inputName === name)) {
+      // déjà créée (peut-être dans une autre scène) : on met son adresse à jour et on la pose dans la scène affichée
+      await this.request('SetInputSettings', { inputName: name, inputSettings: settings, overlay: true });
+      let placed = true;
+      try {
+        await this.request('GetSceneItemId', { sceneName: scene, sourceName: name });
+      } catch {
+        placed = false;
+      }
+      if (!placed) await this.request('CreateSceneItem', { sceneName: scene, sourceName: name, sceneItemEnabled: true });
+      return { scene, created: false, width, height };
+    }
+    await this.request('CreateInput', { sceneName: scene, inputName: name, inputKind: 'browser_source', inputSettings: settings, sceneItemEnabled: true });
+    return { scene, created: true, width, height };
+  }
+
   async listScenes() {
     const { scenes = [], currentProgramSceneName } = await this.request('GetSceneList');
     const out = [];
@@ -243,6 +271,21 @@ class StreamlabsDriver {
     await this.call('setVisibility', item.resourceId || `SceneItem["${sc.id}","${item.sceneItemId}","${item.sourceId}"]`, [visible]);
   }
 
+  async addBrowserSource({ name, url, width, height }) {
+    const cur = await this.currentScene();
+    const sc = await this._sceneByName(cur);
+    const res = sc.resourceId || `Scene["${sc.id}"]`;
+    const settings = { url, width, height };
+    const items = (await this.call('getItems', res)) || [];
+    const item = items.find((i) => i.name === name);
+    if (item) {
+      await this.call('updateSettings', `Source["${item.sourceId}"]`, [settings]);
+      return { scene: cur, created: false, width, height };
+    }
+    await this.call('createAndAddSource', res, [name, 'browser_source', settings]);
+    return { scene: cur, created: true, width, height };
+  }
+
   async listScenes() {
     const scenes = await this._scenes();
     const out = [];
@@ -360,6 +403,11 @@ class StreamBridge extends EventEmitter {
 
   async listScenes() {
     return this._ready().listScenes();
+  }
+
+  // Ajoute un overlay comme source navigateur dans la scène affichée (ou met à jour celle qui existe)
+  async addBrowserSource(source) {
+    return this._ready().addBrowserSource(source);
   }
 
   _later(fn, ms) {

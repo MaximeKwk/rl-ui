@@ -1,18 +1,19 @@
 <p align="center">
-  <img src="docs/images/banner.png" alt="RL-UI — stream overlay for Rocket League" width="100%">
+  <img src="docs/images/banner.png" alt="RL-UI — your stream reacts to your Rocket League matches" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-1.2.5-2f8cff?style=flat-square"></a>
-  <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078d4?style=flat-square&logo=windows&logoColor=white">
-  <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-official%20Stats%20API-ff8a2a?style=flat-square">
-  <img alt="OBS and Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-302e31?style=flat-square&logo=obsstudio&logoColor=white">
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-all%20rights%20reserved-555?style=flat-square"></a>
+  <a href="https://github.com/MaximeKwk/rl-ui/releases"><img alt="Version" src="https://img.shields.io/badge/version-2.0.0-2fd2c6?style=flat-square&labelColor=12181b"></a>
+  <img alt="Platform" src="https://img.shields.io/badge/Windows-10%20%7C%2011-a996ff?style=flat-square&labelColor=12181b&logo=windows&logoColor=white">
+  <img alt="Rocket League" src="https://img.shields.io/badge/Rocket%20League-official%20Stats%20API-2fd2c6?style=flat-square&labelColor=12181b">
+  <img alt="OBS and Streamlabs" src="https://img.shields.io/badge/OBS%20%7C%20Streamlabs-compatible-a996ff?style=flat-square&labelColor=12181b&logo=obsstudio&logoColor=white">
+  <img alt="No mods" src="https://img.shields.io/badge/no%20mods-anti--cheat%20safe-8bd95a?style=flat-square&labelColor=12181b">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-all%20rights%20reserved-7e8f94?style=flat-square&labelColor=12181b"></a>
+  <a href="https://ko-fi.com/maximekwk"><img alt="Leave a tip on Ko-fi" src="https://img.shields.io/badge/Ko--fi-leave%20a%20tip-2fd2c6?style=flat-square&labelColor=12181b&logo=kofi&logoColor=white"></a>
 </p>
 
 <p align="center">
-  <b>RL-UI</b> tracks your Rocket League wins, losses and MMR automatically,<br>
-  and makes your stream react when you win, when you lose and when the game goes to <b>overtime</b>.
+  <b>RL-UI</b> counts your Rocket League wins, losses and MMR on its own,<br>and makes your stream react when you win, when you lose and when the match goes to <b>overtime</b>.
 </p>
 
 <p align="center">
@@ -20,34 +21,70 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/MaximeKwk/rl-ui/releases"><b>Download</b></a> ·
+  <a href="#new-in-version-2">New in V2</a> ·
   <a href="#quick-start">Quick start</a> ·
-  <a href="#preview">Preview</a> ·
-  <a href="#how-it-works">How it works</a> ·
   <a href="#overlays">Overlays</a> ·
-  <a href="#caster-mode">Caster mode</a> ·
+  <a href="#themes">Themes</a> ·
   <a href="#faq">FAQ</a>
+</p>
+
+<p align="center">
+  <a href="https://maximekwk.github.io/rl-ui/#video"><img src="docs/media/teaser.webp" alt="RL-UI 2 on video" width="840"></a><br>
+  <sub>▶ <a href="https://maximekwk.github.io/rl-ui/#video">Watch the full video, with sound (49 s)</a></sub>
 </p>
 
 > [!IMPORTANT]
 > RL-UI uses **no mods**: no BakkesMod, no injection into the game. It only reads Psyonix's **official Stats API**
-> and the game's local log file, so it is compatible with the anti-cheat (EAC).
-> The app is not code-signed yet: on first launch, Windows SmartScreen may show a warning
+> and the game's local log. It is therefore compatible with the anti-cheat (EAC).
+> The app is not digitally signed yet: on first launch, Windows SmartScreen may show a warning
 > (*More info → Run anyway*).
+
+## New in version 2
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/app-editor.png" alt="Theme editor"></td>
+    <td width="50%"><img src="docs/images/app-gallery.png" alt="Theme gallery"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Theme editor</b><br>Draw your overlay with the mouse: plates, texts, live values, images. Counter, Boost counter, alerts, recent matches, recap and caster overlay, without touching a file.</td>
+    <td valign="top"><b>Community gallery</b><br>Themes made by other players, installed in one click. Publish yours on <a href="https://kydora.net/marketplace">kydora.net/marketplace</a>.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/app-stats.png" alt="Statistics"></td>
+    <td><img src="docs/images/app-diagnostic.png" alt="Diagnostic"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>Statistics</b><br>MMR curve, streaks, win rate by game mode, sessions compared with each other, a session summary to share as an image, CSV export.</td>
+    <td valign="top"><b>Diagnostic</b><br>Every match RL-UI saw, with the reason it was counted or not, and a button to count it anyway.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/app-home.png" alt="Home, dark theme"></td>
+    <td><img src="docs/images/app-home-light.png" alt="Home, light theme"></td>
+  </tr>
+  <tr>
+    <td valign="top"><b>New identity</b><br>A rebuilt interface: guided home page, settings search, help bubbles, three new overlay themes (Signature, Minimal, Contrast).</td>
+    <td valign="top"><b>Light or dark</b><br>The app follows your system theme. <b>Add to OBS</b> places every overlay in one click, or by dragging the button into OBS.</td>
+  </tr>
+</table>
+
+Every version is detailed in the [changelog](CHANGELOG.md).
 
 ## Preview
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/alert-win.png" alt="Victory alert"></td>
-    <td width="50%"><img src="docs/images/alert-overtime.png" alt="Overtime alert"></td>
+    <td width="50%"><img src="docs/images/alert-win.jpg" alt="Victory alert"></td>
+    <td width="50%"><img src="docs/images/alert-overtime.jpg" alt="Overtime alert"></td>
   </tr>
   <tr>
     <td align="center"><b>Victory</b> — score, streak, MMR, MVP</td>
     <td align="center"><b>Overtime</b> — as soon as overtime starts</td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/images/alert-ot-win.png" alt="Overtime victory alert"></td>
-    <td width="50%"><img src="docs/images/alert-loss.png" alt="Defeat alert"></td>
+    <td width="50%"><img src="docs/images/alert-ot-win.jpg" alt="Overtime victory alert"></td>
+    <td width="50%"><img src="docs/images/alert-loss.jpg" alt="Defeat alert"></td>
   </tr>
   <tr>
     <td align="center"><b>Overtime victory</b> — golden goal</td>
@@ -58,18 +95,21 @@
 <table>
   <tr>
     <td><img src="docs/images/counter.png" alt="Horizontal counter"></td>
-    <td rowspan="2"><img src="docs/images/counter-vertical.png" alt="Vertical counter" width="160"></td>
+    <td rowspan="3"><img src="docs/images/counter-vertical.png" alt="Vertical counter" width="170"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/history.png" alt="Recent matches"></td>
   </tr>
   <tr>
     <td><img src="docs/images/counter-boost.png" alt="Counter next to the boost gauge"></td>
   </tr>
   <tr>
-    <td align="center">Horizontal counter, and <b>Boost</b> mode stuck to the in-game boost gauge, in your team's color</td>
+    <td align="center">Horizontal counter, recent matches, and <b>Boost</b> mode stuck to the in-game gauge, in your team's color</td>
     <td align="center">Vertical</td>
   </tr>
 </table>
 
-<p align="center"><img src="docs/images/dashboard.png" alt="Dashboard" width="85%"></p>
+<p align="center"><img src="docs/images/summary.jpg" alt="Session recap" width="85%"><br><sub>The session recap, to show at the end of a stream</sub></p>
 
 ## How it works
 
@@ -94,7 +134,7 @@ flowchart LR
    (or the portable version, no install needed).
 2. **Launch Rocket League** and play a match. The Stats API is enabled by default in recent versions of the game; otherwise
    *Settings → Enable / repair the API*, then restart the game.
-3. **Add the overlays** in OBS or Streamlabs: *Sources → + → Browser*, paste the URL (see below).
+3. **Add the overlays** in OBS or Streamlabs. Easiest: in the Overlays tab, drag the **Drag into OBS** button onto the OBS window, or click **Add to OBS** once OBS is connected in the Stream tab. By hand: *Sources → + → Browser*, paste the URL (see below).
 
 A short guided setup opens on first launch (you can reopen it from *Help*).
 
@@ -119,7 +159,7 @@ The interface is in English by default; French is available in *Settings → Lan
 > Overlays follow the dashboard settings live (theme, style, colors, texts, sounds, language).
 
 **Boost mode** — the counter snaps to the left of the boost gauge, its edge follows the gauge's arc and it takes your team's
-color. If your HUD has a different size: *OBS overlays → Counter → Show the gauge guide*, adjust the size and position until
+color. If your HUD has a different size: *Overlays → Counter → Show the gauge guide*, adjust the size and position until
 the guide covers your gauge in OBS, then hide it.
 
 <details>
@@ -131,7 +171,7 @@ the guide covers your gauge in OBS, then hide it.
 | Alerts | `pos=center\|top\|bottom` · `scale` · `mute=1` · `only=overtime,ot_win` · `mmr=0` |
 | Recent matches | `n=5` · `order=old` · `bare=1` · `title=0` |
 | Caster | `hide=bug,boosts,target,goals,feed,post` · `scale` |
-| All | theme `pack=neon` · colors `win=2ef2a0&loss=ff4d6d&ot=ffb020` · preview `preview=1` |
+| All | theme `pack=contraste` · colors `win=2ef2a0&loss=ff4d6d&ot=ffb020` · preview `preview=1` |
 
 </details>
 
@@ -139,16 +179,29 @@ the guide covers your gauge in OBS, then hide it.
 
 Change the look of every overlay in one click, or build your own with your images, font, colors and sounds.
 
-<p align="center"><img src="docs/images/themes.png" alt="Theme picker in RL-UI" width="860" /></p>
+<p align="center"><img src="docs/images/app-themes.png" alt="Theme picker in RL-UI" width="860" /></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/app-editor-alerts.png" alt="Editor: the alerts"></td>
+    <td width="50%"><img src="docs/images/app-editor-caster.png" alt="Editor: the caster overlay"></td>
+  </tr>
+  <tr>
+    <td align="center">The editor on the <b>alerts</b>: one design, elements shown per event</td>
+    <td align="center">The editor on the <b>caster overlay</b></td>
+  </tr>
+</table>
 
 | | |
 | --- | --- |
-| **Built-in themes** | Classic, Neon, Gold & Black, and a **Template** with images, ready to duplicate |
-| **Customize** | Creates an editable copy and opens its folder: replace the images, the colors in `theme.json` or the `theme.css`, overlays update **live in OBS** |
-| **Share** | *Export* gives a `.zip`; others load it with *Install a theme* |
-| **Safe** | No scripts allowed in a theme: images, fonts, sounds and CSS only |
+| **Built-in themes** | Signature, Minimal, Contrast, and a **Template** with images, ready to duplicate |
+| **Theme editor** | *Create a theme* opens a visual editor: place plates, texts, live values (wins, win rate, MMR, streak…), images and the last matches with the mouse, see the result right away. A theme draws the counter and, if you want, the Boost counter, the alerts, the recent matches, the session recap and the caster overlay. No file to touch |
+| **Community gallery** | *Overlays → Gallery*: themes made by other players, with search, styles, favorites, likes and a live preview. One click to install, and updates are offered when a creator publishes one |
+| **Share yours** | The *Share* button checks your theme and exports it; you publish it on **[kydora.net/marketplace](https://kydora.net/marketplace)** with a Twitch, Discord or e-mail account. Every theme has its own page, with an **Install in RL-UI** button |
+| **Safe** | A theme made in the editor is only data and images: no CSS, no script. RL-UI checks every file of a gallery theme (size, fingerprint, format) before installing it |
+| **For people who know CSS** | *Edit the files* creates an editable copy of a built-in theme and opens its folder: images, colors in `theme.json`, `theme.css`. Overlays update **live in OBS** |
 
-Full guide (every element you can change, examples): **[docs/THEMES.md](docs/THEMES.md)**.
+Format of editor themes (what a theme may contain, versions, checks): **[docs/THEME-FORMAT.md](docs/THEME-FORMAT.md)**. Themes with a style sheet: **[docs/THEMES.md](docs/THEMES.md)**.
 
 ## Caster mode
 
@@ -156,8 +209,8 @@ To cast a match as a **spectator** (tournament, scrim, private match): a full br
 
 <table>
   <tr>
-    <td><img src="docs/images/caster.png" alt="Live caster overlay" /></td>
-    <td><img src="docs/images/caster-post.png" alt="End-of-match scoreboard" /></td>
+    <td><img src="docs/images/caster.jpg" alt="Live caster overlay" /></td>
+    <td><img src="docs/images/caster-post.jpg" alt="End-of-match scoreboard" /></td>
   </tr>
 </table>
 
@@ -185,6 +238,8 @@ OBS source: `http://127.0.0.1:5757/overlay/caster` in **full screen**. To split 
 | **Themes** | Ready-made or custom looks (images, font, colors, sounds), installable and shareable as .zip |
 | **Counter** | 3 styles (Arena, Broadcast, Minimal), horizontal, vertical or next to the boost gauge, live OVERTIME badge |
 | **Sessions and history** | New session automatically after 6 h without playing, full history per mode, manual corrections |
+| **Statistics** | Overview of a period (session, 7 days, 30 days, all time) per game mode, MMR curve, streaks, win rate after a win or a loss and as the session goes on, sessions compared with each other or with your average, session recap as an image to share, CSV export |
+| **Diagnostic** | Every match seen with the reason it was counted or not, one-click correction, health check of the detection, report to copy |
 | **Chat commands** | `!wl`, `!mmr`, `!last`, `!streak`… answered in your Twitch chat, plus your own commands |
 | **Automatic updates** | New versions download in the background; one click to install |
 | **Languages** | English by default, French available (interface, overlays, alerts, mode names) |
@@ -221,8 +276,10 @@ your recent real changes. If your teammate starts the search, only the estimate 
 <details>
 <summary><b>A match wasn't counted</b></summary>
 
-Check the log in the dashboard: the mode may be excluded (private matches, offline) or the tracker was paused.
-You can always fix it with the + / − buttons.
+Open **Diagnostic** in the dashboard: every match the game reported is listed with the reason it was counted or not
+(excluded mode, tracking paused, account not recognized, match left…). A match that was not counted can be added in one click,
+with its real score. The same page checks every link of the detection (game, Stats API, game log, account, MMR) and prepares a
+report you can copy when asking for help.
 </details>
 
 <details>
@@ -239,8 +296,9 @@ You can always fix it with the + / − buttons.
 
 ## Privacy
 
-RL-UI runs **entirely locally**. It sends no data over the Internet, contains no telemetry and needs no account.
-Your matches are stored in `%APPDATA%\RL-UI\data.json`.
+RL-UI tracks your matches **entirely locally**: your matches and statistics never leave your PC (`%APPDATA%\RL-UI\data.json`), there is no telemetry and no account to create.
+
+It only goes online for things you can see: checking for updates (GitHub), the Twitch chat if you connect it, and the theme gallery when you open its tab. Browsing the gallery sends nothing about you; installing a theme tells the gallery which theme was installed, for its install counter, and nothing else.
 
 ## Security
 
@@ -264,7 +322,7 @@ node tools/simulator.js otwin win loss --speed 10                     # fake Roc
 node tools/simulator.js spectate --speed 10                           # spectated match (caster mode)
 node tools/simulator.js win loss --log <Launch.log> --mmr 1150 --lag  # + game log with MMR
 node tools/sniff.js 120 capture.jsonl                                 # record the raw feed of the real game
-npm run headless                                                      # tracker without UI
+npm run headless                                                      # tracker without UInpx electron tools/promo/render.js rl-ui-2.mp4 --lang=en              # the promo video (tools/promo/promo.html, needs ffmpeg)
 ```
 
 | Folder | Content |
@@ -286,8 +344,10 @@ RL-UI is an independent project. It is not affiliated with, endorsed or sponsore
 ## License
 
 © 2026 Zoxam — all rights reserved. See [LICENSE](LICENSE).
-[Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) font under the SIL Open Font License.
+[Unbounded](web/assets/fonts/OFL-Unbounded.txt), [Onest](web/assets/fonts/OFL-Onest.txt), [Barlow Condensed](web/assets/fonts/OFL-BarlowCondensed.txt) and [Archivo](web/assets/fonts/OFL-Archivo.txt) fonts under the SIL Open Font License.
 
 ## About
 
 Made by **Zoxam**. An idea, a bug? Open an [issue](https://github.com/MaximeKwk/rl-ui/issues).
+
+RL-UI is free and stays free. If it helps your stream, you can [leave a tip on Ko-fi](https://ko-fi.com/maximekwk) to support its development.

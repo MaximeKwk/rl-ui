@@ -1,6 +1,6 @@
 # Thème modèle
 
-Duplique ce thème depuis RL-UI (Overlays OBS > Thèmes > Personnaliser), puis :
+Duplique ce thème depuis RL-UI (Overlays > Thèmes > Personnaliser), puis :
 
 - remplace `images/fond-compteur.svg` et `images/logo.svg` par tes images ;
 - mets tes couleurs dans `theme.json` ;

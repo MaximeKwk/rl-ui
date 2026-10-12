@@ -2,7 +2,7 @@
 // Processus principal Electron : fenêtre du tableau de bord, icône dans la zone de notification,
 // raccourcis clavier globaux et démarrage avec Windows. Toute la logique est dans ../core.
 
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, globalShortcut, dialog, safeStorage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, nativeTheme, shell, globalShortcut, dialog, safeStorage } = require('electron');
 const path = require('path');
 const { Core } = require('../core');
 const { migrateLegacyData } = require('./migrate');
@@ -25,7 +25,32 @@ if (!app.requestSingleInstanceLock()) {
 }
 app.setAppUserModelId('com.zoxam.rlui');
 
+// Liens « rlui://theme/<id> » : le bouton « Installer dans RL-UI » du site de la galerie ouvre l'app sur ce thème.
+// (en développement, Windows doit relancer Electron avec le dossier du projet)
+const LINK = /^rlui:\/\/theme\/([a-z0-9-]{1,40})\/?$/i;
+if (process.defaultApp) {
+  if (process.argv.length >= 2) app.setAsDefaultProtocolClient('rlui', process.execPath, [path.resolve(process.argv[1])]);
+} else app.setAsDefaultProtocolClient('rlui');
+const linkIn = (argv) => (argv || []).find((a) => typeof a === 'string' && LINK.test(a)) || null;
+let pendingLink = linkIn(process.argv);
+function openLink(url) {
+  const m = LINK.exec(String(url || ''));
+  if (!m) return;
+  if (!core || !core.server.port) {
+    pendingLink = url; // (l'app démarre : le lien est suivi dès qu'elle est prête)
+    return;
+  }
+  core.openMarketTheme(m[1].toLowerCase());
+  showWindow();
+}
+// macOS : le lien arrive par cet événement
+app.on('open-url', (e, url) => {
+  e.preventDefault();
+  openLink(url);
+});
+
 const ICON = path.join(__dirname, '..', 'web', 'assets', 'icon.png');
+const ICON_TRAY = path.join(__dirname, '..', 'web', 'assets', 'icon-tray.png'); // sans lettres : lisible en 16 px
 const isDev = !app.isPackaged;
 let core = null;
 let win = null;
@@ -36,7 +61,32 @@ let stopped = false;
 
 const dashboardUrl = () => `http://127.0.0.1:${core.server.port}/?app=1`;
 
+// Thème de la fenêtre : suit le réglage app.theme (system | light | dark). On le donne à Electron
+// (la page et les menus natifs suivent), et les boutons de la barre de titre prennent les couleurs
+// de la barre du haut du tableau de bord (--rail et --muted de web/dashboard/style.css).
+const CHROME = {
+  dark: { color: '#0e1316', symbolColor: '#97a6aa' },
+  light: { color: '#e7eeee', symbolColor: '#55666a' },
+};
+const windowChrome = () => (nativeTheme.shouldUseDarkColors ? CHROME.dark : CHROME.light);
+function applyWindowTheme() {
+  const pref = core.store.settings.app.theme;
+  const source = pref === 'light' || pref === 'dark' ? pref : 'system';
+  if (nativeTheme.themeSource !== source) nativeTheme.themeSource = source;
+  if (!win || win.isDestroyed()) return;
+  const c = windowChrome();
+  win.setBackgroundColor(c.color);
+  // setTitleBarOverlay n'existe que là où la barre de titre est superposée (Windows, Linux)
+  if (typeof win.setTitleBarOverlay === 'function') {
+    try {
+      win.setTitleBarOverlay({ color: c.color, symbolColor: c.symbolColor, height: 44 });
+    } catch {}
+  }
+}
+
 function createWindow(show = true) {
+  applyWindowTheme();
+  const chrome = windowChrome();
   win = new BrowserWindow({
     width: 1340,
     height: 880,
@@ -45,9 +95,9 @@ function createWindow(show = true) {
     show: false,
     title: 'RL-UI',
     icon: ICON,
-    backgroundColor: '#070a12',
+    backgroundColor: chrome.color,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: '#070a12', symbolColor: '#aab4c8', height: 44 },
+    titleBarOverlay: { color: chrome.color, symbolColor: chrome.symbolColor, height: 44 },
     webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, spellcheck: false },
   });
   win.loadURL(dashboardUrl());
@@ -162,6 +212,7 @@ app.whenReady().then(async () => {
         : null,
       openPath: async (p) => !(await shell.openPath(p)),
       openExternal: (url) => shell.openExternal(url),
+      noDonate: !!process.windowsStore,
       onSettingsChanged: (s, prev) => {
         if (JSON.stringify(s.hotkeys) !== JSON.stringify(prev.hotkeys)) registerHotkeys();
         if (s.app.startWithWindows !== prev.app.startWithWindows) applyLoginItem();
@@ -192,18 +243,24 @@ app.whenReady().then(async () => {
   }
   if (migrated) core.log(t('s.migrated'));
   registerHotkeys();
-  tray = new Tray(nativeImage.createFromPath(ICON).resize({ width: 16, height: 16, quality: 'best' }));
+  tray = new Tray(nativeImage.createFromPath(ICON_TRAY).resize({ width: 16, height: 16, quality: 'best' }));
   tray.on('click', showWindow);
   updateTray();
   let trayTimer = null;
+  let shownTheme = core.store.settings.app.theme;
+  nativeTheme.on('updated', applyWindowTheme); // le système passe du clair au sombre
   core.on('changed', () => {
+    if (core.store.settings.app.theme !== shownTheme) {
+      shownTheme = core.store.settings.app.theme;
+      applyWindowTheme();
+    }
     if (trayTimer) return;
     trayTimer = setTimeout(() => {
       trayTimer = null;
       updateTray();
     }, 1000);
   });
-  const hidden = process.argv.includes('--hidden') || core.store.settings.app.startMinimized;
+  const hidden = !pendingLink && (process.argv.includes('--hidden') || core.store.settings.app.startMinimized);
   createWindow(!hidden);
   applyLoginItem();
   updater = new Updater({
@@ -213,10 +270,20 @@ app.whenReady().then(async () => {
     isEnabled: () => core.store.settings.app.autoUpdate !== false,
   });
   updater.start();
+  if (pendingLink) {
+    const link = pendingLink;
+    pendingLink = null;
+    // (le temps que le tableau de bord soit chargé et relié à l'app)
+    setTimeout(() => openLink(link), 1500);
+  }
 });
 
-app.on('second-instance', () => {
-  if (core) showWindow();
+app.on('second-instance', (_e, argv) => {
+  if (!core) return;
+  showWindow();
+  // l'app tournait déjà : Windows a lancé une seconde instance avec le lien en argument
+  const link = linkIn(argv);
+  if (link) openLink(link);
 });
 
 app.on('before-quit', () => {

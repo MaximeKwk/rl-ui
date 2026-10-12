@@ -25,7 +25,7 @@ fs.writeFileSync(path.join(cfgDir, 'TAStatsAPI.ini'), '[TAGame.MatchStatsExporte
 const dataDir = path.join(tmp, 'data');
 const PORT = 5890;
 fs.mkdirSync(dataDir, { recursive: true });
-fs.writeFileSync(path.join(dataDir, 'data.json'), JSON.stringify({ settings: { port: PORT, stats: { transport } } }));
+fs.writeFileSync(path.join(dataDir, 'data.json'), JSON.stringify({ settings: { port: PORT, stats: { transport }, market: { url: 'http://127.0.0.1:9/catalog.json' } } }));
 
 const get = (p) =>
   new Promise((resolve, reject) => {
@@ -122,6 +122,32 @@ function cleanup(code) {
   ok(r1.stats.wins === 3, 'action +1 victoire (Stream Deck)');
   const r2 = JSON.parse((await get(`/api/action/undo?key=${settings.apiKey}`)).body);
   ok(r2.stats.wins === 2, 'annuler la dernière partie');
+
+  // Diagnostic : une entrée par partie vue, avec sa raison et sa trace ; rapport sans la clé d'accès
+  const diag = JSON.parse((await get(`/api/diagnostic?key=${settings.apiKey}`)).body);
+  ok(diag.journal.length === 4 && diag.journal.every((e) => e.outcome === 'counted' && e.why && e.trace.length > 3), `diagnostic : 4 parties vues et expliquées (${diag.journal.length})`);
+  ok(diag.checks.some((c) => c.id === 'account' && c.level === 'ok') && diag.checks.some((c) => c.id === 'log' && c.level === 'ok'), 'diagnostic : compte et journal du jeu au vert');
+  const report = (await get(`/api/diagnostic/report?key=${settings.apiKey}`)).body;
+  ok(report.includes('RL-UI') && report.includes('decision: counted') && !report.includes(settings.apiKey), 'rapport de diagnostic sans la clé d\'accès');
+  ok((await get('/api/diagnostic')).status === 401, 'diagnostic protégé sans clé');
+
+  // Statistiques : vue d'ensemble de la session, sessions, courbe de MMR, export
+  const stv = JSON.parse((await get(`/api/stats?range=session&key=${settings.apiKey}`)).body);
+  ok(stv.overview.played === 4 && stv.overview.wins === 2 && stv.overview.overtime.played === 1 && stv.modes[0].played === 4, `statistiques : vue d'ensemble de la session (${stv.overview.wins}-${stv.overview.losses})`);
+  const sl = JSON.parse((await get(`/api/sessions?key=${settings.apiKey}`)).body);
+  ok(sl.sessions.length === 1 && sl.sessions[0].current && sl.sessions[0].played === 4 && Math.round(sl.sessions[0].mmrDelta) === 4, 'statistiques : la session et sa variation de MMR');
+  const sd = JSON.parse((await get(`/api/sessions/${sl.sessions[0].id}?key=${settings.apiKey}`)).body);
+  ok(sd.overview.results.length === 4 && sd.player === 'Zoxam', 'statistiques : bilan détaillé de la session');
+  const ms = JSON.parse((await get(`/api/stats/mmr?range=all&key=${settings.apiKey}`)).body);
+  ok(ms.series.length === 1 && ms.series[0].points.length >= 5 && ms.series[0].current === 1104, `statistiques : courbe du MMR (${ms.series[0] && ms.series[0].points.length} points)`);
+  const csvText = (await get(`/api/history.csv?scope=all&key=${settings.apiKey}`)).body;
+  ok(csvText.trim().split('\r\n').length === 5, 'export CSV : une ligne par partie');
+
+  // galerie de thèmes : le site est injoignable ici (adresse d'essai fermée), l'app le dit sans planter
+  const mk = await get(`/api/market?key=${settings.apiKey}`);
+  const mkv = JSON.parse(mk.body);
+  ok(mk.status === 200 && mkv.ok === false && mkv.error && Array.isArray(mkv.themes) && mkv.themes.length === 0, 'galerie injoignable : un message clair, rien de cassé');
+  ok((await get('/api/market')).status === 401, 'galerie protégée sans clé');
 
   const page = await get('/overlay/counter');
   ok(page.status === 200 || page.status === 404, 'route overlay');

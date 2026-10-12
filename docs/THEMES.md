@@ -5,7 +5,7 @@
 A theme changes the look of **every overlay** (counter, alerts, recent matches, recap, caster): colors, images, font and sounds. No coding needed: most themes only take two images and three colors.
 
 > [!TIP]
-> The easiest way: in RL-UI, **OBS overlays → Themes → Customize** on the **“Template (with images)”** theme. An editable copy is created and its folder opens. Every time you save a file, the overlays update **live**, even in OBS.
+> The easiest way: in RL-UI, **Overlays → Themes → Customize** on the **“Template (with images)”** theme. An editable copy is created and its folder opens. Every time you save a file, the overlays update **live**, even in OBS.
 
 ## What's in a theme
 
@@ -36,7 +36,7 @@ Custom themes live in RL-UI's data folder (`%APPDATA%\RL-UI\themes`, **Open them
 
 | Field | Purpose |
 | --- | --- |
-| `colors` | Win / loss / overtime colors, as `#rrggbb`. Used everywhere (numbers, glows, confetti). Can be turned off in RL-UI (“Use the theme's colors”). |
+| `colors` | Win / loss / overtime colors, as `#rrggbb`. Used everywhere (numbers, glows, confetti), except on the “Boost” counter, which keeps the colors set in RL-UI. Can be turned off in RL-UI (“Use the theme's colors”). |
 | `translations` | Optional: name and description in another language, e.g. `"translations": { "fr": { "name": "Ma DA", "description": "…" } }`. |
 | `sounds` | Alert sounds. Types: `win`, `loss`, `overtime`, `ot_win`, `ot_loss`, `streak`. A custom sound picked in RL-UI still takes priority. |
 

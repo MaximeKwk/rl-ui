@@ -1,51 +1,82 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><style>
-/* Bannière GitHub (1280×400) : même langage que l'app — graphite mat, plaques d'habillage télé à coins coupés,
-   couleurs réservées au sens (victoire, défaite, équipes). Rendu : tools/shot.js → docs/images/banner.png */
-@font-face { font-family: 'Archivo'; font-weight: 100 900; font-stretch: 62% 125%; src: url('../web/assets/fonts/archivo-latin-standard-normal.woff2') format('woff2-variations'); }
-@font-face { font-family: 'BC'; font-weight: 800; src: url('../web/assets/fonts/barlow-condensed-800-normal.woff2'); }
-@font-face { font-family: 'BC'; font-weight: 600; src: url('../web/assets/fonts/barlow-condensed-600-normal.woff2'); }
-:root { --desk:#121417; --plate:#202329; --line:#353941; --text:#e7e4de; --muted:#9297a1; --faint:#6b707a;
-  --win:#4cc38a; --loss:#e5534b; --blue:#4c8df6; --orange:#f08a3c; }
-html,body{margin:0;width:1280px;height:400px;overflow:hidden;background:var(--desk);color:var(--text);font-family:Archivo,sans-serif}
-body{position:relative}
-/* barre des deux équipes, comme sous le logo */
-.teams{position:absolute;left:0;right:0;bottom:0;height:8px;display:flex}
-.teams i{flex:1;background:var(--blue)}.teams i+i{background:var(--orange)}
+<html lang="en"><head><meta charset="utf-8"><title>RL-UI — bannière</title>
+<style>
+/* Bannière du README (1280 × 400) et image de partage du site (?size=social : 1280 × 640). ?lang=fr|en
+   Identité V2 : turquoise et violet, Unbounded et Onest, le coin coupé du logo. Le compteur et l'alerte sont les vrais,
+   dessinés par web/shared/compose.js à partir des modèles de l'éditeur.
+   Rendu : tools/shot.js avec { "url": "file://…/tools/banner.html?lang=en", "w": 1280, "h": 400, "out": "docs/images/banner.png" } */
+@font-face { font-family: 'Unbounded'; font-weight: 200 900; src: url('../web/assets/fonts/unbounded-latin-wght-normal.woff2') format('woff2-variations'); }
+@font-face { font-family: 'Onest'; font-weight: 100 900; src: url('../web/assets/fonts/onest-latin-wght-normal.woff2') format('woff2-variations'); }
+:root { --desk: #0e1316; --panel: #1a2226; --line-2: #3a474d; --text: #e8eeef; --muted: #97a6aa; --accent: #2fd2c6; --violet: #a996ff; --win: #8bd95a; --loss: #f2685f; --ot: #e8a33d; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 1280px; height: 400px; overflow: hidden; background: var(--desk); color: var(--text); font-family: 'Onest', sans-serif; }
+body.social { height: 640px; }
+.glow { position: absolute; border-radius: 50%; }
+.glow.a { left: -420px; top: -520px; width: 1200px; height: 1100px; background: radial-gradient(closest-side, rgba(21, 122, 116, 0.62), rgba(21, 122, 116, 0.28) 45%, rgba(21, 122, 116, 0) 100%); }
+.glow.b { right: -480px; bottom: -640px; width: 1300px; height: 1250px; background: radial-gradient(closest-side, rgba(88, 70, 178, 0.62), rgba(88, 70, 178, 0.27) 45%, rgba(88, 70, 178, 0) 100%); }
+.grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px); background-size: 64px 64px; }
 
-.id{position:absolute;left:80px;top:92px;display:flex;align-items:center;gap:34px}
-.id img{width:136px;height:136px;display:block}
-h1{margin:0;font-weight:800;font-stretch:118%;font-size:92px;line-height:.92;letter-spacing:-.01em}
-.id p{margin:14px 0 0;font-weight:420;font-size:25px;color:var(--muted);max-width:400px;line-height:1.3}
-.facts{position:absolute;left:80px;bottom:58px;display:flex;font-size:17px;font-weight:520;color:var(--faint)}
-.facts span{padding:0 18px;border-left:1px solid var(--line)}.facts span:first-child{padding-left:0;border:0}
+.id { position: absolute; left: 72px; top: 84px; }
+.social .id { top: 150px; }
+.brand { display: flex; align-items: center; gap: 26px; }
+.brand svg { width: 112px; height: 112px; overflow: visible; }
+.brand path { fill: none; stroke: var(--accent); stroke-width: 10; stroke-linejoin: round; }
+.brand circle { fill: var(--violet); }
+h1 { margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 96px; line-height: 1; letter-spacing: -0.03em; white-space: nowrap; }
+.tag { margin: 26px 0 0; font-size: 27px; color: var(--muted); font-weight: 450; max-width: 560px; line-height: 1.3; }
+.tag b { color: var(--text); font-weight: 600; }
+.facts { position: absolute; left: 72px; bottom: 44px; display: flex; gap: 10px; }
+.social .facts { bottom: 96px; }
+.facts span { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 9px; background: var(--panel); border: 1px solid var(--line-2); font-size: 14.500px; font-weight: 600; white-space: nowrap; }
+.facts span:first-child { background: var(--accent); color: #06201e; border: 0; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }
 
-/* le compteur tel qu'il apparaît en stream */
-.ov{position:absolute;right:80px;top:118px}
-.tag{display:inline-block;background:var(--text);color:var(--plate);font-weight:700;font-stretch:110%;font-size:14px;padding:5px 12px 4px}
-.plate{position:relative;display:flex;align-items:stretch;height:118px;padding:0 10px;isolation:isolate}
-.plate::after{content:'';position:absolute;inset:0;z-index:-1;background:var(--plate);
-  clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px))}
-.c{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 18px;min-width:72px}
-.c+.c{box-shadow:inset 1px 0 0 var(--line)}
-.c b{font-family:BC;font-weight:800;font-size:66px;line-height:.9}
-.c small{margin-top:6px;font-size:14px;font-weight:560;color:var(--muted)}
-.c .w{color:var(--win)}.c .l{color:var(--loss)}
-.c .m{font-size:48px;line-height:1.1}
-</style></head><body>
+/* à droite : le compteur, et une alerte posée dessous */
+.ov { position: absolute; left: 680px; top: 0; width: 600px; height: 100%; }
+.cmph { position: absolute; transform-origin: 0 0; }
+.cmph .cmp { position: absolute; left: 0; top: 0; }
+#ctr { left: 40px; top: 52px; width: 1000px; height: 220px; transform: scale(0.82); }
+.social #ctr { top: 150px; }
+#al { left: -196px; top: -94px; width: 1920px; height: 1080px; transform: scale(0.62); filter: drop-shadow(0 26px 40px rgba(0, 0, 0, 0.5)); }
+.social #al { top: 20px; }
+</style></head>
+<body>
+<div class="glow a"></div><div class="glow b"></div><div class="grid"></div>
 <div class="id">
-  <img src="../build/icon.png" alt="">
-  <div><h1>RL-UI</h1><p>Win and loss tracker with stream overlays for Rocket League</p></div>
+  <div class="brand"><svg viewBox="0 0 100 100"><path d="M27 9H47L91 53V73A18 18 0 0 1 73 91H27A18 18 0 0 1 9 73V27A18 18 0 0 1 27 9Z" /><circle cx="85" cy="15" r="13" /></svg><h1>RL-UI</h1></div>
+  <p class="tag" id="tag"></p>
 </div>
-<div class="facts"><span>Real MMR</span><span>OBS and Streamlabs</span><span>Caster mode</span><span>No mods</span></div>
-<div class="ov">
-  <span class="tag">Session</span>
-  <div class="plate">
-    <div class="c"><b class="w">12</b><small>Wins</small></div>
-    <div class="c"><b class="l">5</b><small>Losses</small></div>
-    <div class="c"><b class="m">71%</b><small>Winrate</small></div>
-    <div class="c"><b class="m w">+37</b><small>MMR</small></div>
-  </div>
-</div>
-<div class="teams"><i></i><i></i></div>
+<div class="facts" id="facts"></div>
+<div class="ov"><div class="cmph" id="ctr"></div><div class="cmph" id="al"></div></div>
+
+<script src="../web/shared/i18n.js"></script>
+<script src="../web/shared/compose.js"></script>
+<script>var module = { exports: {} };</script>
+<script src="../core/themeStarters.js"></script>
+<script>
+(function () {
+  const Q = new URLSearchParams(location.search);
+  const lang = Q.get('lang') === 'fr' ? 'fr' : 'en';
+  if (Q.get('size') === 'social') document.body.classList.add('social');
+  document.documentElement.lang = lang;
+  const T = {
+    fr: { tag: 'Ton stream réagit à tes matchs.<br><b>Rocket League</b>, sans aucun mod.', facts: ['Gratuit · Windows', 'MMR réel', 'OBS et Streamlabs', 'Éditeur de thèmes'] },
+    en: { tag: 'Your stream reacts to your matches.<br><b>Rocket League</b>, no mods at all.', facts: ['Free · Windows', 'Real MMR', 'OBS and Streamlabs', 'Theme editor'] },
+  }[lang];
+  document.getElementById('tag').innerHTML = T.tag;
+  document.getElementById('facts').innerHTML = T.facts.map((f) => `<span>${f}</span>`).join('');
+  const C = window.Compose;
+  const tr = (k, v) => window.I18N.t(lang, k, v);
+  const st = module.exports;
+  const data = C.sample('idle', tr);
+  const ctr = C.mount(document.getElementById('ctr'), C.clean(st.starter('signature', tr)), { animate: false });
+  const al = C.mount(document.getElementById('al'), C.clean(st.overlayStarter('alerts', tr)), { animate: false });
+  const a = C.sampleAlert('win', tr);
+  Object.assign(a.data, { wins: 12, losses: 5, streak: 3, scoreFor: 3, scoreAgainst: 1 });
+  const draw = () => { ctr.update(data); al.update({ ...data, ...C.alertFields(a, tr) }); };
+  draw();
+  // (les textes ajustés se mesurent avec la bonne police)
+  document.fonts.ready.then(draw);
+  C.loadFonts(C.clean(st.overlayStarter('alerts', tr))).then(draw);
+})();
+</script>
 </body></html>

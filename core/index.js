@@ -8,7 +8,10 @@ const crypto = require('crypto');
 const { EventEmitter } = require('events');
 
 const { Store, ALERT_TYPES } = require('./store');
-const { Tracker } = require('./tracker');
+const { Tracker, buildRecord } = require('./tracker');
+const { Journal } = require('./journal');
+const diagnostic = require('./diagnostic');
+const insights = require('./insights');
 const { StatsApiClient } = require('./statsApiClient');
 const { RlLogWatcher } = require('./rlLogWatcher');
 const rlConfig = require('./rlConfig');
@@ -17,7 +20,10 @@ const { TextExporter, renderTemplate, templateVars, customTemplate } = require('
 const { StreamBridge } = require('./streamBridge');
 const { AppServer } = require('./server');
 const { MmrTracker } = require('./mmr');
-const { ThemeManager } = require('./themes');
+const { ThemeManager, DEFAULT_THEME, walk } = require('./themes');
+const { Market, review } = require('./market');
+const { overlayStarter } = require('./themeStarters');
+const Compose = require('../web/shared/compose.js');
 const { CasterFeed } = require('./caster');
 const { TwitchChat } = require('./twitch');
 const { CasterAssets } = require('./casterAssets');
@@ -28,6 +34,8 @@ const i18n = require('./i18n');
 const { t: tr, tn } = i18n;
 
 const SOUND_EXT = new Set(['mp3', 'wav', 'ogg', 'm4a']);
+// Page de dons du développeur (un pourboire libre : RL-UI reste gratuit, rien n'est réservé aux donateurs)
+const DONATE_URL = 'https://ko-fi.com/maximekwk';
 
 class Core extends EventEmitter {
   constructor({ dataDir, documentsDir, webDir, logPath, version = '1.0.0', hooks = {} }) {
@@ -43,6 +51,8 @@ class Core extends EventEmitter {
     this.soundsDir = path.join(dataDir, 'sounds');
     this.logWatcher = new RlLogWatcher({ documentsDir, logPath });
     this.tracker = new Tracker({ store: this.store, logWatcher: this.logWatcher });
+    this.journal = new Journal(this.store); // une entrée par partie vue : comptée ou non, et pourquoi
+    this._journalRev = 0;
     this.caster = new CasterFeed();
     this.casterAssets = new CasterAssets(path.join(dataDir, 'caster'));
     this.chat = new TwitchChat({ dataDir, getSettings: () => this.store.settings, render: (cmd) => this.chatResponse(cmd), vault: this.vault });
@@ -50,6 +60,7 @@ class Core extends EventEmitter {
     this._casterSentAt = 0;
     this.mmr = new MmrTracker(this.store);
     this.themes = new ThemeManager({ builtinDir: path.join(webDir, 'themes'), userDir: path.join(dataDir, 'themes') });
+    this.market = new Market({ store: this.store, themes: this.themes, version }); // galerie de thèmes de la communauté
     this.stats = new StatsApiClient(this._statsOpts({ effective: rlConfig.DEFAULTS }));
     this.text = new TextExporter(path.join(dataDir, 'texte'));
     this.obs = new StreamBridge(() => this.store.settings);
@@ -74,6 +85,7 @@ class Core extends EventEmitter {
     this.themes.watch();
     this.chat.start();
     this.themes.on('changed', () => {
+      this._themesRev = (this._themesRev || 0) + 1; // (les aperçus des thèmes sont rechargés par le tableau de bord)
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
       this._changed();
     });
@@ -92,6 +104,7 @@ class Core extends EventEmitter {
   async stop() {
     clearInterval(this._rlTimer);
     this.stats.stop();
+    this.tracker.shutdown(); // (jeu disparu en pleine partie : elle est close maintenant plutôt qu'oubliée)
     this.logWatcher.stop();
     this.themes.stop();
     this.chat.disconnect();
@@ -166,6 +179,14 @@ class Core extends EventEmitter {
     this.logWatcher.on('change', () => this._changed());
     this.logWatcher.on('mmr', (s) => {
       if (this.store.settings.mmr.enabled) this.mmr.onSample(s);
+      this._changed();
+    });
+    // recherche de partie vue mais MMR inutilisable (plusieurs modes cochés…) : on le dit, une fois par recherche
+    this.logWatcher.on('mmr-skip', (e) => {
+      if (this.store.settings.mmr.enabled && Date.now() - e.at < 60e3) {
+        this.log(tr(`s.dg.mmrSkip.${e.why === 'multi' || e.why === 'no-account' ? e.why : 'other'}`, { t: diagnostic.when(e.at) }), 'warn');
+      }
+      this._changed();
     });
 
     this.mmr.on('update', (u) => {
@@ -194,6 +215,12 @@ class Core extends EventEmitter {
       this.obs.trigger('overtime');
     });
     this.tracker.on('result', (r) => this._onResult(r));
+    this.tracker.on('corrected', (r, before) => this._onCorrected(r, before));
+    this.tracker.on('decision', (d) => {
+      this.journal.add(d);
+      this._journalRev++;
+      this._changed();
+    });
     this.tracker.on('record-updated', () => this._statsChanged());
 
     this.obs.on('status', () => this._changed());
@@ -204,7 +231,7 @@ class Core extends EventEmitter {
     this.caster.on('ended', (r) => this._casterEnded(r));
 
     this.chat.on('status', () => this._changed());
-    this.chat.on('command', (c) => this.log(tr('s.chatCmd', { u: c.user, c: c.name, t: c.text })));
+    this.chat.on('command', (c) => this.log(tr('s.chatCmd', { u: c.user, c: c.name, t: c.text }), 'info', 'chat'));
     this.obs.on('log', (m) => this.log(m, 'warn'));
   }
 
@@ -237,6 +264,24 @@ class Core extends EventEmitter {
     if (r.result === 'W' && this.store.settings.alerts.streakMilestones.includes(st.streak)) {
       this._alert('streak', { ...this._alertData(r, st), n: st.streak });
       this.obs.trigger('streak');
+    }
+  }
+
+  // Retour dans une partie notée comme abandon : le vrai résultat l'a remplacée (compteurs, MMR, alerte).
+  _onCorrected(r, before) {
+    this.mmr.forget(r.id);
+    if (this.store.settings.mmr.enabled && this.mmr.onMatch(r)) this.store.save();
+    this._statsChanged();
+    const st = this.sessionStats();
+    this.log(
+      tr('s.dg.correctedLog', { r: tr(r.result === 'W' ? 's.win' : 's.loss'), ot: r.overtime ? tr('s.inOt') : '', s: `${r.scoreFor}-${r.scoreAgainst}`, pl: playlistLabel(r) }),
+      r.result === 'W' ? 'win' : 'loss'
+    );
+    const type = r.result === 'W' ? (r.overtime ? 'ot_win' : 'win') : r.overtime ? 'ot_loss' : 'loss';
+    // la défaite n'est pas annoncée deux fois si l'abandon l'avait déjà été
+    if (r.result !== before.result || !this.store.settings.alerts.alertOnAbandon) {
+      this._alert(type, this._alertData(r, st));
+      this.obs.trigger(type);
     }
   }
 
@@ -444,8 +489,9 @@ class Core extends EventEmitter {
     return { ...r, playlistName: playlistLabel(r) };
   }
 
-  log(msg, level = 'info') {
-    this.logs.push({ at: Date.now(), msg, level });
+  // tag 'chat' : ligne qui cite des spectateurs, laissée hors du rapport de diagnostic
+  log(msg, level = 'info', tag = '') {
+    this.logs.push(tag ? { at: Date.now(), msg, level, tag } : { at: Date.now(), msg, level });
     if (this.logs.length > 200) this.logs.splice(0, this.logs.length - 200);
     if (process.env.RLUI_DEBUG) console.log(`[${level}] ${msg}`);
     this._changed();
@@ -520,22 +566,35 @@ class Core extends EventEmitter {
   }
 
   // Thème choisi (DA) : feuille de style, couleurs et sons qu'il apporte
+  // Thèmes installés, avec pour ceux qui viennent de la galerie leur identifiant dans le catalogue
+  _themeList() {
+    const from = {};
+    for (const [mid, v] of Object.entries(this.store.data.market.installed)) from[v.theme] = mid;
+    return this.themes.list().map(({ dir, ...t }) => ({ ...t, market: from[t.id] || null }));
+  }
+
   _themeInfo() {
-    return this.themeInfo(this.store.settings.overlay.themePack || 'classique');
+    return this.themeInfo(this.store.settings.overlay.themePack || DEFAULT_THEME);
   }
 
   themeInfo(id) {
-    const t = this.themes.get(id) || this.themes.get('classique');
+    const t = this.themes.get(id) || this.themes.get(DEFAULT_THEME);
     if (!t) return null;
     const v = Math.round(this.themes.stamp(t.id));
     const sounds = {};
     for (const [type, rel] of Object.entries(t.sounds)) sounds[type] = `/themes/${t.id}/${rel}?v=${v}`;
-    return { id: t.id, name: t.name, css: t.hasCss ? `/themes/${t.id}/theme.css?v=${v}` : null, sounds, colors: t.colors };
+    // un thème composé (éditeur) n'a pas de feuille de style : les overlays qu'il ne redessine pas
+    // (alertes, récap…) prennent l'habillage du thème intégré qu'il désigne (« base »)
+    const look = t.format === 2 ? this.themes.get(t.base) || this.themes.get(DEFAULT_THEME) : t;
+    const css = look && look.hasCss ? `/themes/${look.id}/theme.css?v=${Math.round(this.themes.stamp(look.id))}` : null;
+    return { id: t.id, name: t.name, css, sounds, colors: t.colors, compose: t.compose, assets: `/themes/${t.id}/`, v };
   }
 
   _themedOverlay() {
     const o = { ...this.store.settings.overlay };
-    const t = this.themes.get(o.themePack || 'classique');
+    // couleurs réglées par l'utilisateur, avant celles du thème : le compteur « Boost » garde les siennes
+    o.baseColors = { win: o.winColor, loss: o.lossColor, ot: o.otColor };
+    const t = this.themes.get(o.themePack || DEFAULT_THEME) || this.themes.get(DEFAULT_THEME);
     if (t && o.themeColors !== false) {
       if (t.colors.win) o.winColor = t.colors.win;
       if (t.colors.loss) o.lossColor = t.colors.loss;
@@ -552,7 +611,7 @@ class Core extends EventEmitter {
       lang: i18n.getLang(),
       overlay: this._themedOverlay(),
       theme: this._themeInfo(),
-      casterTheme: this.themeInfo(s.caster.themePack || s.overlay.themePack || 'classique'),
+      casterTheme: this.themeInfo(s.caster.themePack || s.overlay.themePack || DEFAULT_THEME),
       alerts: {
         enabled: s.alerts.enabled,
         texts: s.alerts.texts,
@@ -566,6 +625,11 @@ class Core extends EventEmitter {
     };
   }
 
+  // (pas de lien de don dans la version du Microsoft Store : ses règles encadrent les paiements proposés depuis une app)
+  donateUrl() {
+    return this.hooks.noDonate ? null : DONATE_URL;
+  }
+
   dashboardState() {
     const s = this.store.settings;
     const all = this.store.data.matches;
@@ -573,6 +637,7 @@ class Core extends EventEmitter {
     delete allStats.last;
     return {
       version: this.version,
+      donate: this.donateUrl(),
       settings: s,
       port: this.server.port,
       lanAddresses: this.server.lan ? this.server.lanAddresses() : [],
@@ -597,17 +662,100 @@ class Core extends EventEmitter {
       hotkeyErrors: this.hotkeyErrors,
       update: this.update,
       chat: this.chat.status(),
-      themes: { list: this.themes.list().map(({ dir, ...t }) => t), dir: this.themes.userDir },
+      themes: { list: this._themeList(), dir: this.themes.userDir, rev: this._themesRev || 0 },
       mmr: {
         summary: this.mmrSummary(),
         known: this.mmr.known(this.logWatcher.account && this.logWatcher.account.id),
       },
+      diag: this.diagSummary(),
+      // ce qu'un lien « rlui:// » demande d'afficher (thème de la galerie à ouvrir)
+      intent: this._intent || null,
     };
+  }
+
+  // ---------------------------------------------------------------- diagnostic
+  // Résumé envoyé avec l'état du tableau de bord ; le journal complet se lit à la demande (/api/diagnostic).
+  diagSummary() {
+    const checks = diagnostic.checks(this);
+    return { checks, level: diagnostic.worst(checks), rev: this._journalRev, notice: diagnostic.notice(this) };
+  }
+
+  diagnostic() {
+    const checks = diagnostic.checks(this);
+    return { checks, level: diagnostic.worst(checks), rev: this._journalRev, journal: diagnostic.journalView(this, { trace: true }) };
+  }
+
+  diagnosticReport() {
+    return diagnostic.report(this);
+  }
+
+  // « Compter quand même » : une partie vue mais non comptée est ajoutée avec ses vraies données.
+  // player = rang du joueur « moi » dans la liste proposée ; result = 'W' | 'L' quand le vainqueur est inconnu.
+  countSkipped(id, { player = null, result = null } = {}) {
+    const e = this.journal.get(String(id || ''));
+    if (!e || e.outcome !== 'skipped' || !e.draft || e.fixed) return { ok: false, error: tr('s.dg.cantFix') };
+    if (this.store.hasMatch(e.id)) return { ok: false, error: tr('s.dg.already') };
+    const p = Number.isInteger(player) ? e.draft.players[player] : null;
+    const record = buildRecord(e.draft, { player: p ? p.key : undefined, result: result === 'W' || result === 'L' ? result : undefined });
+    if (!record) return { ok: false, error: tr('s.dg.missing') };
+    record.fixed = true; // comptée à la main depuis le diagnostic
+    this.store.insertMatch(record);
+    if (p) this.store.learnId(p.id); // « c'était moi » : reconnu tout seul la prochaine fois
+    if (this.store.settings.mmr.enabled) this.mmr.onMatch(record, { late: true });
+    this.journal.mark(e.id, { fixed: { result: record.result, team: record.myTeam, at: Date.now() } });
+    this._journalRev++;
+    this._statsChanged();
+    this.log(tr('s.dg.fixedLog', { r: tr(record.result === 'W' ? 's.win' : 's.loss'), s: `${record.scoreFor}-${record.scoreAgainst}`, pl: playlistLabel(record) }), record.result === 'W' ? 'win' : 'loss');
+    return { ok: true, result: record.result, inSession: record.sessionId === this.store.data.currentSessionId };
+  }
+
+  // L'avis de l'accueil est masqué pour cette partie (elle reste dans le journal)
+  dismissNotice(id) {
+    const ok = !!this.journal.mark(String(id || ''), { dismissed: true });
+    if (ok) this._changed();
+    return ok;
+  }
+
+  // Une partie retirée de l'historique est notée comme telle dans le journal
+  _journalRemoved(r) {
+    if (r && this.journal.mark(r.id, { removedAt: Date.now() })) this._journalRev++;
   }
 
   history(scope, limit) {
     const list = scope === 'all' ? this.store.data.matches : this.store.sessionMatches();
     return { scope, total: list.length, matches: list.slice(-limit).reverse().map((r) => this._view(r)) };
+  }
+
+  // ---------------------------------------------------------------- statistiques
+  // Vue d'ensemble d'une période (session | 7d | 30d | 90d | all), éventuellement pour un seul mode
+  statsOverview({ range = 'session', mode = 'all' } = {}) {
+    const { list, modes } = insights.select(this.store, { range, mode });
+    return { range, mode, modes, overview: insights.overview(list), mmr: insights.mmrOf(list).map(({ key, ...e }) => e) };
+  }
+
+  // Évolution du MMR, une courbe par mode suivi (compte connecté, sinon le dernier compte vu)
+  mmrSeries({ range = 'all' } = {}) {
+    const acc = this.logWatcher.account && this.logWatcher.account.id;
+    let list = insights.mmrSeries(this.store, this.mmr, { accountId: acc, range });
+    if (!list.length && acc) list = insights.mmrSeries(this.store, this.mmr, { range });
+    return { range, series: list.map(({ key, ...s }) => s) };
+  }
+
+  sessionList(limit = 100) {
+    const r = insights.sessions(this.store, { limit });
+    const strip = (s) => ({ ...s, mmr: s.mmr.map(({ key, ...e }) => e) });
+    return { ...r, sessions: r.sessions.map(strip) };
+  }
+
+  sessionDetail(id) {
+    const d = insights.sessionDetail(this.store, String(id || ''));
+    if (!d) return null;
+    d.summary.mmr = d.summary.mmr.map(({ key, ...e }) => e);
+    return d;
+  }
+
+  historyCsv(scope) {
+    return insights.csv(scope === 'all' ? this.store.data.matches : this.store.sessionMatches());
   }
 
   textValue(field) {
@@ -660,6 +808,7 @@ class Core extends EventEmitter {
       case 'remove-loss': {
         const r = this.store.removeLast(name === 'remove-win' ? 'W' : 'L');
         if (r) this.mmr.forget(r.id);
+        this._journalRemoved(r);
         this._statsChanged();
         if (r) this.log(tr('s.removed', { r: tr(r.result === 'W' ? 's.win' : 's.loss') }));
         return { ok: !!r };
@@ -667,6 +816,7 @@ class Core extends EventEmitter {
       case 'undo': {
         const r = this.store.removeLast();
         if (r) this.mmr.forget(r.id);
+        this._journalRemoved(r);
         this._statsChanged();
         if (r) this.log(tr('s.undone', { r: tr(r.result === 'W' ? 's.win' : 's.loss').toLowerCase() }));
         return { ok: !!r };
@@ -736,6 +886,7 @@ class Core extends EventEmitter {
     const r = this.store.removeMatch(id);
     if (r) {
       this.mmr.forget(r.id);
+      this._journalRemoved(r);
       this._statsChanged();
       this.log(tr('s.matchDeleted'));
     }
@@ -817,13 +968,15 @@ class Core extends EventEmitter {
     }
   }
 
-  async duplicateTheme(id, name) {
+  // open = false : copie d'un thème de l'éditeur, qui s'ouvre dans l'éditeur (ni dossier ouvert, ni thème changé)
+  async duplicateTheme(id, name, open = true) {
     try {
       const r = this.themes.duplicate(id, name);
+      this.log(tr('s.themeCreated', { n: r.id }));
+      if (!open) return { ok: true, ...r };
       this.store.patchSettings({ overlay: { themePack: r.id } });
       this.server.broadcast({ type: 'config', config: this.overlayConfig() });
       this._changed();
-      this.log(tr('s.themeCreated', { n: r.id }));
       if (this.hooks.openPath) await this.hooks.openPath(r.dir);
       return { ok: true, ...r };
     } catch (e) {
@@ -831,11 +984,149 @@ class Core extends EventEmitter {
     }
   }
 
+  // ---- éditeur visuel : thèmes composés
+  createTheme({ name, starter } = {}) {
+    try {
+      const acct = this.logWatcher.account;
+      const r = this.themes.create({ name, kind: starter, author: acct ? acct.name : '' });
+      this.log(tr('s.themeCreated', { n: r.id }));
+      return { ok: true, id: r.id };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // Composition de départ d'un overlay (alertes, dernières parties, récap), dans la langue de l'app
+  overlayStarter(overlay) {
+    const comp = overlayStarter(String(overlay || ''), tr);
+    return comp ? { ok: true, composition: Compose.clean(comp) } : { ok: false, error: tr('s.unknownType') };
+  }
+
+  themeSource(id) {
+    try {
+      return { ok: true, ...this.themes.source(id), active: (this.store.settings.overlay.themePack || DEFAULT_THEME) === id };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  saveThemeSource(id, data) {
+    try {
+      const r = this.themes.saveSource(id, data);
+      // (les overlays se rechargent tout seuls : le dossier des thèmes est surveillé)
+      return { ok: true, ...r };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  saveThemeImage(id, buf, name) {
+    try {
+      return { ok: true, ...this.themes.saveImage(id, buf, name) };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  saveThemePreview(id, buf) {
+    try {
+      return this.themes.savePreview(id, buf);
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // Le thème est-il prêt à être proposé à la galerie ? (mêmes règles que celles appliquées à l'entrée)
+  checkTheme(id) {
+    try {
+      const t = this.themes.get(id);
+      if (!t) throw new Error('missing');
+      const files = walk(t.dir).map((rel) => ({ path: rel, data: fs.readFileSync(path.join(t.dir, rel)) }));
+      const r = review(files, this.version);
+      return { ok: r.ok, problems: r.problems };
+    } catch (e) {
+      return { ok: false, problems: [`theme:${e.message}`] };
+    }
+  }
+
+  // ---- galerie de thèmes de la communauté
+  async marketView(force = false) {
+    return this.market.view(force);
+  }
+
+  async marketInstall(id, use = false) {
+    try {
+      const r = await this.market.install(String(id || ''));
+      this.log(tr(r.updated ? 's.mk.updated' : 's.mk.installed', { n: r.name, v: r.version }));
+      if (use) {
+        this.store.patchSettings({ overlay: { themePack: r.id } });
+        this.server.broadcast({ type: 'config', config: this.overlayConfig() });
+      }
+      this._changed();
+      return { ok: true, ...r };
+    } catch (e) {
+      this.log(tr('s.mk.failed', { e: e.message }), 'warn');
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // Lien « Installer dans RL-UI » du site (rlui://theme/<id>) : le tableau de bord ouvre la fiche du thème.
+  // Rien n'est installé sans un clic dans l'app.
+  openMarketTheme(id) {
+    if (!/^[a-z0-9-]{1,40}$/.test(String(id || ''))) return false;
+    this._intent = { type: 'market', id, n: (this._intent ? this._intent.n : 0) + 1, at: Date.now() };
+    this._changed();
+    return true;
+  }
+
+  marketFavorite(id, on) {
+    return { ok: true, favorite: this.market.favorite(String(id || ''), !!on) };
+  }
+
   removeTheme(id) {
     const ok = this.themes.remove(id);
-    if (ok && this.store.settings.overlay.themePack === id) this.store.patchSettings({ overlay: { themePack: 'classique' } });
+    if (ok) this.market.forget(id);
+    if (ok && this.store.settings.overlay.themePack === id) this.store.patchSettings({ overlay: { themePack: DEFAULT_THEME } });
     if (ok) this.log(tr('s.themeDeleted', { n: id }));
     return ok;
+  }
+
+  // Overlays ajoutables en un clic : nom de la source (fixe, pour la retrouver et la mettre à jour) et taille
+  static get OVERLAY_SOURCES() {
+    return {
+      counter: { name: 'RL-UI Counter', width: 1000, height: 220 },
+      alerts: { name: 'RL-UI Alerts', width: 1920, height: 1080, canvas: true, audio: true },
+      history: { name: 'RL-UI Matches', width: 700, height: 90 },
+      summary: { name: 'RL-UI Recap', width: 1920, height: 1080, canvas: true },
+    };
+  }
+
+  // Adresse d'un overlay vue depuis le logiciel de stream (autre PC = adresse du réseau local)
+  overlayUrl(id) {
+    const s = this.store.settings;
+    const local = !s.obs.host || /^(127\.0\.0\.1|localhost|::1)$/i.test(s.obs.host);
+    const lan = !local && s.lanAccess ? this.server.lanAddresses()[0] : null;
+    return `http://${lan || '127.0.0.1'}:${this.server.port || s.port}/overlay/${id}`;
+  }
+
+  // Ajoute un overlay dans la scène affichée du logiciel de stream connecté (ou met à jour la source qui existe)
+  async obsAddOverlay(id) {
+    const def = Core.OVERLAY_SOURCES[id];
+    if (!def) return { ok: false, error: tr('s.unknownType') };
+    try {
+      // le compteur collé à la jauge de boost se pose en plein écran
+      const boost = this.store.settings.overlay.layout === 'boost';
+      const canvas = !!def.canvas || (id === 'counter' && boost);
+      // un thème de l'éditeur a sa propre toile : la source prend sa taille
+      const th = this.themes.get(this.store.settings.overlay.themePack || DEFAULT_THEME);
+      const comp = th && th.compose ? (id === 'counter' ? (boost ? null : th.compose.counter) : id === 'history' ? th.compose.history : null) : null;
+      const size = comp ? { width: comp.width, height: comp.height } : {};
+      const r = await this.obs.addBrowserSource({ ...def, ...size, canvas, url: this.overlayUrl(id) });
+      this.log(tr(r.created ? 's.obsAdded' : 's.obsUpdated', { n: def.name, c: r.scene, s: this.obs.status.name }));
+      return { ok: true, ...r, name: def.name, software: this.obs.status.name };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
   }
 
   async obsScenes() {
@@ -906,8 +1197,9 @@ class Core extends EventEmitter {
       return false;
     }
     if (target === 'url' && typeof url === 'string') {
-      const ok = /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url) || /^https:\/\/(www\.)?twitch\.tv\/activate/.test(url);
-      if (ok && this.hooks.openExternal) {
+      const ok = url === this.donateUrl() || /^http:\/\/(127\.0\.0\.1|localhost):\d+\//.test(url) || /^https:\/\/(obsproject\.com|www\.rocketleague\.com)\//.test(url) || /^https:\/\/github\.com\/MaximeKwk\/rl-ui(\/|$)/.test(url) || /^https:\/\/(www\.)?twitch\.tv\/activate/.test(url);
+      // (et les pages que le site de la galerie donne à ouvrir : son accueil, la page d'un thème, celle pour publier)
+      if ((ok || (/^https:\/\//.test(url) && this.market.canOpen(url))) && this.hooks.openExternal) {
         await this.hooks.openExternal(url);
         return true;
       }

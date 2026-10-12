@@ -64,6 +64,9 @@
       }
       .pill.l { background: var(--loss); color: #fff; }
       .pill.ot { box-shadow: inset 0 calc(5px * var(--s)) 0 var(--ot); }
+      /* thème de l'éditeur : il dessine lui-même le récap, sur sa toile mise à l'échelle de l'écran */
+      .hidden { display: none !important; }
+      #cmp { position: fixed; left: 0; top: 0; transform-origin: 0 0; }
     </style>
   </head>
   <body>
@@ -97,13 +100,52 @@
       </div>
       <div class="last"><span class="t" data-i18n="ov.recent">Recent</span><span id="pills" style="display: inline-flex; gap: calc(8px * var(--s))"></span></div>
     </div>
+    <div id="cmp" class="hidden"></div>
     <script src="/static/shared/i18n.js"></script>
     <script src="/static/shared/client.js"></script>
+    <script src="/static/shared/compose.js"></script>
     <script>
       (function () {
         const P = OT.params;
         if (P.get('preview')) document.body.classList.add('preview');
         const $ = (id) => document.getElementById(id);
+        // thème composé (éditeur visuel) : { view, comp }
+        let composed = null;
+        let composedSig = '';
+        let overlayCfg = {};
+        function placeComposed() {
+          if (!composed) return;
+          const { comp } = composed;
+          const k = (Math.min(innerWidth / comp.width, innerHeight / comp.height) || 1) * OT.num('scale', 1);
+          const host = $('cmp');
+          host.style.width = `${comp.width}px`;
+          host.style.height = `${comp.height}px`;
+          host.style.left = `${(innerWidth - comp.width * k) / 2}px`;
+          host.style.top = `${(innerHeight - comp.height * k) / 2}px`;
+          host.style.transform = `scale(${k})`;
+        }
+        addEventListener('resize', placeComposed);
+        function mountCompose(c) {
+          const pack = (c && c.theme) || {};
+          const comp = pack.compose && pack.compose.summary ? pack.compose.summary : null;
+          $('cmp').classList.toggle('hidden', !comp);
+          document.querySelector('.card').classList.toggle('hidden', !!comp);
+          if (!comp) {
+            composed = null;
+            composedSig = '';
+            $('cmp').textContent = '';
+            return;
+          }
+          const sig = `${pack.id}|${pack.v}|${JSON.stringify(comp)}`;
+          if (sig !== composedSig) {
+            composedSig = sig;
+            $('cmp').textContent = '';
+            const view = window.Compose.mount($('cmp'), comp, { imageUrl: (src) => `${pack.assets || ''}${src}?v=${pack.v || 0}` });
+            composed = { view, comp };
+            view.enter(comp.enter || 'fade');
+          }
+          placeComposed();
+        }
         const C = 2 * Math.PI * 52;
         let labels = { w: 'W', l: 'L' };
         function scale(c) {
@@ -118,6 +160,12 @@
         }
         function render(st) {
           if (!st) return;
+          if (composed) {
+            // (&mmr=0 dans l'adresse : le MMR n'est pas montré)
+            const d = window.Compose.dataFrom(st, overlayCfg, OT.t);
+            if (P.get('mmr') === '0') Object.assign(d, { mmr: null, mmrDelta: null });
+            return composed.view.update(d);
+          }
           const s = st.session;
           $('w').textContent = s.wins;
           $('l').textContent = s.losses;
@@ -154,6 +202,8 @@
         OT.on('config', (c) => {
           OT.applyColors(c.overlay);
           labels = { w: c.overlay.labelWin || OT.t('lbl.w'), l: c.overlay.labelLoss || OT.t('lbl.l') };
+          overlayCfg = c.overlay || {};
+          mountCompose(c);
           render(OT.state);
         });
         OT.on('state', render);

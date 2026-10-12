@@ -1,0 +1,13 @@
+{
+  "name": "Minimal",
+  "author": "Zoxam",
+  "version": "2.0.0",
+  "description": "Thin outline, white numerals, color kept to the letters. Stays out of the way of the game.",
+  "translations": {
+    "fr": {
+      "name": "Épuré",
+      "description": "Contour fin, chiffres blancs, la couleur réservée aux lettres. Se fait oublier sur le jeu."
+    }
+  },
+  "colors": { "win": "#8bd95a", "loss": "#f2685f", "ot": "#f0b03f" }
+}

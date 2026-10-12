@@ -72,6 +72,19 @@ test('bloc de matchmaking -> MMR réel daté', () => {
   assert.strictEqual(s[0].accountId, ACC);
   assert.strictEqual(s[0].partySize, 1);
   assert.strictEqual(s[0].at, new Date(2026, 8, 30, 14, 7, 7).getTime() + 54840);
+  // la recherche sur plusieurs modes n'est plus ignorée en silence : elle est signalée avec sa raison
+  const skipped = out.filter((e) => e.type === 'mmr-skip');
+  assert.strictEqual(skipped.length, 1);
+  assert.strictEqual(skipped[0].why, 'multi');
+  assert.deepStrictEqual(skipped[0].playlists, [1, 2, 3]);
+});
+
+test('recherche lancée avant que le compte soit connu : MMR non lu, raison donnée', () => {
+  const sess = new LogSession(new Date(2026, 8, 30, 15, 0, 0).getTime());
+  const out = [];
+  for (const l of ['Log: Log file open, 30/09/2026 14:07:07', ...block('0054.84', '29.3723')]) out.push(...sess.feed(l));
+  assert.strictEqual(out.filter((e) => e.type === 'mmr').length, 0);
+  assert.strictEqual(out.find((e) => e.type === 'mmr-skip').why, 'no-account');
 });
 
 test('une partie entre deux files : variation exacte', () => {
